@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { NavLink, useHistory } from 'react-router-dom';
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
+import { EthContext } from '../../../contexts/EthContext';
+import { useWallet } from 'use-wallet'
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
@@ -70,6 +72,8 @@ const Item = styled(NavLink)`
 const Header = () => {
   const history = useHistory();
 
+  const ethContext = useContext(EthContext);
+
   return (
     <Container>
       <LeftContainer>
@@ -79,11 +83,14 @@ const Header = () => {
         <Item to={ROUTE_WRAP}>wrap</Item>
       </LeftContainer>
       <RightContainer>
-        <Item className="mobile-none" to="#">
+        <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
           {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
         </Item>
-        <Item to="#">
-          <PowerIcon />
+        <Item
+          to="#"
+          onClick={() => ethContext.disconnectWallet()}
+        >
+          <PowerIcon/>
         </Item>
         <Item to="#">
           <CogIcon />
