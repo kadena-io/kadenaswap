@@ -1,0 +1,22 @@
+
+(begin-tx)
+(define-namespace 'swap (sig-keyset) (sig-keyset))
+(define-namespace 'test (sig-keyset) (sig-keyset))
+(load "root/fungible-v2.pact")
+(load "root/coin.pact")
+
+(load "exchange.pact")
+
+(load "test/ABC.pact")
+(commit-tx)
+
+(begin-tx)
+
+;; test pair canonicity
+(use swap.exchange)
+(expect "canonical pair keys match"
+  (get-pair-key test.abc coin)
+  (get-pair-key coin test.abc))
+(env-data {'bob: ["bob"]})
+(add-liquidity coin test.abc 100.0 200.0 50.0 100.0 "Bob" (read-keyset 'bob) (at 'block-time (chain-data)))
+;; TODO test event emission
