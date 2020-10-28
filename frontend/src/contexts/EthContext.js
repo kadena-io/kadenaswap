@@ -1,7 +1,7 @@
 import React, { useState, createContext, useEffect } from 'react';
 import { Connectors } from 'web3-react'
 import Web3 from 'web3';
-import { useWallet, UseWalletProvider } from 'use-wallet'
+import { useWallet } from 'use-wallet'
 
 export const EthContext = createContext();
 
@@ -9,35 +9,50 @@ export const EthProvider = (props) => {
 
   const wallet = useWallet()
 
-  const [test, setTest] = useState("hi");
   const [web3, setWeb3] = useState(null);
+  const [accts, setAccts] = useState([]);
 
 
-  useEffect(() => {
-    getEth()
+  useEffect(async () => {
+    await getEth()
   }, []);
 
-  const getEth = () => {
+  const getEth = async () => {
     try {
-      let web3 = new Web3(window.ethereum)
+      let web3Inst = new Web3(window.ethereum)
+      await setWeb3(web3Inst);
+      await getAccounts();
+      console.log(accts)
     } catch (e) {
       console.log(e)
     }
   }
 
-  const connectMetaMask = () => {
-    //default connect is with metamask
-    wallet.connect();
+  const getAccounts = async () => {
+    try {
+      const as = await web3.eth.getAccounts();
+      setAccts(as);
+    } catch (e) {
+      setAccts([]);
+      console.log(e)
+    }
   }
 
-  const disconnectWallet = () => {
-    wallet.reset();
+  const connectMetaMask = async () => {
+    await wallet.connect();
+    await getAccounts();
+    console.log(accts);
+  }
+
+  const disconnectWallet = async () => {
+    await wallet.reset();
   }
 
   return (
     <EthContext.Provider
       value={{
-        test,
+        accts,
+        web3,
         connectMetaMask,
         disconnectWallet
       }}

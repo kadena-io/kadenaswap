@@ -84,7 +84,12 @@ const Header = () => {
       </LeftContainer>
       <RightContainer>
         <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
-          {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
+          {(ethContext.accts.length > 0
+            ?
+              reduceToken(ethContext.accts[0])
+            :
+              'connect metamask'
+          )}
         </Item>
         <Item
           to="#"
