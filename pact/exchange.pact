@@ -16,7 +16,7 @@
   (defschema pair
     tokenA:module{fungible-v2}
     tokenB:module{fungible-v2}
-    balance:decimal
+    supply:decimal
     account:string
     guard:guard
     reserveA:decimal
@@ -24,6 +24,8 @@
     )
 
   (deftable pairs:{pair})
+
+  (defconst MINIMUM_LIQUIDITY 0.1)
 
   (defun get-pair:object{pair}
     ( tokenA:module{fungible-v2}
@@ -82,11 +84,44 @@
                   [amountAOptimal amountBDesired])))))
         (amountA (at 0 amounts))
         (amountB (at 1 amounts))
-        (a (at 'account p))
+        (pair-account (at 'account p))
       )
-      (tokenA::transfer account-id a amountA)
-      (tokenB::transfer account-id a amountB)
+      ;; transfer
+      (tokenA::transfer account-id pair-account amountA)
+      (tokenB::transfer account-id pair-account amountB)
+      ;; mint
+      (let*
+        ( (balance0 (tokenA::get-balance pair-account))
+          (balance1 (tokenB::get-balance pair-account))
+          (reserve0 (at 'reserveA p))
+          (reserve1 (at 'reserveB p))
+          (amount0 (- balance0 reserve0))
+          (amount1 (- balance1 reserve1))
+          (totalSupply (at 'supply p))
+          (liquidity
+            (if (= 0.0 totalSupply)
+              (let ((liq (- (sqrt (* amount0 amount1)) MINIMUM_LIQUIDITY)))
+                (mint pair-account (at 'guard p) MINIMUM_LIQUIDITY)
+                liq)
+              (let ((l0 (/ (* amount0 totalSupply) reserve0))
+                    (l1 (/ (* amount1 totalSupply) reserve1))
+                   )
+                ;; need min, max
+                (if (<= l0 l1) l0 l1))))
+        )
+        (enforce (> liquidity 0.0) "mint: insufficient liquidity minted")
+        (mint account-id account-guard liquidity)
+        (update pairs (get-pair-key tokenA tokenB)
+          { 'reserveA: balance0
+          , 'reserveB: balance1
+          })
+      )
     )
+  )
+
+
+  (defun mint (to:string guard:guard amount:decimal)
+    1
   )
 
   (defun quote
@@ -110,7 +145,7 @@
            (g (create-module-guard key))
            (p { 'tokenA: tokenA
               , 'tokenB: tokenB
-              , 'balance: 0.0
+              , 'supply: 0.0
               , 'account: a
               , 'guard: g
               , 'reserveA: 0.0

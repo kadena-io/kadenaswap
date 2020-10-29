@@ -22,7 +22,7 @@
 
 (expect "new pair success"
   0.0
-  (at 'balance (create-pair coin test.abc "")))
+  (at 'supply (create-pair coin test.abc "")))
 (env-data {'bob: ["bob"]})
 (env-sigs [
   { 'key: "bob"
