@@ -48,5 +48,18 @@
   141.321356237309
   (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
 )
-(get-pair-key coin test.abc)
+(expect "minimum liquidity for pair"
+  MINIMUM_LIQUIDITY
+  (swap.tokens.get-balance
+    (get-pair-key coin test.abc)
+    (at 'account (get-pair coin test.abc)))
+)
+(expect "kda debited for bob"
+  900.0
+  (coin.get-balance "Bob")
+)
+(expect "abc debited for bob"
+  1800.0
+  (test.abc.get-balance "Bob")
+)
 ;; TODO test event emission
