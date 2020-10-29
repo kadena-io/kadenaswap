@@ -11,11 +11,15 @@ export const EthProvider = (props) => {
 
   const [web3, setWeb3] = useState(null);
   const [accts, setAccts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
 
-  useEffect(async () => {
-    await getEth()
-  }, []);
+  useEffect(() => {
+    (async function _getEth() {
+      await getEth();
+    })();
+    getAccounts();
+  }, [accts]);
 
   const getEth = async () => {
     try {
