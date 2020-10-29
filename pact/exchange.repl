@@ -1,15 +1,18 @@
 
 (begin-tx)
-(define-namespace 'swap (sig-keyset) (sig-keyset))
-(define-namespace 'test (sig-keyset) (sig-keyset))
 (load "root/fungible-v2.pact")
 (load "root/coin.pact")
 
+(env-data
+  { 'swap-ns-user: []
+  , 'swap-ns-admin: []
+  })
+(load "ns.pact")
 (load "tokens.pact")
 (load "exchange.pact")
 
 
-
+(define-namespace 'test (sig-keyset) (sig-keyset))
 (load "test/ABC.pact")
 (commit-tx)
 
@@ -45,4 +48,5 @@
   141.321356237309
   (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
 )
+(get-pair-key coin test.abc)
 ;; TODO test event emission
