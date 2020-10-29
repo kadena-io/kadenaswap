@@ -33,5 +33,7 @@
   }])
 (test-capability (coin.COINBASE))
 (coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
+(test.abc.create-account "Bob" (read-keyset 'bob))
+(test.abc.fund "Bob" 2000.0)
 (add-liquidity coin test.abc 100.0 200.0 50.0 100.0 "Bob" (read-keyset 'bob) (at 'block-time (chain-data)))
 ;; TODO test event emission
