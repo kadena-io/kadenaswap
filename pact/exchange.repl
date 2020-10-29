@@ -5,7 +5,10 @@
 (load "root/fungible-v2.pact")
 (load "root/coin.pact")
 
+(load "tokens.pact")
 (load "exchange.pact")
+
+
 
 (load "test/ABC.pact")
 (commit-tx)
@@ -20,9 +23,7 @@
 (expect "pair does not exist yet" false
   (pair-exists test.abc coin))
 
-(expect "new pair success"
-  0.0
-  (at 'supply (create-pair coin test.abc "")))
+(create-pair coin test.abc "")
 (env-data {'bob: ["bob"]})
 (env-sigs [
   { 'key: "bob"
@@ -35,5 +36,13 @@
 (coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
 (test.abc.create-account "Bob" (read-keyset 'bob))
 (test.abc.fund "Bob" 2000.0)
-(add-liquidity coin test.abc 100.0 200.0 50.0 100.0 "Bob" (read-keyset 'bob) (at 'block-time (chain-data)))
+(add-liquidity coin test.abc
+  100.0 200.0 50.0 100.0
+  "Bob" (read-keyset 'bob)
+  (at 'block-time (chain-data)))
+
+(expect "token liquidity for bob"
+  141.321356237309
+  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
+)
 ;; TODO test event emission

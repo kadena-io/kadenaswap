@@ -4,7 +4,7 @@
 
 (module exchange GOVERNANCE
 
-  (defcap GOVERNANCE () true)
+  (defcap GOVERNANCE () (enforce false "autonomous"))
 
   (defcap CREATE_PAIR
     ( tokenA:module{fungible-v2}
@@ -13,10 +13,11 @@
     ;; dupes checked in 'get-pair-create'
     true)
 
+  (defcap ISSUANCE () true)
+
   (defschema pair
     tokenA:module{fungible-v2}
     tokenB:module{fungible-v2}
-    supply:decimal
     account:string
     guard:guard
     reserveA:decimal
@@ -26,6 +27,10 @@
   (deftable pairs:{pair})
 
   (defconst MINIMUM_LIQUIDITY 0.1)
+
+  (defun init ()
+    (tokens.init-issuer (create-module-guard "issuance"))
+  )
 
   (defun get-pair:object{pair}
     ( tokenA:module{fungible-v2}
@@ -97,12 +102,13 @@
           (reserve1 (at 'reserveB p))
           (amount0 (- balance0 reserve0))
           (amount1 (- balance1 reserve1))
-          (totalSupply (at 'supply p))
+          (key (get-pair-key tokenA tokenB))
+          (totalSupply (tokens.total-supply key))
           (liquidity
             (if (= 0.0 totalSupply)
-              (let ((liq (- (sqrt (* amount0 amount1)) MINIMUM_LIQUIDITY)))
-                (mint pair-account (at 'guard p) MINIMUM_LIQUIDITY)
-                liq)
+              (with-capability (ISSUANCE)
+                (mint key pair-account (at 'guard p) MINIMUM_LIQUIDITY)
+                (- (sqrt (* amount0 amount1)) MINIMUM_LIQUIDITY))
               (let ((l0 (/ (* amount0 totalSupply) reserve0))
                     (l1 (/ (* amount1 totalSupply) reserve1))
                    )
@@ -110,8 +116,9 @@
                 (if (<= l0 l1) l0 l1))))
         )
         (enforce (> liquidity 0.0) "mint: insufficient liquidity minted")
-        (mint account-id account-guard liquidity)
-        (update pairs (get-pair-key tokenA tokenB)
+        (with-capability (ISSUANCE)
+          (mint key account-id account-guard liquidity))
+        (update pairs key
           { 'reserveA: balance0
           , 'reserveB: balance1
           })
@@ -120,8 +127,12 @@
   )
 
 
-  (defun mint (to:string guard:guard amount:decimal)
-    1
+  (defun mint (token:string to:string guard:guard amount:decimal)
+    (require-capability (ISSUANCE))
+    (let ((a (tokens.round-unit token amount)))
+      (install-capability (tokens.MINT token to a))
+      (tokens.mint token to guard a)
+    )
   )
 
   (defun quote
@@ -145,7 +156,6 @@
            (g (create-module-guard key))
            (p { 'tokenA: tokenA
               , 'tokenB: tokenB
-              , 'supply: 0.0
               , 'account: a
               , 'guard: g
               , 'reserveA: 0.0
@@ -191,3 +201,5 @@
 )
 
 (create-table pairs)
+
+(init)
