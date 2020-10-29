@@ -85,21 +85,31 @@ const Header = () => {
       <RightContainer>
         {(ethContext.accts.length > 0
           ?
-            <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
-              {reduceToken(ethContext.accts[0])}
-            </Item>
+            <>
+              <Item className="mobile-none" to="#">
+                {reduceToken(ethContext.accts[0])}
+              </Item>
+              <Item
+                to="#"
+                onClick={() => ethContext.disconnectWallet()}
+              >
+                {ethContext.balance + " ETH"}
+              </Item>
+            </>
           :
             <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
               connect metamask
             </Item>
         )}
-
+{/*
+  THIS WALLET DISCONNECTING DOESNT DISCONNECT METAMASK
         <Item
           to="#"
           onClick={() => ethContext.disconnectWallet()}
         >
           <PowerIcon/>
         </Item>
+*/}
         <Item to="#">
           <CogIcon />
         </Item>

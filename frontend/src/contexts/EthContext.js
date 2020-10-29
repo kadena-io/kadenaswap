@@ -12,6 +12,7 @@ export const EthProvider = (props) => {
   const [web3, setWeb3] = useState(null);
   const [accts, setAccts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState(0)
 
 
   useEffect(() => {
@@ -19,7 +20,9 @@ export const EthProvider = (props) => {
       try {
         let web3Inst = await new Web3(window.ethereum)
         const as = await web3Inst.eth.getAccounts();
+        const bal = await web3Inst.eth.getBalance();
         await setAccts(as);
+        await setBalance(bal);
         await setWeb3(web3Inst);
       } catch (e) {
         console.log('did not find web3 instance')
@@ -42,8 +45,19 @@ export const EthProvider = (props) => {
     try {
       const as = await web3.eth.getAccounts();
       await setAccts(as);
+      await getBalance();
     } catch (e) {
       // setAccts([]);
+      console.log(e)
+    }
+  }
+
+  const getBalance = async () => {
+    try {
+      const bal = await web3.eth.getBalance();
+      console.log(bal)
+      await setBalance(bal);
+    } catch (e) {
       console.log(e)
     }
   }
@@ -56,10 +70,14 @@ export const EthProvider = (props) => {
   }
 
   const disconnectWallet = async () => {
+    //NOTE: this does not disconnect the wallet fully
+    //  only changes provider
+    //    user must manually disconnect wallet for secure session to end
+    console.log('disc')
     await wallet.reset();
     console.log(wallet.status)
     //VERIFY WALLET IS DISCONNECTED
-    await setAccts([])
+    // await setAccts([])
   }
 
   return (
@@ -67,6 +85,7 @@ export const EthProvider = (props) => {
       value={{
         accts,
         web3,
+        balance,
         connectMetaMask,
         disconnectWallet
       }}
