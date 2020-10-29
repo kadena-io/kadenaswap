@@ -25,6 +25,23 @@
 
   (deftable pairs:{pair})
 
+  (defun get-pair:object{pair}
+    ( tokenA:module{fungible-v2}
+      tokenB:module{fungible-v2}
+    )
+    (read pairs (get-pair-key tokenA tokenB)))
+
+  (defun pair-exists:bool
+    ( tokenA:module{fungible-v2}
+      tokenB:module{fungible-v2}
+    )
+    (with-default-read pairs
+      (get-pair-key tokenA tokenB)
+      { 'account: "" }
+      { 'account := a }
+      (> (length a) 0))
+  )
+
   (defun add-liquidity
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
@@ -37,7 +54,7 @@
       deadline:time
     )
     (let*
-      ( (p (get-pair-create tokenA tokenB))
+      ( (p (get-pair tokenA tokenB))
         (canon (is-canonical tokenA tokenB))
         (rA (at 'reserveA p))
         (rB (at 'reserveB p))
@@ -59,8 +76,10 @@
                   [amountAOptimal amountBDesired])))))
         (amountA (at 0 amounts))
         (amountB (at 1 amounts))
+        (a (at 'account p))
       )
-      (tokenA::transfer-create account-id (at 'account p) (at 'guard p) amountA)
+      (tokenA::transfer account-id a amountA)
+      (tokenB::transfer account-id a amountB)
     )
   )
 
@@ -75,30 +94,29 @@
   )
 
 
-  (defun get-pair-create:object{pair}
+  (defun create-pair:object{pair}
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
+      hint:string
       )
-    (let ((key (get-pair-key tokenA tokenB)))
-      (with-default-read pairs key
-        { 'balance: -1.0 }
-        { 'balance := balance }
-        (if (= balance -1.0)
-          (let ((new-pair
-                { 'tokenA: tokenA
-                , 'tokenB: tokenB
-                , 'balance: 0.0
-                , 'account: (create-pair-account key)
-                , 'guard: (create-module-guard key)
-                , 'reserveA: 0.0
-                , 'reserveB: 0.0
-                }))
-            (install-capability (CREATE_PAIR tokenA tokenB))
-            (with-capability (CREATE_PAIR tokenA tokenB)
-              (insert pairs key new-pair)
-              new-pair))
-          (read pairs key))))
-  )
+    (let* ((key (get-pair-key tokenA tokenB))
+           (a (create-pair-account key hint))
+           (g (create-module-guard key))
+           (p { 'tokenA: tokenA
+              , 'tokenB: tokenB
+              , 'balance: 0.0
+              , 'account: a
+              , 'guard: g
+              , 'reserveA: 0.0
+              , 'reserveB: 0.0
+              })
+           )
+      (install-capability (CREATE_PAIR tokenA tokenB))
+      (with-capability (CREATE_PAIR tokenA tokenB)
+        (insert pairs key p)
+        (tokenA::create-account a g)
+        (tokenB::create-account a g)
+        p)))
 
   (defun get-pair-key
     ( tokenA:module{fungible-v2}
@@ -126,8 +144,8 @@
   )
 
   (defun create-pair-account:string
-    ( key:string )
-    (hash (+ key (format "{}" [(at 'block-time (chain-data))])))
+    ( key:string hint:string)
+    (hash (+ hint (+ key (format "{}" [(at 'block-time (chain-data))]))))
   )
 )
 
