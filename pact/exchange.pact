@@ -42,6 +42,11 @@
       (> (length a) 0))
   )
 
+  (defun ensure-deadline (deadline:time)
+    (enforce (>= deadline (at 'block-time (chain-data)))
+      "expired")
+  )
+
   (defun add-liquidity
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
@@ -53,6 +58,7 @@
       account-guard:guard
       deadline:time
     )
+    (ensure-deadline deadline)
     (let*
       ( (p (get-pair tokenA tokenB))
         (canon (is-canonical tokenA tokenB))
