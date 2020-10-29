@@ -83,14 +83,17 @@ const Header = () => {
         <Item to={ROUTE_WRAP}>wrap</Item>
       </LeftContainer>
       <RightContainer>
-        <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
-          {(ethContext.accts.length > 0
-            ?
-              reduceToken(ethContext.accts[0])
-            :
-              'connect metamask'
-          )}
-        </Item>
+        {(ethContext.accts.length > 0
+          ?
+            <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
+              {reduceToken(ethContext.accts[0])}
+            </Item>
+          :
+            <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
+              connect metamask
+            </Item>
+        )}
+
         <Item
           to="#"
           onClick={() => ethContext.disconnectWallet()}

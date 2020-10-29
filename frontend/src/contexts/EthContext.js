@@ -15,17 +15,23 @@ export const EthProvider = (props) => {
 
 
   useEffect(() => {
-    (async function _getEth() {
-      await getEth();
+    (async function _getEthEnv() {
+      try {
+        let web3Inst = await new Web3(window.ethereum)
+        const as = await web3Inst.eth.getAccounts();
+        await setAccts(as);
+        await setWeb3(web3Inst);
+      } catch (e) {
+        console.log('did not find web3 instance')
+        await setAccts([])
+      }
     })();
-    getAccounts();
-  }, [accts]);
+  }, []);
 
   const getEth = async () => {
     try {
-      let web3Inst = new Web3(window.ethereum)
+      let web3Inst = await new Web3(window.ethereum)
       await setWeb3(web3Inst);
-      await getAccounts();
       console.log(accts)
     } catch (e) {
       console.log(e)
@@ -35,21 +41,25 @@ export const EthProvider = (props) => {
   const getAccounts = async () => {
     try {
       const as = await web3.eth.getAccounts();
-      setAccts(as);
+      await setAccts(as);
     } catch (e) {
-      setAccts([]);
+      // setAccts([]);
       console.log(e)
     }
   }
 
   const connectMetaMask = async () => {
     await wallet.connect();
+    console.log(wallet.status)
     await getAccounts();
     console.log(accts);
   }
 
   const disconnectWallet = async () => {
     await wallet.reset();
+    console.log(wallet.status)
+    //VERIFY WALLET IS DISCONNECTED
+    await setAccts([])
   }
 
   return (
