@@ -39,9 +39,16 @@
 (coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
 (test.abc.create-account "Bob" (read-keyset 'bob))
 (test.abc.fund "Bob" 2000.0)
+
+;; add-liquidity
+
 (add-liquidity coin test.abc
-  100.0 200.0 50.0 100.0
-  "Bob" (read-keyset 'bob)
+  100.0
+  200.0
+  50.0
+  100.0
+  "Bob"
+  (read-keyset 'bob)
   (at 'block-time (chain-data)))
 
 (expect "token liquidity for bob"
@@ -55,11 +62,51 @@
     (at 'account (get-pair coin test.abc)))
 )
 (expect "kda debited for bob"
-  900.0
-  (coin.get-balance "Bob")
-)
+  900.0 (coin.get-balance "Bob"))
 (expect "abc debited for bob"
-  1800.0
-  (test.abc.get-balance "Bob")
+  1800.0 (test.abc.get-balance "Bob"))
+(expect "kda credited for pair"
+  100.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "abc credited for pair"
+  200.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+
+;; remove-liquidity, flipping tokens to test canonicity
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(swap.tokens.TRANSFER
+      (get-pair-key coin test.abc)
+      "Bob"
+      (at 'account (get-pair coin test.abc))
+      141.321356237309)
+    ]}])
+;;TODO fix bug, installing here for now
+(install-capability (test.abc.TRANSFER (at 'account (get-pair coin test.abc)) "Bob" 200.0))
+(install-capability (coin.TRANSFER (at 'account (get-pair coin test.abc)) "Bob" 100.0))
+(remove-liquidity test.abc coin
+  141.321356237309
+  200.0
+  100.0
+  "Bob"
+  (at 'block-time (chain-data)))
+
+(expect "token liquidity for bob"
+  0.0
+  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
 )
+(expect "minimum liquidity for pair"
+  MINIMUM_LIQUIDITY
+  (swap.tokens.get-balance
+    (get-pair-key coin test.abc)
+    (at 'account (get-pair coin test.abc)))
+)
+(expect "kda credited for bob"
+  1000.0 (coin.get-balance "Bob"))
+(expect "abc credited for bob"
+  2000.0 (test.abc.get-balance "Bob"))
+(expect "kda debited for pair"
+  0.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "abc debited for pair"
+  0.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+
 ;; TODO test event emission

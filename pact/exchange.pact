@@ -83,7 +83,7 @@
                   [amountADesired amountBOptimal])
                 (let ((amountAOptimal (quote amountBDesired reserveB reserveA)))
                   (enforce (<= amountAOptimal amountADesired)
-                    "add-liquidity: optimal A greater than desired")
+                    "add-liquidity: optimal A less than desired")
                   (enforce (>= amountAOptimal amountAMin)
                     "add-liquidity: insufficient A amount")
                   [amountAOptimal amountBDesired])))))
@@ -96,8 +96,10 @@
       (tokenB::transfer account-id pair-account amountB)
       ;; mint
       (let*
-        ( (balance0 (tokenA::get-balance pair-account))
-          (balance1 (tokenB::get-balance pair-account))
+        ( (token0:module{fungible-v2} (at 'tokenA p))
+          (token1:module{fungible-v2} (at 'tokenB p))
+          (balance0 (token0::get-balance pair-account))
+          (balance1 (token1::get-balance pair-account))
           (reserve0 (at 'reserveA p))
           (reserve1 (at 'reserveB p))
           (amount0 (- balance0 reserve0))
@@ -126,7 +128,6 @@
     )
   )
 
-
   (defun mint (token:string to:string guard:guard amount:decimal)
     (require-capability (ISSUANCE))
     (let ((a (tokens.round-unit token amount)))
@@ -145,6 +146,57 @@
     (/ (* amountA reserveB) reserveA)
   )
 
+
+  (defun remove-liquidity
+    ( tokenA:module{fungible-v2}
+      tokenB:module{fungible-v2}
+      liquidity:decimal
+      amountAMin:decimal
+      amountBMin:decimal
+      to:string
+      deadline:time )
+
+    (ensure-deadline deadline)
+
+    (let* ( (p (get-pair tokenA tokenB))
+            (pair-account (at 'account p))
+            (pair-key (get-pair-key tokenA tokenB))
+          )
+      (tokens.transfer pair-key to pair-account liquidity)
+      (let*
+        ( (token0:module{fungible-v2} (at 'tokenA p))
+          (token1:module{fungible-v2} (at 'tokenB p))
+          (balance0 (token0::get-balance pair-account))
+          (balance1 (token1::get-balance pair-account))
+          (liquidity_ (tokens.get-balance pair-key pair-account))
+          (total-supply (tokens.total-supply pair-key))
+          (amount0 (/ (* liquidity_ balance0) total-supply))
+          (amount1 (/ (* liquidity_ balance1) total-supply))
+        )
+        (enforce (and (> amount0 0.0) (> amount1 0.0))
+          "remove-liquidity: insufficient liquidity burned")
+        (with-capability (ISSUANCE)
+          (burn pair-key pair-account liquidity))
+        ;;TODO fix defcap dynamic bug
+        ;(install-capability (token0::TRANSFER pair-account to amount0))
+        (token0::transfer pair-account to amount0)
+        ;(install-capability (token1::TRANSFER pair-account to amount1))
+        (token1::transfer pair-account to amount1)
+        (update pairs pair-key
+          { 'reserveA: (token0::get-balance pair-account)
+          , 'reserveB: (token1::get-balance pair-account)
+          })
+      )
+    )
+  )
+
+  (defun burn (token:string to:string amount:decimal)
+    (require-capability (ISSUANCE))
+    (let ((a (tokens.round-unit token amount)))
+      (install-capability (tokens.BURN token to a))
+      (tokens.burn token to a)
+    )
+  )
 
   (defun create-pair:object{pair}
     ( tokenA:module{fungible-v2}

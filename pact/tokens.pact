@@ -73,7 +73,7 @@
       amount:decimal
     )
     @managed amount TRANSFER-mgr
-    (enforce-unit amount)
+    (enforce-unit token amount)
     (enforce (> amount 0.0) "Positive amount")
     (compose-capability (DEBIT token sender))
     (compose-capability (CREDIT token receiver))
@@ -183,7 +183,17 @@
     (with-capability (MINT token account amount)
       (with-capability (CREDIT token account)
         (credit token account guard amount)))
+  )
+
+  (defun burn:string
+    ( token:string
+      account:string
+      amount:decimal
     )
+    (with-capability (BURN token account amount)
+      (with-capability (DEBIT token account)
+        (debit token account amount)))
+  )
 
   (defun debit:string
     ( token:string
