@@ -61,6 +61,10 @@
     (get-pair-key coin test.abc)
     (at 'account (get-pair coin test.abc)))
 )
+(expect "total supply for pair"
+  (+ 141.321356237309 MINIMUM_LIQUIDITY)
+  (swap.tokens.total-supply (get-pair-key coin test.abc))
+)
 (expect "kda debited for bob"
   900.0 (coin.get-balance "Bob"))
 (expect "abc debited for bob"
@@ -100,6 +104,10 @@
     (get-pair-key coin test.abc)
     (at 'account (get-pair coin test.abc)))
 )
+(expect "total supply for pair"
+  MINIMUM_LIQUIDITY
+  (swap.tokens.total-supply (get-pair-key coin test.abc))
+)
 (expect "kda credited for bob"
   1000.0 (coin.get-balance "Bob"))
 (expect "abc credited for bob"
@@ -109,4 +117,47 @@
 (expect "abc debited for pair"
   0.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
-;; TODO test event emission
+(commit-tx)
+
+;; add back liquidity for swap
+
+(begin-tx)
+(use swap.exchange)
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
+    ]
+  }])
+(add-liquidity coin test.abc
+  100.0
+  200.0
+  50.0
+  100.0
+  "Bob"
+  (read-keyset 'bob)
+  (at 'block-time (chain-data)))
+
+(expect "token liquidity for bob"
+  141.421356237309
+  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
+)
+(expect "minimum liquidity for pair"
+  MINIMUM_LIQUIDITY
+  (swap.tokens.get-balance
+    (get-pair-key coin test.abc)
+    (at 'account (get-pair coin test.abc)))
+)
+(expect "total supply for pair"
+  (+ 141.421356237309 MINIMUM_LIQUIDITY)
+  (swap.tokens.total-supply (get-pair-key coin test.abc))
+)
+(expect "kda debited for bob"
+  900.0 (coin.get-balance "Bob"))
+(expect "abc debited for bob"
+  1800.0 (test.abc.get-balance "Bob"))
+(expect "kda credited for pair"
+  100.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "abc credited for pair"
+  200.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
