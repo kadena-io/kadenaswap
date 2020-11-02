@@ -14,6 +14,7 @@
 
 (define-namespace 'test (sig-keyset) (sig-keyset))
 (load "test/ABC.pact")
+(load "test/XYZ.pact")
 (commit-tx)
 
 (begin-tx)
@@ -27,6 +28,8 @@
   (pair-exists test.abc coin))
 
 (create-pair coin test.abc "")
+(create-pair coin test.xyz "")
+
 (env-data
   { 'bob: ["bob"]
   , 'alice: ["alice"]
@@ -36,6 +39,8 @@
 (coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
 (test.abc.create-account "Bob" (read-keyset 'bob))
 (test.abc.fund "Bob" 2000.0)
+(test.xyz.create-account "Bob" (read-keyset 'bob))
+(test.xyz.fund "Bob" 600.0)
 (coin.coinbase "Alice" (read-keyset 'alice) 10000.0)
 (test.abc.create-account "Alice" (read-keyset 'alice))
 (test.abc.fund "Alice" 20000.0)
@@ -135,6 +140,8 @@
   , 'caps:
     [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
      (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
+     (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 100.0)
+     (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 60.0)
     ]
   }])
 (add-liquidity coin test.abc
@@ -169,6 +176,15 @@
 (expect "abc credited for pair"
   200.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
+(add-liquidity coin test.xyz
+  100.0
+  60.0
+  50.0
+  30.0
+  "Bob"
+  (read-keyset 'bob)
+  (at 'block-time (chain-data)))
+
 (env-sigs [
   { 'key: "alice"
   , 'caps:
@@ -181,7 +197,7 @@
   "Alice" 18.13221787760298))
 (expect "swap exact in" ["Write succeeded"]
   (swap-exact-in 10.0 18.0 [coin test.abc]
-    "Alice" (at 'block-time (chain-data))))
+    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 (expect "kda debited for alice"
   9990.0 (coin.get-balance "Alice"))
@@ -190,4 +206,45 @@
 (expect "kda credited for pair"
   110.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
 (expect "abc debited for pair"
-  181.86778212239702 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+  181.86778212239702
+  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+
+;; two-way swap
+
+(env-sigs [
+  { 'key: "alice"
+  , 'caps:
+    [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 30.0)
+    ]
+  }])
+;; TODO modref Capabilities
+(install-capability
+  (coin.TRANSFER
+    (at 'account (get-pair coin test.abc))
+    (at 'account (get-pair coin test.xyz))
+    15.535624025463))
+(install-capability
+  (test.xyz.TRANSFER
+    (at 'account (get-pair coin test.xyz))
+    "Alice"
+    8.04700786369056))
+(expect "swap exact in" ["Write succeeded","Write succeeded"]
+  (swap-exact-in 30.0 1.0 [test.abc coin test.xyz]
+    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+
+(expect "abc debited for alice"
+  19988.13221787760298 (test.abc.get-balance "Alice"))
+(expect "abc credited for coin:abc"
+  211.86778212239702
+  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+(expect "kda debited for coin:abc"
+  94.464375974537
+  (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "kda credited for coin:xyz"
+  115.535624025463
+  (coin.get-balance (at 'account (get-pair coin test.xyz))))
+(expect "xyz debited for coin:xyz"
+  51.95299213630944
+  (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
+(expect "xyz credited for alice"
+  8.04700786369056 (test.xyz.get-balance "Alice"))

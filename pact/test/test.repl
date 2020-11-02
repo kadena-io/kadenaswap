@@ -1,3 +1,4 @@
 (define-namespace 'test (sig-keyset) (sig-keyset))
 (load "../root/fungible-v2.pact")
 (load "ABC.pact")
+(load "XYZ.pact")

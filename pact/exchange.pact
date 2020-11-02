@@ -218,6 +218,7 @@
       amountOutMin:decimal
       path:[module{fungible-v2}]
       to:string
+      guard:guard
       deadline:time
     )
     (enforce-deadline deadline)
@@ -235,7 +236,7 @@
       )
       (enforce (>= (at 'qty (at 0 allocs)) amountOutMin)
         "swap-exact-in: insufficient output amount")
-      (swap to (reverse allocs))
+      (swap to guard (reverse allocs))
     )
   )
 
@@ -268,6 +269,7 @@
 
   (defun swap
     ( to:string
+      guard:guard
       allocs:[object{alloc}]
     )
     (let*
@@ -275,13 +277,14 @@
         (head-token:module{fungible-v2} (at 'token head))
       )
       (head-token::transfer to (at 'account (at 'pair head)) (at 'qty head))
-      (map (swap-leg (- (length allocs) 1) to) (drop 1 allocs))
+      (map (swap-leg (- (length allocs) 1) to guard) (drop 1 allocs))
     )
   )
 
   (defun swap-leg
     ( last:integer
       to:string
+      guard:guard
       alloc:object{alloc}
     )
     (let*
@@ -291,16 +294,19 @@
         (token:module{fungible-v2} (at 'token alloc))
         (reserve-out (reserve-for p token))
         (path (at 'path alloc))
+        (is-last (= last (at 'idx alloc)))
         (recipient
-          (if (= last (at 'idx alloc))
-            to
+          (if is-last to
             (at 'account (get-pair (at 0 path) (at 1 path)))))
+        (recip-guard
+          (if is-last guard
+            (at 'guard (get-pair (at 0 path) (at 1 path)))))
       )
       (enforce (> amount-out 0.0) "swap-leg: insufficient output")
       (enforce (< amount-out reserve-out) "swap-leg: insufficient liquidity")
       (enforce (!= recipient account) "swap-leg: invalid TO")
       ;; TODO install modref caps
-      (token::transfer account to (at 'qty alloc))
+      (token::transfer-create account recipient recip-guard (at 'qty alloc))
       (let*
         ( (leg0 (at 'leg0 p))
           (leg1 (at 'leg1 p))
