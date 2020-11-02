@@ -239,7 +239,7 @@
     )
   )
 
-  (defconst FEE 0.997)
+  (defconst FEE 0.003)
 
   (defun compute-out
     ( allocs:[object{alloc}]
@@ -252,7 +252,7 @@
         (p (get-pair token-in token-out))
         (reserveIn (reserve-for p token-in))
         (reserveOut (reserve-for p token-out))
-        (amountInWithFee (* FEE amountIn))
+        (amountInWithFee (* (- 1.0 FEE) amountIn))
         (numerator (* amountInWithFee reserveOut))
         (denominator (+ reserveIn amountInWithFee))
       )
@@ -318,8 +318,8 @@
           (amount1In (if (> balance1 (- reserve1 amount1Out))
                         (- balance1 (- reserve1 amount1Out))
                         0.0))
-          (balance0adjusted (- balance0 (* amount0In 0.003)))
-          (balance1adjusted (- balance1 (* amount1In 0.003)))
+          (balance0adjusted (- balance0 (* amount0In FEE)))
+          (balance1adjusted (- balance1 (* amount1In FEE)))
         )
         (enforce (or (> amount0In 0.0) (> amount1In 0.0))
           "swap-leg: insufficient input amount")
