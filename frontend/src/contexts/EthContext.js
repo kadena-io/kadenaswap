@@ -17,6 +17,9 @@ export const EthProvider = (props) => {
 
   useEffect(() => {
     (async function _getEthEnv() {
+      console.log("dssss")
+      console.log(process.env.REACT_APP_TEST)
+      console.log(process.env.REACT_APP_API_KEY)
       try {
         let web3Inst = await new Web3(window.ethereum)
         await setWeb3(web3Inst);
@@ -24,7 +27,6 @@ export const EthProvider = (props) => {
         await setAccts(as);
         let bal = await web3Inst.eth.getBalance(as[0]);
         bal = web3Inst.utils.fromWei(bal)
-        console.log(bal)
         await setBalance(bal);
       } catch (e) {
         console.log(e)
