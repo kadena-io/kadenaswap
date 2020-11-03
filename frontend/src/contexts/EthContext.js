@@ -19,12 +19,15 @@ export const EthProvider = (props) => {
     (async function _getEthEnv() {
       try {
         let web3Inst = await new Web3(window.ethereum)
-        const as = await web3Inst.eth.getAccounts();
-        const bal = await web3Inst.eth.getBalance();
-        await setAccts(as);
-        await setBalance(bal);
         await setWeb3(web3Inst);
+        const as = await web3Inst.eth.getAccounts();
+        await setAccts(as);
+        let bal = await web3Inst.eth.getBalance(as[0]);
+        bal = web3Inst.utils.fromWei(bal)
+        console.log(bal)
+        await setBalance(bal);
       } catch (e) {
+        console.log(e)
         console.log('did not find web3 instance')
         await setAccts([])
       }
@@ -87,7 +90,8 @@ export const EthProvider = (props) => {
         web3,
         balance,
         connectMetaMask,
-        disconnectWallet
+        disconnectWallet,
+        getBalance
       }}
     >
       {props.children}
