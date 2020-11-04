@@ -29,6 +29,17 @@
 
 (create-pair coin test.abc "")
 (create-pair coin test.xyz "")
+(expect "create-pair (2) events" ;; TODO reverse
+  [ { "name": "swap.exchange.CREATE_PAIR"
+    , "params": [coin test.abc]
+    , "module-hash": (at 'hash (describe-module "swap.exchange"))
+    }
+    { "name": "swap.exchange.CREATE_PAIR"
+    , "params": [coin test.xyz]
+    , "module-hash": (at 'hash (describe-module "swap.exchange"))
+    }
+  ]
+  (env-events true))
 
 (env-data
   { 'bob: ["bob"]
@@ -56,14 +67,48 @@
      (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
     ]
   }])
-(add-liquidity coin test.abc
-  100.0
-  200.0
-  50.0
-  100.0
-  "Bob"
-  (read-keyset 'bob)
-  (at 'block-time (chain-data)))
+
+(expect "add-liquidity"
+  { "liquidity": 141.321356237309
+  , "supply": 141.421356237309
+  , "amount0": 100.0
+  , "amount1": 200.0 }
+  (add-liquidity
+    coin
+    test.abc
+    100.0
+    200.0
+    50.0
+    100.0
+    "Bob"
+    (read-keyset 'bob)
+    (at 'block-time (chain-data))))
+
+(expect "add-liquidity events" ;; TODO reverse
+  [ { "name": "coin.TRANSFER"
+    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 100.0]
+    , "module-hash": (at 'hash (describe-module "coin"))
+    }
+    { "name": "test.abc.TRANSFER"
+    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 200.0]
+    , "module-hash": (at 'hash (describe-module "test.abc"))
+    }
+    { "name": "swap.tokens.MINT"
+    , "params": [ (get-pair-key coin test.abc)
+                  (at 'account (get-pair test.abc coin)) 0.1]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "swap.tokens.MINT"
+    , "params": [(get-pair-key coin test.abc) "Bob" 141.321356237309]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "swap.exchange.UPDATE"
+    , "params": [(get-pair-key coin test.abc) 100.0 200.0]
+    , "module-hash": (at 'hash (describe-module "swap.exchange"))
+    }
+  ]
+  (env-events true))
+
 
 (expect "token liquidity for bob"
   141.321356237309
@@ -105,13 +150,41 @@
 ;;TODO fix bug, installing here for now
 (install-capability (test.abc.TRANSFER (at 'account (get-pair coin test.abc)) "Bob" 200.0))
 (install-capability (coin.TRANSFER (at 'account (get-pair coin test.abc)) "Bob" 100.0))
-(remove-liquidity test.abc coin
-  141.321356237309
-  200.0
-  100.0
-  "Bob"
-  (at 'block-time (chain-data)))
 
+(expect "remove-liquidity"
+  { "amount0": 100.0
+  , "amount1": 200.0}
+  (remove-liquidity test.abc coin
+    141.321356237309
+    200.0
+    100.0
+    "Bob"
+    (at 'block-time (chain-data))))
+
+(expect "remove-liquidity events" ;; TODO reverse
+  [ { "name": "swap.tokens.TRANSFER"
+    , "params": [ (get-pair-key coin test.abc) "Bob"
+                  (at 'account (get-pair coin test.abc)) 141.321356237309 ]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "swap.tokens.BURN"
+    , "params": [ (get-pair-key coin test.abc)
+                  (at 'account (get-pair coin test.abc)) 141.321356237309]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "coin.TRANSFER"
+    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 100.0]
+    , "module-hash": (at 'hash (describe-module "coin"))
+    }
+    { "name": "test.abc.TRANSFER"
+    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 200.0]
+    , "module-hash": (at 'hash (describe-module "test.abc"))
+    }
+    { "name": "swap.exchange.UPDATE"
+    , "params": [(get-pair-key coin test.abc) 0.0 0.0]
+    , "module-hash": (at 'hash (describe-module "swap.exchange"))
+  } ]
+  (env-events true))
 (expect "token liquidity for bob"
   0.0
   (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
@@ -195,6 +268,10 @@
   (at 'block-time (chain-data)))
 
 
+;; not re-testing events for liquidity adding
+(env-events true)
+
+
 ;;
 ;; swap-exact-in
 ;;
@@ -211,7 +288,10 @@
   "Alice" 18.13221787760298))
 
 ;; swap!
-(expect "swap exact in" ["Write succeeded"]
+(expect "swap exact in"
+  [ { "token": "coin", "amount": 10.0 }
+    { "token": "test.abc", "amount": 18.13221787760298 }
+  ]
   (swap-exact-in 10.0 18.0 [coin test.abc]
     "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
@@ -224,6 +304,29 @@
 (expect "abc debited for pair"
   181.86778212239702
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+
+(expect "swap-exact-in events"
+  [ { "module-hash": (at 'hash (describe-module "coin"))
+    , "name": "coin.TRANSFER"
+    , "params": ["Alice" (at 'account (get-pair test.abc coin)) 10.0]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    , "name": "swap.exchange.SWAP"
+    , "params": [ (at 'account (get-pair test.abc coin))
+                  "Alice" 10.0 18.13221787760298]
+    }
+    { "module-hash": (at 'hash (describe-module "test.abc"))
+    , "name": "test.abc.TRANSFER"
+    , "params": [ (at 'account (get-pair test.abc coin))
+                  "Alice" 18.13221787760298]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    , "name": "swap.exchange.UPDATE"
+    , "params": [ (get-pair-key coin test.abc)
+                  110.0 181.86778212239702]
+    }
+  ]
+  (env-events true))
 
 ;; 3-way swap
 
@@ -244,7 +347,11 @@
     (at 'account (get-pair coin test.xyz))
     "Alice"
     8.04700786369056))
-(expect "swap exact in 3-way" ["Write succeeded","Write succeeded"]
+(expect "swap exact in 3-way"
+  [ { "token": "test.abc", "amount": 30.0}
+    { "token": "coin", "amount": 15.535624025463}
+    { "token": "test.xyz", "amount": 8.04700786369056}
+  ]
   (swap-exact-in 30.0 1.0 [test.abc coin test.xyz]
     "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
@@ -265,6 +372,45 @@
 (expect "xyz credited for alice"
   8.04700786369056 (test.xyz.get-balance "Alice"))
 
+(expect "swap-exact-in 3-way events"
+  [ { "module-hash": (at 'hash (describe-module "test.abc"))
+    , "name": "test.abc.TRANSFER"
+    , "params": ["Alice" (at 'account (get-pair test.abc coin)) 30.0]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    , "name": "swap.exchange.SWAP"
+    , "params": [ (at 'account (get-pair test.abc coin))
+                  (at 'account (get-pair test.xyz coin))
+                  30.0 15.535624025463]
+    }
+    { "module-hash": (at 'hash (describe-module "coin"))
+    , "name": "coin.TRANSFER"
+    , "params": [ (at 'account (get-pair test.abc coin))
+                  (at 'account (get-pair test.xyz coin)) 15.535624025463]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    , "name": "swap.exchange.UPDATE"
+    , "params": [ (get-pair-key coin test.abc)
+                  94.464375974537 211.86778212239702]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    , "name": "swap.exchange.SWAP"
+    , "params": [ (at 'account (get-pair test.xyz coin)) "Alice"
+                  15.535624025463 8.04700786369056]
+    }
+    { "module-hash": (at 'hash (describe-module "test.xyz"))
+    , "name": "test.xyz.TRANSFER"
+    , "params": [ (at 'account (get-pair test.xyz coin))
+                  "Alice" 8.04700786369056]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    , "name": "swap.exchange.UPDATE"
+    , "params": [ (get-pair-key coin test.xyz)
+                  115.535624025463 51.95299213630944]
+    }
+  ]
+  (env-events true))
+
 (commit-tx)
 
 ;;
@@ -284,7 +430,10 @@
 (install-capability (test.abc.TRANSFER (at 'account (get-pair test.abc coin))
   "Alice" 10.0))
 
-(expect "swap exact out" ["Write succeeded"]
+(expect "swap exact out"
+  [ { "token": "coin", "amount": 4.693597999833 }
+    { "token": "test.abc", "amount": 10.0 }
+  ]
   (swap-exact-out 10.0 5.0 [coin test.abc]
     "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
@@ -314,7 +463,11 @@
 (install-capability (test.xyz.TRANSFER (at 'account (get-pair test.xyz coin))
   "Alice" 5.0))
 
-(expect "swap exact in 3-way" ["Write succeeded","Write succeeded"]
+(expect "swap exact in 3-way"
+  [ { "token": "test.abc", "amount": 28.78004347733101 }
+    { "token": "coin", "amount": 12.340350271030 }
+    { "token": "test.xyz", "amount": 5.0 }
+  ]
   (swap-exact-out 5.0 100.0 [test.abc coin test.xyz]
     "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 

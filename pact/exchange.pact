@@ -96,7 +96,7 @@
                  , 'reserve: reserve1 }}))
   )
 
-  (defun add-liquidity
+  (defun add-liquidity:object
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
       amountADesired:decimal
@@ -145,7 +145,7 @@
           (amount1 (- balance1 reserve1))
           (key (get-pair-key tokenA tokenB))
           (totalSupply (tokens.total-supply key))
-          (liquidity
+          (liquidity (tokens.round-unit key
             (if (or (= 0.0 reserve0) (= 0.0 reserve1))
               (let ((l (sqrt (* amount0 amount1))))
                 (if (= totalSupply 0.0)
@@ -157,23 +157,26 @@
                     (l1 (/ (* amount1 totalSupply) reserve1))
                    )
                 ;; need min, max
-                (if (<= l0 l1) l0 l1))))
+                (if (<= l0 l1) l0 l1)))))
         )
         (enforce (> liquidity 0.0) "mint: insufficient liquidity minted")
         (with-capability (ISSUING)
           (mint key account-id account-guard liquidity))
         (with-capability (UPDATING)
           (update-reserves p key balance0 balance1))
+        { "liquidity": liquidity
+        , "supply": (tokens.total-supply key)
+        , "amount0": amount0
+        , "amount1": amount1
+        }
       )
     )
   )
 
   (defun mint (token:string to:string guard:guard amount:decimal)
     (require-capability (ISSUING))
-    (let ((a (tokens.round-unit token amount)))
-      (install-capability (tokens.MINT token to a))
-      (tokens.mint token to guard a)
-    )
+    (install-capability (tokens.MINT token to amount))
+    (tokens.mint token to guard amount)
   )
 
   (defun quote
@@ -187,7 +190,7 @@
   )
 
 
-  (defun remove-liquidity
+  (defun remove-liquidity:object
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
       liquidity:decimal
@@ -226,16 +229,17 @@
           (update-reserves p pair-key
             (token0::get-balance pair-account)
             (token1::get-balance pair-account)))
+        { 'amount0: amount0
+        , 'amount1: amount1
+        }
       )
     )
   )
 
   (defun burn (token:string to:string amount:decimal)
     (require-capability (ISSUING))
-    (let ((a (tokens.round-unit token amount)))
-      (install-capability (tokens.BURN token to a))
-      (tokens.burn token to a)
-    )
+    (install-capability (tokens.BURN token to amount))
+    (tokens.burn token to amount)
   )
 
   (defschema alloc
@@ -395,9 +399,13 @@
     (let*
       ( (head:object{alloc} (at 0 allocs))
         (head-token:module{fungible-v2} (at 'token-out head))
+        (account (at 'account (at 'pair head)))
+        (out (at 'out head))
       )
-      (head-token::transfer to (at 'account (at 'pair head)) (at 'out head))
-      (map (swap-leg (- (length allocs) 1) to guard) (drop 1 allocs))
+      (head-token::transfer to account out)
+      (+ [ { 'token: (format "{}" [head-token])
+           , 'amount: out } ]
+        (map (swap-leg (- (length allocs) 1) to guard) (drop 1 allocs)))
     )
   )
 
@@ -458,6 +466,9 @@
           "swap-leg: K")
         (with-capability (UPDATING)
           (update-reserves p (get-pair-key token0 token1) balance0 balance1))
+        { 'token: (format "{}" [token])
+        , 'amount: amount-out
+        }
       )
     )
   )
