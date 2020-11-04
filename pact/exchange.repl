@@ -45,7 +45,9 @@
 (test.abc.create-account "Alice" (read-keyset 'alice))
 (test.abc.fund "Alice" 20000.0)
 
+;;
 ;; add-liquidity
+;;
 
 (env-sigs [
   { 'key: "bob"
@@ -86,7 +88,11 @@
 (expect "abc credited for pair"
   200.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
-;; remove-liquidity, flipping tokens to test canonicity
+;;
+;; remove-liquidity
+;;
+
+;; flip tokens to test canonicity
 (env-sigs [
   { 'key: "bob"
   , 'caps:
@@ -131,8 +137,11 @@
 
 (commit-tx)
 
-;; add back liquidity for swap
+;;
+;; swaps
+;;
 
+;; add back liquidity for swap
 (begin-tx)
 (use swap.exchange)
 (env-sigs [
@@ -185,6 +194,11 @@
   (read-keyset 'bob)
   (at 'block-time (chain-data)))
 
+
+;;
+;; swap-exact-in
+;;
+
 (env-sigs [
   { 'key: "alice"
   , 'caps:
@@ -195,6 +209,8 @@
 (install-capability
   (test.abc.TRANSFER (at 'account (get-pair coin test.abc))
   "Alice" 18.13221787760298))
+
+;; swap!
 (expect "swap exact in" ["Write succeeded"]
   (swap-exact-in 10.0 18.0 [coin test.abc]
     "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
@@ -209,7 +225,7 @@
   181.86778212239702
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
-;; two-way swap
+;; 3-way swap
 
 (env-sigs [
   { 'key: "alice"
@@ -228,7 +244,7 @@
     (at 'account (get-pair coin test.xyz))
     "Alice"
     8.04700786369056))
-(expect "swap exact in" ["Write succeeded","Write succeeded"]
+(expect "swap exact in 3-way" ["Write succeeded","Write succeeded"]
   (swap-exact-in 30.0 1.0 [test.abc coin test.xyz]
     "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
@@ -248,3 +264,74 @@
   (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
 (expect "xyz credited for alice"
   8.04700786369056 (test.xyz.get-balance "Alice"))
+
+(commit-tx)
+
+;;
+;; swap-exact-out
+;;
+
+(begin-tx)
+(use swap.exchange)
+
+(env-sigs [
+  { 'key: "alice"
+  , 'caps:
+    [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 4.693597999833)
+    ]
+  }])
+;; todo fix defcaps
+(install-capability (test.abc.TRANSFER (at 'account (get-pair test.abc coin))
+  "Alice" 10.0))
+
+(expect "swap exact out" ["Write succeeded"]
+  (swap-exact-out 10.0 5.0 [coin test.abc]
+    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+
+(expect "kda debited for alice"
+  9985.306402000167 (coin.get-balance "Alice"))
+(expect "abc credited for alice"
+  19998.13221787760298 (test.abc.get-balance "Alice"))
+(expect "kda credited for pair"
+  99.157973974370 (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "abc debited for pair"
+  201.86778212239702
+  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+
+(env-sigs [
+  { 'key: "alice"
+  , 'caps:
+    [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 28.78004347733101)
+    ]
+  }])
+
+;; todo fix defcaps
+(install-capability
+  (coin.TRANSFER
+    (at 'account (get-pair test.abc coin))
+    (at 'account (get-pair test.xyz coin))
+    12.340350271030))
+(install-capability (test.xyz.TRANSFER (at 'account (get-pair test.xyz coin))
+  "Alice" 5.0))
+
+(expect "swap exact in 3-way" ["Write succeeded","Write succeeded"]
+  (swap-exact-out 5.0 100.0 [test.abc coin test.xyz]
+    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+
+
+(expect "abc debited for alice"
+  19969.35217440027197 (test.abc.get-balance "Alice"))
+(expect "abc credited for coin:abc"
+  230.64782559972803
+  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+(expect "kda debited for coin:abc"
+  86.817623703340
+  (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "kda credited for coin:xyz"
+  127.875974296493
+  (coin.get-balance (at 'account (get-pair coin test.xyz))))
+(expect "xyz debited for coin:xyz"
+  46.95299213630944
+  (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
+(expect "xyz credited for alice"
+  13.04700786369056 (test.xyz.get-balance "Alice"))
