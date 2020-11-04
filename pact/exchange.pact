@@ -7,34 +7,49 @@
   (defcap GOVERNANCE () (enforce false "autonomous"))
 
   (defcap CREATE_PAIR
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2} )
-    @managed
+    ( token0:module{fungible-v2}
+      token1:module{fungible-v2}
+      key:string
+      account:string )
+    " Pair-created event for TOKEN0 and TOKEN1 pairs with KEY liquidity token \
+    \ and ACCOUNT on leg tokens."
+    @event
     ;; dupes checked in 'get-pair-create'
     true)
 
-  (defcap ISSUING () true)
+  (defcap ISSUING ()
+    "Private defcap for issuing operations."
+    true)
 
-  (defcap SWAPPING () true)
+  (defcap SWAPPING ()
+    "Private defcap for swapping operations."
+    true)
 
   (defcap SWAP
     ( sender:string
       receiver:string
       in:decimal
+      token-in:module{fungible-v2}
       out:decimal
+      token-out:module{fungible-v2}
     )
-    @managed
+    " Swap event debiting IN of TOKEN-IN from SENDER \
+    \ for OUT of TOKEN-OUT on RECEIVER."
+    @event
     true
   )
 
-  (defcap UPDATING () true)
+  (defcap UPDATING ()
+    "Private defcap for updating operations."
+    true)
 
   (defcap UPDATE
     ( pair:string
       reserve0:decimal
       reserve1:decimal
     )
-    @managed
+    "Event notifying reserves update for PAIR to RESERVE0 and RESERVE1."
+    @event
     true
   )
 
@@ -87,7 +102,6 @@
       reserve1:decimal
     )
     (require-capability (UPDATING))
-    (install-capability (UPDATE pair-key reserve0 reserve1))
     (with-capability (UPDATE pair-key reserve0 reserve1)
       (update pairs pair-key
         { 'leg0: { 'token: (at 'token (at 'leg0 p))
@@ -435,8 +449,10 @@
       (enforce (< amount-out reserve-out) "swap-leg: insufficient liquidity")
       (enforce (!= recipient account) "swap-leg: invalid TO")
       ;;fire swap event
-      (install-capability (SWAP account recipient (at 'in alloc) amount-out))
-      (with-capability (SWAP account recipient (at 'in alloc) amount-out)
+      (with-capability
+        (SWAP account recipient
+          (at 'in alloc) (at 'token-in alloc)
+          amount-out token)
         ;; TODO install modref caps
         (token::transfer-create account recipient recip-guard amount-out))
       (let*
@@ -474,34 +490,41 @@
   )
 
   (defun create-pair:object{pair}
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+    ( token0:module{fungible-v2}
+      token1:module{fungible-v2}
       hint:string
       )
-    (let* ((key (get-pair-key tokenA tokenB))
+    " Create new pair for legs TOKEN0 and TOKEN1. This creates a new \
+    \ pair record, a liquidity token named after the canonical pair key \
+    \ in 'swap.tokens' module, and new empty accounts in each leg token. \
+    \ If account key value is already taken in leg tokens, transaction \
+    \ will fail, which is why HINT exists (which should normally be \"\"), \
+    \ to further seed the hash function creating the account id."
+    (let* ((key (get-pair-key token0 token1))
+           (canon (is-canonical token0 token1))
+           (ctoken0 (if canon token0 token1))
+           (ctoken1 (if canon token1 token0))
            (a (create-pair-account key hint))
            (g (create-module-guard key))
-           (p { 'leg0: { 'token: tokenA, 'reserve: 0.0 }
-              , 'leg1: { 'token: tokenB, 'reserve: 0.0 }
+           (p { 'leg0: { 'token: ctoken0, 'reserve: 0.0 }
+              , 'leg1: { 'token: ctoken1, 'reserve: 0.0 }
               , 'account: a
               , 'guard: g
               })
            )
-      (install-capability (CREATE_PAIR tokenA tokenB))
-      (with-capability (CREATE_PAIR tokenA tokenB)
+      (with-capability (CREATE_PAIR ctoken0 ctoken1 key a)
         (insert pairs key p)
-        (tokenA::create-account a g)
-        (tokenB::create-account a g)
-        p)))
+        (token0::create-account a g)
+        (token1::create-account a g)
+        { "key": key
+        , "account": a
+        })))
 
   (defun get-pair-key
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
     )
-    " Create canonical key for pair. \
-    \ TODO pair upgrades could break canonicity, \
-    \ might need a `modref-name` primitive, or \
-    \ modrefs should not output interfaces in string rep."
+    " Create canonical key for pair."
     (format "{}:{}" (canonicalize tokenA tokenB))
   )
 

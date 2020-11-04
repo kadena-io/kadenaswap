@@ -31,11 +31,13 @@
 (create-pair coin test.xyz "")
 (expect "create-pair (2) events" ;; TODO reverse
   [ { "name": "swap.exchange.CREATE_PAIR"
-    , "params": [coin test.abc]
+    , "params": [ coin test.abc "coin:test.abc"
+                  (at 'account (get-pair test.abc coin))]
     , "module-hash": (at 'hash (describe-module "swap.exchange"))
     }
     { "name": "swap.exchange.CREATE_PAIR"
-    , "params": [coin test.xyz]
+    , "params": [ coin test.xyz "coin:test.xyz"
+                  (at 'account (get-pair test.xyz coin))]
     , "module-hash": (at 'hash (describe-module "swap.exchange"))
     }
   ]
@@ -313,7 +315,7 @@
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.SWAP"
     , "params": [ (at 'account (get-pair test.abc coin))
-                  "Alice" 10.0 18.13221787760298]
+                  "Alice" 10.0 coin 18.13221787760298 test.abc]
     }
     { "module-hash": (at 'hash (describe-module "test.abc"))
     , "name": "test.abc.TRANSFER"
@@ -381,7 +383,7 @@
     , "name": "swap.exchange.SWAP"
     , "params": [ (at 'account (get-pair test.abc coin))
                   (at 'account (get-pair test.xyz coin))
-                  30.0 15.535624025463]
+                  30.0 test.abc 15.535624025463 coin]
     }
     { "module-hash": (at 'hash (describe-module "coin"))
     , "name": "coin.TRANSFER"
@@ -396,7 +398,7 @@
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.SWAP"
     , "params": [ (at 'account (get-pair test.xyz coin)) "Alice"
-                  15.535624025463 8.04700786369056]
+                  15.535624025463 coin 8.04700786369056 test.xyz]
     }
     { "module-hash": (at 'hash (describe-module "test.xyz"))
     , "name": "test.xyz.TRANSFER"
