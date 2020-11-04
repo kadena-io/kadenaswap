@@ -3,6 +3,7 @@ import { NavLink, useHistory } from 'react-router-dom';
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
 import { EthContext } from '../../../contexts/EthContext';
+import { Web3Context } from '../../../contexts/Web3Context';
 import { useWallet } from 'use-wallet'
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
@@ -74,6 +75,8 @@ const Header = () => {
 
   const ethContext = useContext(EthContext);
 
+  const web3Context = useContext(Web3Context);
+
   return (
     <Container>
       <LeftContainer>
@@ -83,11 +86,11 @@ const Header = () => {
         <Item to={ROUTE_WRAP}>wrap</Item>
       </LeftContainer>
       <RightContainer>
-        {(ethContext.accts.length > 0
+        {(ethContext.address !== ""
           ?
             <>
               <Item className="mobile-none" to="#">
-                {reduceToken(ethContext.accts[0])}
+                {reduceToken(ethContext.address)}
               </Item>
               <Item
                 to="#"
@@ -97,7 +100,7 @@ const Header = () => {
               </Item>
             </>
           :
-            <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
+            <Item className="mobile-none" to="#" onClick={() => ethContext.connectAccount()}>
               connect metamask
             </Item>
         )}
