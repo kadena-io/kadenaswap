@@ -1,9 +1,11 @@
 import React, { useContext } from 'react';
 import { NavLink, useHistory } from 'react-router-dom';
+import { Button, Modal } from 'semantic-ui-react'
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
 import { EthContext } from '../../../contexts/EthContext';
 import { useWallet } from 'use-wallet'
+import EthWallets from '../../EthWallets.tsx';
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
@@ -83,6 +85,12 @@ const Header = () => {
         <Item to={ROUTE_WRAP}>wrap</Item>
       </LeftContainer>
       <RightContainer>
+      <Modal
+        trigger={<Button>ETH Wallet</Button>}
+        // header='Reminder!'
+        content={<EthWallets/>}
+        actions={[{ key: 'done', content: 'Done', positive: true }]}
+      />
         {(ethContext.accts.length > 0
           ?
             <>

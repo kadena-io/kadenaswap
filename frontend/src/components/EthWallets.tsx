@@ -9,7 +9,7 @@ import { UserRejectedRequestError as UserRejectedRequestErrorFrame } from '@web3
 import { Web3Provider } from '@ethersproject/providers'
 import { formatEther } from '@ethersproject/units'
 
-import { useEagerConnect, useInactiveListener } from '../hooks'
+import { useEagerConnect, useInactiveListener } from '../eth/hooks'
 import {
   injected,
   network,
@@ -24,10 +24,10 @@ import {
   portis,
   squarelink,
   torus
-} from '../connectors'
-import { Spinner } from '../components/Spinner'
+} from '../eth/connectors'
+import { Spinner } from './Spinner.tsx'
 
-const ConnectorNames {
+enum ConnectorNames {
   Injected = 'Injected',
   Network = 'Network',
   WalletConnect = 'WalletConnect',
@@ -43,7 +43,7 @@ const ConnectorNames {
   Torus = 'Torus'
 }
 
-const connectorsByName = {
+const connectorsByName: { [connectorName in ConnectorNames]: any } = {
   [ConnectorNames.Injected]: injected,
   [ConnectorNames.Network]: network,
   [ConnectorNames.WalletConnect]: walletconnect,
