@@ -2,99 +2,34 @@ import React, { useState, createContext, useEffect } from 'react';
 import { Connectors } from 'web3-react'
 import Web3 from 'web3';
 import { useWallet } from 'use-wallet'
+import { useEagerConnect, useInactiveListener } from '../eth/hooks'
+import { useWeb3React } from '@web3-react/core'
 
 export const EthContext = createContext();
 
 export const EthProvider = (props) => {
 
-  const wallet = useWallet()
+  const context = useWeb3React()
 
-  const [web3, setWeb3] = useState(null);
-  const [accts, setAccts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [balance, setBalance] = useState(0)
+  const { connector, library, chainId, account, activate, deactivate, active, error } = context
 
-
+  // handle logic to recognize the connector currently being activated
+  const [activatingConnector, setActivatingConnector] = useState()
   useEffect(() => {
-    // (async function _getEthEnv() {
-    //   console.log("dssss")
-    //   console.log(process.env.REACT_APP_TEST)
-    //   console.log(process.env.REACT_APP_API_KEY)
-    //   try {
-    //     let web3Inst = await new Web3(window.ethereum)
-    //     await setWeb3(web3Inst);
-    //     const as = await web3Inst.eth.getAccounts();
-    //     await setAccts(as);
-    //     let bal = await web3Inst.eth.getBalance(as[0]);
-    //     bal = web3Inst.utils.fromWei(bal)
-    //     await setBalance(bal);
-    //   } catch (e) {
-    //     console.log(e)
-    //     console.log('did not find web3 instance')
-    //     await setAccts([])
-    //   }
-    // })();
-  }, []);
-
-  const getEth = async () => {
-    try {
-      let web3Inst = await new Web3(window.ethereum)
-      await setWeb3(web3Inst);
-      console.log(accts)
-    } catch (e) {
-      console.log(e)
+    if (activatingConnector && activatingConnector === connector) {
+      setActivatingConnector(undefined)
     }
-  }
+  }, [activatingConnector, connector])
 
-  const getAccounts = async () => {
-    try {
-      const as = await web3.eth.getAccounts();
-      await setAccts(as);
-      await getBalance();
-    } catch (e) {
-      // setAccts([]);
-      console.log(e)
-    }
-  }
+  // handle logic to eagerly connect to the injected ethereum provider, if it exists and has granted access already
+  const triedEager = useEagerConnect()
 
-  const getBalance = async () => {
-    try {
-      const bal = await web3.eth.getBalance();
-      console.log(bal)
-      await setBalance(bal);
-    } catch (e) {
-      console.log(e)
-    }
-  }
-
-  const connectMetaMask = async () => {
-    await wallet.connect();
-    console.log(wallet.status)
-    await getAccounts();
-    console.log(accts);
-  }
-
-  const disconnectWallet = async () => {
-    //NOTE: this does not disconnect the wallet fully
-    //  only changes provider
-    //    user must manually disconnect wallet for secure session to end
-    console.log('disc')
-    await wallet.reset();
-    console.log(wallet.status)
-    //VERIFY WALLET IS DISCONNECTED
-    // await setAccts([])
-  }
+  // handle logic to connect in reaction to certain events on the injected ethereum provider, if it exists
+  useInactiveListener(!triedEager || !!activatingConnector)
 
   return (
     <EthContext.Provider
       value={{
-        accts,
-        web3,
-        balance,
-        connectMetaMask,
-        disconnectWallet,
-        getBalance,
-        setBalance
       }}
     >
       {props.children}

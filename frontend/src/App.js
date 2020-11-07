@@ -3,24 +3,28 @@ import { ThemeProvider } from 'styled-components';
 import Router from './router/router';
 import { theme } from './styles/theme';
 import { EthProvider } from './contexts/EthContext';
-import { UseWalletProvider } from 'use-wallet'
+import { Web3ReactProvider, useWeb3React } from '@web3-react/core'
+import { Web3Provider } from '@ethersproject/providers'
 import GlobalStyle from './styles/globalStyle';
 
+
+
 const App = () => {
+
+  const getLibrary = (provider) => {
+    const library = new Web3Provider(provider)
+    library.pollingInterval = 12000
+    return library
+  }
+
   return (
     <ThemeProvider theme={theme}>
-      <UseWalletProvider
-        chainId={1}
-        connectors={{
-          // This is how connectors get configured
-          portis: { dAppId: 'my-dapp-id-123-xyz' },
-        }}
-      >
+      <Web3ReactProvider getLibrary={getLibrary}>
         <EthProvider>
           <GlobalStyle />
           <Router />
         </EthProvider>
-      </UseWalletProvider>
+      </Web3ReactProvider>
     </ThemeProvider>
   );
 };

@@ -3,9 +3,9 @@ import { NavLink, useHistory } from 'react-router-dom';
 import { Button, Modal } from 'semantic-ui-react'
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
-import { EthContext } from '../../../contexts/EthContext';
 import { useWallet } from 'use-wallet'
-import EthWallets from '../../EthWallets.tsx';
+import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core'
+import EthModal from '../../../modals/ethModal/EthModal';
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
@@ -74,8 +74,6 @@ const Item = styled(NavLink)`
 const Header = () => {
   const history = useHistory();
 
-  const ethContext = useContext(EthContext);
-
   return (
     <Container>
       <LeftContainer>
@@ -85,39 +83,11 @@ const Header = () => {
         <Item to={ROUTE_WRAP}>wrap</Item>
       </LeftContainer>
       <RightContainer>
-      <Modal
-        trigger={<Button>ETH Wallet</Button>}
-        // header='Reminder!'
-        content={<EthWallets/>}
-        actions={[{ key: 'done', content: 'Done', positive: true }]}
-      />
-        {(ethContext.accts.length > 0
-          ?
-            <>
-              <Item className="mobile-none" to="#">
-                {reduceToken(ethContext.accts[0])}
-              </Item>
-              <Item
-                to="#"
-                onClick={() => ethContext.disconnectWallet()}
-              >
-                {ethContext.balance + " ETH"}
-              </Item>
-            </>
-          :
-            <Item className="mobile-none" to="#" onClick={() => ethContext.connectMetaMask()}>
-              connect metamask
-            </Item>
-        )}
-{/*
-  THIS WALLET DISCONNECTING DOESNT DISCONNECT METAMASK
-        <Item
-          to="#"
-          onClick={() => ethContext.disconnectWallet()}
-        >
-          <PowerIcon/>
-        </Item>
-*/}
+        <Modal
+          trigger={<Button>ETH Wallet</Button>}
+          content={<EthModal/>}
+          actions={[{ key: 'done', content: 'Done', positive: true }]}
+        />
         <Item to="#">
           <CogIcon />
         </Item>
