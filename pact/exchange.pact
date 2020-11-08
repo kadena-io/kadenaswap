@@ -235,9 +235,9 @@
         (with-capability (ISSUING)
           (burn pair-key pair-account liquidity))
         ;;TODO fix defcap dynamic bug
-        ;(install-capability (token0::TRANSFER pair-account to amount0))
+        (install-capability (token0::TRANSFER pair-account to amount0))
         (token0::transfer pair-account to amount0)
-        ;(install-capability (token1::TRANSFER pair-account to amount1))
+        (install-capability (token1::TRANSFER pair-account to amount1))
         (token1::transfer pair-account to amount1)
         (with-capability (UPDATING)
           (update-reserves p pair-key
@@ -453,6 +453,7 @@
         (SWAP account recipient
           (at 'in alloc) (at 'token-in alloc)
           amount-out token)
+        (install-capability (token::TRANSFER account recipient amount-out))
         ;; TODO install modref caps
         (token::transfer-create account recipient recip-guard amount-out))
       (let*

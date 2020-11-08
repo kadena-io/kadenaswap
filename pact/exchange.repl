@@ -149,9 +149,6 @@
       (at 'account (get-pair coin test.abc))
       141.321356237309)
     ]}])
-;;TODO fix bug, installing here for now
-(install-capability (test.abc.TRANSFER (at 'account (get-pair coin test.abc)) "Bob" 200.0))
-(install-capability (coin.TRANSFER (at 'account (get-pair coin test.abc)) "Bob" 100.0))
 
 (expect "remove-liquidity"
   { "amount0": 100.0
@@ -284,12 +281,6 @@
     [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 100.0)]
   }])
 
-;; TODO modref Capabilities
-(install-capability
-  (test.abc.TRANSFER (at 'account (get-pair coin test.abc))
-  "Alice" 18.13221787760298))
-
-;; swap!
 (expect "swap exact in"
   [ { "token": "coin", "amount": 10.0 }
     { "token": "test.abc", "amount": 18.13221787760298 }
@@ -338,17 +329,7 @@
     [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 30.0)
     ]
   }])
-;; TODO modref Capabilities
-(install-capability
-  (coin.TRANSFER
-    (at 'account (get-pair coin test.abc))
-    (at 'account (get-pair coin test.xyz))
-    15.535624025463))
-(install-capability
-  (test.xyz.TRANSFER
-    (at 'account (get-pair coin test.xyz))
-    "Alice"
-    8.04700786369056))
+
 (expect "swap exact in 3-way"
   [ { "token": "test.abc", "amount": 30.0}
     { "token": "coin", "amount": 15.535624025463}
@@ -428,9 +409,6 @@
     [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 4.693597999833)
     ]
   }])
-;; todo fix defcaps
-(install-capability (test.abc.TRANSFER (at 'account (get-pair test.abc coin))
-  "Alice" 10.0))
 
 (expect "swap exact out"
   [ { "token": "coin", "amount": 4.693597999833 }
@@ -449,28 +427,21 @@
   201.86778212239702
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
+
+;; 3-way out
+
 (env-sigs [
   { 'key: "alice"
   , 'caps:
-    [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 28.78004347733101)
-    ]
-  }])
+    [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin))
+      28.78004347733101)]}])
 
-;; todo fix defcaps
-(install-capability
-  (coin.TRANSFER
-    (at 'account (get-pair test.abc coin))
-    (at 'account (get-pair test.xyz coin))
-    12.340350271030))
-(install-capability (test.xyz.TRANSFER (at 'account (get-pair test.xyz coin))
-  "Alice" 5.0))
-
-(expect "swap exact in 3-way"
+(expect "swap exact out 3-way"
   [ { "token": "test.abc", "amount": 28.78004347733101 }
     { "token": "coin", "amount": 12.340350271030 }
     { "token": "test.xyz", "amount": 5.0 }
   ]
-  (swap-exact-out 5.0 100.0 [test.abc coin test.xyz]
+  (swap.exchange.swap-exact-out 5.0 100.0 [test.abc coin test.xyz]
     "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 
