@@ -237,7 +237,6 @@
           "remove-liquidity: insufficient liquidity burned")
         (with-capability (ISSUING)
           (burn pair-key pair-account liquidity))
-        ;;TODO fix defcap dynamic bug
         (install-capability (token0::TRANSFER pair-account to amount0))
         (token0::transfer-create pair-account to to-guard amount0)
         (install-capability (token1::TRANSFER pair-account to amount1))
@@ -425,12 +424,19 @@
       (head-token::transfer sender account out)
       (+ [ { 'token: (format "{}" [head-token])
            , 'amount: out } ]
-        (map (swap-leg (- (length allocs) 1) to to-guard) (drop 1 allocs)))
+        (map
+          (swap-leg
+            noop-callable
+            (- (length allocs) 1)
+            to
+            to-guard)
+          (drop 1 allocs)))
     )
   )
 
   (defun swap-leg
-    ( last:integer
+    ( callable:module{swap-callable-v1}
+      last:integer
       to:string
       guard:guard
       alloc:object{alloc}
@@ -438,9 +444,11 @@
     (require-capability (SWAPPING))
     (let*
       ( (amount-out (at 'out alloc))
+        (amount-in (at 'in alloc))
         (p (at 'pair alloc))
         (account (at 'account p))
         (token:module{fungible-v2} (at 'token-out alloc))
+        (token-in:module{fungible-v2} (at 'token-in alloc))
         (reserve-out (reserve-for p token))
         (path (at 'path alloc))
         (is-last (= last (at 'idx alloc)))
@@ -457,11 +465,14 @@
       ;;fire swap event
       (with-capability
         (SWAP account recipient
-          (at 'in alloc) (at 'token-in alloc)
+          amount-in token-in
           amount-out token)
         (install-capability (token::TRANSFER account recipient amount-out))
-        ;; TODO install modref caps
         (token::transfer-create account recipient recip-guard amount-out))
+
+      (callable::swap-call token-in token amount-in amount-out
+        account recipient recip-guard)
+
       (let*
         ( (leg0 (at 'leg0 p))
           (leg1 (at 'leg1 p))
@@ -582,6 +593,7 @@
   (defun round-unit (token:module{fungible-v2} amount:decimal)
     (floor amount (token::precision))
   )
+
 )
 
 (create-table pairs)

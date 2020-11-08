@@ -9,6 +9,7 @@
   })
 (load "ns.pact")
 (load "tokens.pact")
+(load "swap-callable.pact")
 (load "exchange.pact")
 
 
