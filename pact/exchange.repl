@@ -83,6 +83,7 @@
     50.0
     100.0
     "Bob"
+    "Bob"
     (read-keyset 'bob)
     (at 'block-time (chain-data))))
 
@@ -158,6 +159,8 @@
     200.0
     100.0
     "Bob"
+    "Bob"
+    (read-keyset 'bob)
     (at 'block-time (chain-data))))
 
 (expect "remove-liquidity events" ;; TODO reverse
@@ -231,6 +234,7 @@
   50.0
   100.0
   "Bob"
+  "Bob"
   (read-keyset 'bob)
   (at 'block-time (chain-data)))
 
@@ -263,6 +267,7 @@
   50.0
   30.0
   "Bob"
+  "Bob"
   (read-keyset 'bob)
   (at 'block-time (chain-data)))
 
@@ -286,7 +291,7 @@
     { "token": "test.abc", "amount": 18.13221787760298 }
   ]
   (swap-exact-in 10.0 18.0 [coin test.abc]
-    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 (expect "kda debited for alice"
   9990.0 (coin.get-balance "Alice"))
@@ -336,7 +341,7 @@
     { "token": "test.xyz", "amount": 8.04700786369056}
   ]
   (swap-exact-in 30.0 1.0 [test.abc coin test.xyz]
-    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 (expect "abc debited for alice"
   19988.13221787760298 (test.abc.get-balance "Alice"))
@@ -415,7 +420,7 @@
     { "token": "test.abc", "amount": 10.0 }
   ]
   (swap-exact-out 10.0 5.0 [coin test.abc]
-    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 (expect "kda debited for alice"
   9985.306402000167 (coin.get-balance "Alice"))
@@ -442,7 +447,7 @@
     { "token": "test.xyz", "amount": 5.0 }
   ]
   (swap.exchange.swap-exact-out 5.0 100.0 [test.abc coin test.xyz]
-    "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 
 (expect "abc debited for alice"

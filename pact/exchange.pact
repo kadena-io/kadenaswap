@@ -117,8 +117,9 @@
       amountBDesired:decimal
       amountAMin:decimal
       amountBMin:decimal
-      account-id:string
-      account-guard:guard
+      sender:string
+      to:string
+      to-guard:guard
       deadline:time
     )
     (enforce-deadline deadline)
@@ -145,8 +146,8 @@
         (pair-account (at 'account p))
       )
       ;; transfer
-      (tokenA::transfer account-id pair-account amountA)
-      (tokenB::transfer account-id pair-account amountB)
+      (tokenA::transfer sender pair-account amountA)
+      (tokenB::transfer sender pair-account amountB)
       ;; mint
       (let*
         ( (token0:module{fungible-v2} (at 'token (at 'leg0 p)))
@@ -175,7 +176,7 @@
         )
         (enforce (> liquidity 0.0) "mint: insufficient liquidity minted")
         (with-capability (ISSUING)
-          (mint key account-id account-guard liquidity))
+          (mint key to to-guard liquidity))
         (with-capability (UPDATING)
           (update-reserves p key balance0 balance1))
         { "liquidity": liquidity
@@ -210,7 +211,9 @@
       liquidity:decimal
       amountAMin:decimal
       amountBMin:decimal
+      sender:string
       to:string
+      to-guard:guard
       deadline:time )
 
     (enforce-deadline deadline)
@@ -219,7 +222,7 @@
             (pair-account (at 'account p))
             (pair-key (get-pair-key tokenA tokenB))
           )
-      (tokens.transfer pair-key to pair-account liquidity)
+      (tokens.transfer pair-key sender pair-account liquidity)
       (let*
         ( (token0:module{fungible-v2} (at 'token (at 'leg0 p)))
           (token1:module{fungible-v2} (at 'token (at 'leg1 p)))
@@ -236,9 +239,9 @@
           (burn pair-key pair-account liquidity))
         ;;TODO fix defcap dynamic bug
         (install-capability (token0::TRANSFER pair-account to amount0))
-        (token0::transfer pair-account to amount0)
+        (token0::transfer-create pair-account to to-guard amount0)
         (install-capability (token1::TRANSFER pair-account to amount1))
-        (token1::transfer pair-account to amount1)
+        (token1::transfer-create pair-account to to-guard amount1)
         (with-capability (UPDATING)
           (update-reserves p pair-key
             (token0::get-balance pair-account)
@@ -270,8 +273,9 @@
     ( amountIn:decimal
       amountOutMin:decimal
       path:[module{fungible-v2}]
+      sender:string
       to:string
-      guard:guard
+      to-guard:guard
       deadline:time
     )
     (enforce-deadline deadline)
@@ -296,7 +300,7 @@
         "swap-exact-in: insufficient output amount")
       ;; initial dummy is correct for initial transfer
       (with-capability (SWAPPING)
-        (swap to guard (reverse allocs)))
+        (swap sender to to-guard (reverse allocs)))
     )
   )
 
@@ -334,8 +338,9 @@
     ( amountOut:decimal
       amountInMax:decimal
       path:[module{fungible-v2}]
+      sender:string
       to:string
-      guard:guard
+      to-guard:guard
       deadline:time
     )
     (enforce-deadline deadline)
@@ -372,7 +377,7 @@
         (format "swap-exact-in: excessive input amount {}"
           [allocs]))
       (with-capability (SWAPPING)
-        (swap to guard allocs1))
+        (swap sender to to-guard allocs1))
     )
   )
 
@@ -405,8 +410,9 @@
 
 
   (defun swap
-    ( to:string
-      guard:guard
+    ( sender:string
+      to:string
+      to-guard:guard
       allocs:[object{alloc}]
     )
     (require-capability (SWAPPING))
@@ -416,10 +422,10 @@
         (account (at 'account (at 'pair head)))
         (out (at 'out head))
       )
-      (head-token::transfer to account out)
+      (head-token::transfer sender account out)
       (+ [ { 'token: (format "{}" [head-token])
            , 'amount: out } ]
-        (map (swap-leg (- (length allocs) 1) to guard) (drop 1 allocs)))
+        (map (swap-leg (- (length allocs) 1) to to-guard) (drop 1 allocs)))
     )
   )
 
