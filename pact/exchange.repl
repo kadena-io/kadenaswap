@@ -151,29 +151,36 @@
 
 (module fixture G
   (defcap G () true)
-  (defun setup-sigs ()
-    (env-sigs [{ 'key: "bob"
-      , 'caps:
-        [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 30.0)
-         (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 30.0)
-         (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 10.0)
-         (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 40.0)
-        ]}]))
-  (defun setup-abc ()
-    (add-liquidity coin test.abc
-      30.0 30.0 30.0 30.0
-      "Bob" "Bob" (read-keyset 'bob)
-      (at 'block-time (chain-data)))
+  (defun setup-abc (amount0:decimal amount1:decimal)
+    (env-sigs
+      [ { 'key: "bob"
+        , 'caps:
+          [ (coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) amount0)
+            (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) amount1)
+          ]}])
+    (with-applied-env
+      (add-liquidity coin test.abc
+        amount0 amount1 amount0 amount1
+        "Bob" "Bob" (read-keyset "bob")
+        (at 'block-time (chain-data))))
     (env-events true)
   )
 
-  (defun setup-xyz ()
-    (add-liquidity coin test.xyz
-      10.0 40.0 10.0 40.0
-      "Bob" "Bob" (read-keyset 'bob)
-      (at 'block-time (chain-data)))
+  (defun setup-xyz (amount0:decimal amount1:decimal)
+    (env-sigs
+      [ { 'key: "bob"
+        , 'caps:
+          [ (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 10.0)
+            (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 40.0)
+          ]}])
+    (with-applied-env
+      (add-liquidity coin test.xyz
+        amount0 amount1 amount0 amount1
+        "Bob" "Bob" (read-keyset "bob")
+        (at 'block-time (chain-data))))
     (env-events true)
   )
+
 )
 (commit-tx)
 
@@ -183,8 +190,7 @@
 
 (begin-tx)
 (use swap.exchange)
-(fixture.setup-sigs)
-(fixture.setup-abc)
+(fixture.setup-abc 30.0 30.0)
 
 (env-sigs [
   { 'key: "bob"
@@ -265,9 +271,7 @@
 
 (begin-tx)
 (use swap.exchange)
-(fixture.setup-sigs)
-(fixture.setup-abc)
-(fixture.setup-xyz)
+(fixture.setup-abc 30.0 30.0)
 
 (env-sigs [
   { 'key: "alice"
@@ -320,9 +324,8 @@
 
 (begin-tx)
 (use swap.exchange)
-(fixture.setup-sigs)
-(fixture.setup-abc)
-(fixture.setup-xyz)
+(fixture.setup-abc 30.0 30.0)
+(fixture.setup-xyz 10.0 40.0)
 
 
 (env-sigs [
@@ -404,9 +407,7 @@
 
 (begin-tx)
 (use swap.exchange)
-(fixture.setup-sigs)
-(fixture.setup-abc)
-(fixture.setup-xyz)
+(fixture.setup-abc 30.0 30.0)
 
 (env-sigs [
   { 'key: "alice"
@@ -438,9 +439,8 @@
 
 (begin-tx)
 (use swap.exchange)
-(fixture.setup-sigs)
-(fixture.setup-abc)
-(fixture.setup-xyz)
+(fixture.setup-abc 30.0 30.0)
+(fixture.setup-xyz 10.0 40.0)
 
 (env-sigs [
   { 'key: "alice"
@@ -477,14 +477,21 @@
 (rollback-tx)
 
 ;;
+;; single-leg swap tests
+;;
+
+(begin-tx)
+(use swap.exchange)
+
+
+;;
 ;; optimistic transfer
 ;;
 
 (begin-tx)
 (use swap.exchange)
-(fixture.setup-sigs)
-(fixture.setup-abc)
-(fixture.setup-xyz)
+(fixture.setup-abc 30.0 30.0)
+(fixture.setup-xyz 10.0 40.0)
 
 (module optimistic-transfer G
   (defcap G () true)
