@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { NavLink, useHistory } from 'react-router-dom';
 import { Button, Modal } from 'semantic-ui-react'
 import styled from 'styled-components/macro';
@@ -6,6 +6,7 @@ import reduceToken from '../../../utils/reduceToken';
 import { useWallet } from 'use-wallet'
 import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core'
 import EthModal from '../../../modals/ethModal/EthModal';
+import KdaModal from '../../../modals/kdaModal/KdaModal';
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
@@ -74,6 +75,8 @@ const Item = styled(NavLink)`
 const Header = () => {
   const history = useHistory();
 
+  const [showEthModal, setShowEthModal] = useState(false);
+
   return (
     <Container>
       <LeftContainer>
@@ -83,9 +86,20 @@ const Header = () => {
         <Item to={ROUTE_WRAP}>wrap</Item>
       </LeftContainer>
       <RightContainer>
+        <Item className="mobile-none" to="#">
+            {reduceToken('0x34161278361278361287360FA2')}
+          </Item>
+          <Item className="mobile-none" to="#">
+              {reduceToken('kda-123')}
+            </Item>
         <Modal
           trigger={<Button>ETH Wallet</Button>}
           content={<EthModal/>}
+          actions={[{ key: 'done', content: 'Done', positive: true }]}
+        />
+        <Modal
+          trigger={<Button>KDA Wallet</Button>}
+          content={<KdaModal/>}
           actions={[{ key: 'done', content: 'Done', positive: true }]}
         />
         <Item to="#">

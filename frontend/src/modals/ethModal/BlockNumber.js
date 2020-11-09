@@ -40,7 +40,7 @@ export default function BlockNumber() {
     <>
       <span>Block Number</span>
       <span role="img" aria-label="numbers">
-        🔢
+        
       </span>
       <span>{blockNumber === null ? 'Error' : blockNumber ?? ''}</span>
     </>

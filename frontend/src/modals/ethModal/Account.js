@@ -8,7 +8,7 @@ export default function Account() {
     <>
       <span>Account</span>
       <span role="img" aria-label="robot">
-        🤖
+
       </span>
       <span>
         {account === null

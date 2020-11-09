@@ -10,7 +10,7 @@ export default function Header() {
 
   return (
     <>
-      <h1 style={{ margin: '1rem', textAlign: 'right' }}>{active ? '✅' : error ? '🔴' : '🟠'}</h1>
+      <h1 style={{ margin: '1rem', textAlign: 'center' }}>Ethereum Wallets</h1>
       <h3
         style={{
           display: 'grid',

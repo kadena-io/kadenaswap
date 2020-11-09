@@ -35,7 +35,7 @@ export default function Balance() {
     <>
       <span>Balance</span>
       <span role="img" aria-label="gold">
-        💰
+        
       </span>
       <span>{balance === null ? 'Error' : balance ? `Ξ${formatEther(balance)}` : ''}</span>
     </>

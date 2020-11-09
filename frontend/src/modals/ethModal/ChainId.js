@@ -8,7 +8,7 @@ export default function ChainId() {
     <>
       <span>Chain Id</span>
       <span role="img" aria-label="chain">
-        ⛓
+        
       </span>
       <span>{chainId ?? ''}</span>
     </>
