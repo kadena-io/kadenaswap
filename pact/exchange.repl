@@ -219,6 +219,142 @@
 (rollback-tx)
 
 ;;
+;; more liquidity tests
+;;
+
+;;
+;; add-liquidity
+;;
+(begin-tx)
+(use swap.exchange)
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 10.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 40.0)
+    ]
+  }])
+
+(expect "add-liquidity"
+  { "liquidity": 19.9
+  , "supply": 20.0
+  , "amount0": 10.0
+  , "amount1": 40.0 }
+  (add-liquidity
+    coin
+    test.abc
+    10.0
+    40.0
+    5.0
+    10.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    (at 'block-time (chain-data))))
+
+(expect "add-liquidity events"
+  [ { "name": "coin.TRANSFER"
+    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 10.0]
+    , "module-hash": (at 'hash (describe-module "coin"))
+    }
+    { "name": "test.abc.TRANSFER"
+    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 40.0]
+    , "module-hash": (at 'hash (describe-module "test.abc"))
+    }
+    { "name": "swap.tokens.MINT"
+    , "params": [ (get-pair-key coin test.abc)
+                  "lock" 0.1]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "swap.tokens.MINT"
+    , "params": [(get-pair-key coin test.abc) "Bob" 19.9]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "swap.exchange.UPDATE"
+    , "params": [(get-pair-key coin test.abc) 10.0 40.0]
+    , "module-hash": (at 'hash (describe-module "swap.exchange"))
+    }
+  ]
+  (env-events true))
+(rollback-tx)
+
+;;
+;; remove-liquidity
+;;
+
+(begin-tx)
+(use swap.exchange)
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 30.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 30.0)
+    ]
+  }])
+(add-liquidity
+  coin
+  test.abc
+  30.0
+  30.0
+  5.0
+  10.0
+  "Bob"
+  "Bob"
+  (read-keyset 'bob)
+  (at 'block-time (chain-data)))
+(env-events true)
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(swap.tokens.TRANSFER
+      (get-pair-key coin test.abc)
+      "Bob"
+      (at 'account (get-pair coin test.abc))
+      141.321356237309)
+    ]}])
+(expect "remove-liquidity"
+  { "amount0": 29.9
+  , "amount1": 29.9 }
+  (remove-liquidity test.abc coin
+    29.9
+    200.0
+    100.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    (at 'block-time (chain-data))))
+
+(expect "remove-liquidity events" ;; TODO reverse
+  [ { "name": "swap.tokens.TRANSFER"
+    , "params": [ (get-pair-key coin test.abc) "Bob"
+                  (at 'account (get-pair coin test.abc)) 29.9]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "swap.tokens.BURN"
+    , "params": [ (get-pair-key coin test.abc)
+                  (at 'account (get-pair coin test.abc)) 29.9]
+    , "module-hash": (at 'hash (describe-module "swap.tokens"))
+    }
+    { "name": "coin.TRANSFER"
+    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 29.9]
+    , "module-hash": (at 'hash (describe-module "coin"))
+    }
+    { "name": "test.abc.TRANSFER"
+    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 29.9]
+    , "module-hash": (at 'hash (describe-module "test.abc"))
+    }
+    { "name": "swap.exchange.UPDATE"
+    , "params": [(get-pair-key coin test.abc) 0.1 0.1]
+    , "module-hash": (at 'hash (describe-module "swap.exchange"))
+  } ]
+  (env-events true))
+
+
+
+
+;;
 ;; swaps
 ;;
 
