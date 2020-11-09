@@ -372,7 +372,7 @@
              (take (- path-len 1) allocs)))
       )
       (enforce (<= (at 'out (at 0 allocs1)) amountInMax)
-        (format "swap-exact-in: excessive input amount {}"
+        (format "swap-exact-out: excessive input amount {}"
           [allocs]))
       (with-capability (SWAPPING)
         (swap-pair sender to to-guard allocs1))
