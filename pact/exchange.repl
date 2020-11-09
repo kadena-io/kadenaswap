@@ -60,167 +60,6 @@
 (test.abc.fund "Alice" 20000.0)
 (commit-tx)
 
-;;
-;; add-liquidity
-;;
-(begin-tx)
-(use swap.exchange)
-
-(env-sigs [
-  { 'key: "bob"
-  , 'caps:
-    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
-     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
-    ]
-  }])
-
-(expect "add-liquidity"
-  { "liquidity": 141.321356237309
-  , "supply": 141.421356237309
-  , "amount0": 100.0
-  , "amount1": 200.0 }
-  (add-liquidity
-    coin
-    test.abc
-    100.0
-    200.0
-    50.0
-    100.0
-    "Bob"
-    "Bob"
-    (read-keyset 'bob)
-    (at 'block-time (chain-data))))
-
-(expect "add-liquidity events" ;; TODO reverse
-  [ { "name": "coin.TRANSFER"
-    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 100.0]
-    , "module-hash": (at 'hash (describe-module "coin"))
-    }
-    { "name": "test.abc.TRANSFER"
-    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 200.0]
-    , "module-hash": (at 'hash (describe-module "test.abc"))
-    }
-    { "name": "swap.tokens.MINT"
-    , "params": [ (get-pair-key coin test.abc)
-                  "lock" 0.1]
-    , "module-hash": (at 'hash (describe-module "swap.tokens"))
-    }
-    { "name": "swap.tokens.MINT"
-    , "params": [(get-pair-key coin test.abc) "Bob" 141.321356237309]
-    , "module-hash": (at 'hash (describe-module "swap.tokens"))
-    }
-    { "name": "swap.exchange.UPDATE"
-    , "params": [(get-pair-key coin test.abc) 100.0 200.0]
-    , "module-hash": (at 'hash (describe-module "swap.exchange"))
-    }
-  ]
-  (env-events true))
-
-
-(expect "token liquidity for bob"
-  141.321356237309
-  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
-)
-(expect "minimum liquidity locked"
-  MINIMUM_LIQUIDITY
-  (swap.tokens.get-balance
-    (get-pair-key coin test.abc)
-    "lock")
-)
-(expect "total supply for pair"
-  (+ 141.321356237309 MINIMUM_LIQUIDITY)
-  (swap.tokens.total-supply (get-pair-key coin test.abc))
-)
-(expect "kda debited for bob"
-  900.0 (coin.get-balance "Bob"))
-(expect "abc debited for bob"
-  1800.0 (test.abc.get-balance "Bob"))
-(expect "kda credited for pair"
-  100.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
-(expect "abc credited for pair"
-  200.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
-
-;;
-;; remove-liquidity
-;;
-
-;; flip tokens to test canonicity
-(env-sigs [
-  { 'key: "bob"
-  , 'caps:
-    [(swap.tokens.TRANSFER
-      (get-pair-key coin test.abc)
-      "Bob"
-      (at 'account (get-pair coin test.abc))
-      141.321356237309)
-    ]}])
-
-(expect "remove-liquidity"
-  { "amount0": 99.929289321881
-  , "amount1": 199.85857864376268}
-  (remove-liquidity test.abc coin
-    141.321356237309
-    200.0
-    100.0
-    "Bob"
-    "Bob"
-    (read-keyset 'bob)
-    (at 'block-time (chain-data))))
-
-(expect "remove-liquidity events" ;; TODO reverse
-  [ { "name": "swap.tokens.TRANSFER"
-    , "params": [ (get-pair-key coin test.abc) "Bob"
-                  (at 'account (get-pair coin test.abc)) 141.321356237309 ]
-    , "module-hash": (at 'hash (describe-module "swap.tokens"))
-    }
-    { "name": "swap.tokens.BURN"
-    , "params": [ (get-pair-key coin test.abc)
-                  (at 'account (get-pair coin test.abc)) 141.321356237309]
-    , "module-hash": (at 'hash (describe-module "swap.tokens"))
-    }
-    { "name": "coin.TRANSFER"
-    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 99.929289321881]
-    , "module-hash": (at 'hash (describe-module "coin"))
-    }
-    { "name": "test.abc.TRANSFER"
-    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 199.85857864376268]
-    , "module-hash": (at 'hash (describe-module "test.abc"))
-    }
-    { "name": "swap.exchange.UPDATE"
-    , "params": [(get-pair-key coin test.abc) 0.070710678119 0.14142135623732]
-    , "module-hash": (at 'hash (describe-module "swap.exchange"))
-  } ]
-  (env-events true))
-
-
-(expect "token liquidity for bob"
-  0.0
-  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
-)
-(expect "minimum liquidity for pair"
-  MINIMUM_LIQUIDITY
-  (swap.tokens.get-balance
-    (get-pair-key coin test.abc)
-    "lock")
-)
-(expect "total supply for pair"
-  MINIMUM_LIQUIDITY
-  (swap.tokens.total-supply (get-pair-key coin test.abc))
-)
-(expect "kda credited for bob"
-  999.929289321881 (coin.get-balance "Bob"))
-(expect "abc credited for bob"
-  1999.85857864376268 (test.abc.get-balance "Bob"))
-(expect "kda debited for pair"
-  0.070710678119 (coin.get-balance (at 'account (get-pair coin test.abc))))
-(expect "abc debited for pair"
-  0.14142135623732 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
-
-(rollback-tx)
-
-;;
-;; more liquidity tests
-;;
 
 ;;
 ;; add-liquidity
@@ -246,8 +85,8 @@
     test.abc
     10.0
     40.0
-    5.0
     10.0
+    40.0
     "Bob"
     "Bob"
     (read-keyset 'bob)
@@ -264,7 +103,7 @@
     }
     { "name": "swap.tokens.MINT"
     , "params": [ (get-pair-key coin test.abc)
-                  "lock" 0.1]
+                  LOCK_ACCOUNT 0.1]
     , "module-hash": (at 'hash (describe-module "swap.tokens"))
     }
     { "name": "swap.tokens.MINT"
@@ -277,6 +116,28 @@
     }
   ]
   (env-events true))
+
+(expect "token liquidity for bob"
+  19.9
+  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
+)
+(expect "minimum liquidity locked"
+  MINIMUM_LIQUIDITY
+  (swap.tokens.get-balance (get-pair-key coin test.abc) LOCK_ACCOUNT)
+)
+(expect "total supply for pair token"
+  20.0
+  (swap.tokens.total-supply (get-pair-key coin test.abc))
+)
+(expect "kda debited for bob"
+  990.0 (coin.get-balance "Bob"))
+(expect "abc debited for bob"
+  1960.0 (test.abc.get-balance "Bob"))
+(expect "kda credited for pair"
+  10.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "abc credited for pair"
+  40.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+
 (rollback-tx)
 
 ;;
@@ -297,8 +158,8 @@
   test.abc
   30.0
   30.0
-  5.0
-  10.0
+  30.0
+  30.0
   "Bob"
   "Bob"
   (read-keyset 'bob)
@@ -314,7 +175,7 @@
       (at 'account (get-pair coin test.abc))
       141.321356237309)
     ]}])
-(expect "remove-liquidity"
+(expect "remove-liquidity result"
   { "amount0": 29.9
   , "amount1": 29.9 }
   (remove-liquidity test.abc coin
@@ -351,6 +212,26 @@
   } ]
   (env-events true))
 
+(expect "token liquidity for bob"
+  0.0
+  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
+)
+(expect "minimum liquidity locked"
+  MINIMUM_LIQUIDITY
+  (swap.tokens.get-balance (get-pair-key coin test.abc) LOCK_ACCOUNT)
+)
+(expect "total supply for pair at minimum"
+  MINIMUM_LIQUIDITY
+  (swap.tokens.total-supply (get-pair-key coin test.abc))
+)
+(expect "kda credited for bob"
+  999.9 (coin.get-balance "Bob"))
+(expect "abc credited for bob"
+  1999.9 (test.abc.get-balance "Bob"))
+(expect "kda debited for pair"
+  0.1 (coin.get-balance (at 'account (get-pair coin test.abc))))
+(expect "abc debited for pair"
+  0.1 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
 
 
@@ -406,7 +287,7 @@
   MINIMUM_LIQUIDITY
   (swap.tokens.get-balance
     (get-pair-key coin test.abc)
-    "lock")
+    LOCK_ACCOUNT)
 )
 (expect "total supply for pair"
   (+ 141.321356237309 MINIMUM_LIQUIDITY)

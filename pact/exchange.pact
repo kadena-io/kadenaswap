@@ -69,6 +69,8 @@
 
   (defconst MINIMUM_LIQUIDITY 0.1)
 
+  (defconst LOCK_ACCOUNT "lock")
+
   (defun init ()
     (tokens.init-issuer (create-module-guard "issuance"))
   )
@@ -163,7 +165,7 @@
           (liquidity (tokens.round-unit key
             (if (= totalSupply 0.0)
               (with-capability (ISSUING)
-                (mint key "lock" (at 'guard p) MINIMUM_LIQUIDITY)
+                (mint key LOCK_ACCOUNT (at 'guard p) MINIMUM_LIQUIDITY)
                 (- (sqrt (* amount0 amount1)) MINIMUM_LIQUIDITY))
               (let ((l0 (/ (* amount0 totalSupply) reserve0))
                     (l1 (/ (* amount1 totalSupply) reserve1))
