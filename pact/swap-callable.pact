@@ -6,7 +6,6 @@
   (defun swap-call:bool
     ( token-in:module{fungible-v2}
       token-out:module{fungible-v2}
-      amount-in:decimal
       amount-out:decimal
       sender:string
       recipient:string
@@ -26,7 +25,6 @@
   (defun swap-call:bool
     ( token-in:module{fungible-v2}
       token-out:module{fungible-v2}
-      amount-in:decimal
       amount-out:decimal
       sender:string
       recipient:string

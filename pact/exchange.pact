@@ -449,25 +449,26 @@
         (recip-guard
           (if is-last guard (at 'guard next-pair)))
       )
-    (swap-leg noop-callable recipient recip-guard alloc))
+      (swap-leg noop-callable recipient recip-guard
+        (at 'token-out alloc)
+        (at 'out alloc)
+        (at 'token-in alloc)))
   )
 
   (defun swap-leg
     ( callable:module{swap-callable-v1}
       recipient:string
       recip-guard:guard
-      alloc:object{alloc}
+      token:module{fungible-v2}
+      amount-out:decimal
+      token-in:module{fungible-v2}
     )
     " Constant-product transfer for ALLOC to RECIPIENT+RECIP_GUARD. \
     \ CALLABLE is callback for optimistic transfer. \
     \ ALLOC fields 'path' and 'idx' are unused, and 'in'"
     (let*
-      ( (amount-out (at 'out alloc))
-        (amount-in (at 'in alloc))
-        (p (at 'pair alloc))
+      ( (p (get-pair token token-in))
         (account (at 'account p))
-        (token:module{fungible-v2} (at 'token-out alloc))
-        (token-in:module{fungible-v2} (at 'token-in alloc))
         (reserve-out (reserve-for p token))
       )
       (enforce (> amount-out 0.0) "swap-leg: insufficient output")
@@ -477,7 +478,7 @@
       (install-capability (token::TRANSFER account recipient amount-out))
       (token::transfer-create account recipient recip-guard amount-out)
 
-      (callable::swap-call token-in token amount-in amount-out
+      (callable::swap-call token-in token amount-out
         account recipient recip-guard)
 
       (let*
@@ -505,7 +506,7 @@
           (format "swap-leg: insufficient input amount {}"
           [[amount0In amount1In token0 token1 token balance0 balance1 reserve0 reserve1 account recipient reserve-out]]))
         (enforce (>= (* balance0adjusted balance1adjusted)
-                     (* (* reserve0 reserve1) 10000))
+                     (* (* reserve0 reserve1) 1000000))
           "swap-leg: K")
         (with-capability (UPDATING)
           (with-capability
