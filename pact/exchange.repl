@@ -222,28 +222,46 @@
 ;; swaps
 ;;
 
-;; add back liquidity for swap
 (begin-tx)
 (use swap.exchange)
-(env-sigs [
-  { 'key: "bob"
+
+(module swaptests G
+  (defcap G () true)
+  (defun setup ()
+    (add-liquidity coin test.abc
+      100.0
+      200.0
+      50.0
+      100.0
+      "Bob"
+      "Bob"
+      (read-keyset 'bob)
+      (at 'block-time (chain-data)))
+
+    (add-liquidity coin test.xyz
+      100.0
+      60.0
+      50.0
+      30.0
+      "Bob"
+      "Bob"
+      (read-keyset 'bob)
+      (at 'block-time (chain-data)))
+  )
+)
+(commit-tx)
+;; test fixture
+(begin-tx)
+(use swap.exchange)
+(env-sigs [{ 'key: "bob"
   , 'caps:
     [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
      (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
      (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 100.0)
      (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 60.0)
-    ]
-  }])
-(add-liquidity coin test.abc
-  100.0
-  200.0
-  50.0
-  100.0
-  "Bob"
-  "Bob"
-  (read-keyset 'bob)
-  (at 'block-time (chain-data)))
-
+    ]}])
+(swaptests.setup)
+(env-events true)
 (expect "token liquidity for bob"
   141.321356237309
   (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
@@ -259,7 +277,7 @@
   (swap.tokens.total-supply (get-pair-key coin test.abc))
 )
 (expect "kda debited for bob"
-  900.0 (coin.get-balance "Bob"))
+  800.0 (coin.get-balance "Bob"))
 (expect "abc debited for bob"
   1800.0 (test.abc.get-balance "Bob"))
 (expect "kda credited for pair"
@@ -267,20 +285,11 @@
 (expect "abc credited for pair"
   200.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
-(add-liquidity coin test.xyz
-  100.0
-  60.0
-  50.0
-  30.0
-  "Bob"
-  "Bob"
-  (read-keyset 'bob)
-  (at 'block-time (chain-data)))
 
 
 ;; not re-testing events for liquidity adding
 (env-events true)
-(commit-tx)
+(rollback-tx)
 
 
 ;;
@@ -289,6 +298,16 @@
 
 (begin-tx)
 (use swap.exchange)
+(env-sigs [{ 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
+     (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 100.0)
+     (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 60.0)
+    ]}])
+(swaptests.setup)
+(env-events true)
+
 (env-sigs [
   { 'key: "alice"
   , 'caps:
@@ -340,6 +359,16 @@
 
 (begin-tx)
 (use swap.exchange)
+(env-sigs [{ 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
+     (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 100.0)
+     (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 60.0)
+    ]}])
+(swaptests.setup)
+(env-events true)
+
 
 (env-sigs [
   { 'key: "alice"
@@ -420,6 +449,15 @@
 
 (begin-tx)
 (use swap.exchange)
+(env-sigs [{ 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
+     (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 100.0)
+     (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 60.0)
+    ]}])
+(swaptests.setup)
+(env-events true)
 
 (env-sigs [
   { 'key: "alice"
@@ -451,6 +489,16 @@
 
 (begin-tx)
 (use swap.exchange)
+(env-sigs [{ 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
+     (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 100.0)
+     (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 60.0)
+    ]}])
+(swaptests.setup)
+(env-events true)
+
 (env-sigs [
   { 'key: "alice"
   , 'caps:
@@ -491,6 +539,15 @@
 
 (begin-tx)
 (use swap.exchange)
+(env-sigs [{ 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 100.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 200.0)
+     (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 100.0)
+     (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 60.0)
+    ]}])
+(swaptests.setup)
+(env-events true)
 
 (module optimistic-transfer G
   (defcap G () true)
