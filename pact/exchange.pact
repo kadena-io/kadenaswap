@@ -161,13 +161,10 @@
           (key (get-pair-key tokenA tokenB))
           (totalSupply (tokens.total-supply key))
           (liquidity (tokens.round-unit key
-            (if (or (= 0.0 reserve0) (= 0.0 reserve1))
-              (let ((l (sqrt (* amount0 amount1))))
-                (if (= totalSupply 0.0)
-                  (with-capability (ISSUING)
-                    (mint key pair-account (at 'guard p) MINIMUM_LIQUIDITY)
-                    (- l MINIMUM_LIQUIDITY))
-                  l))
+            (if (= totalSupply 0.0)
+              (with-capability (ISSUING)
+                (mint key "lock" (at 'guard p) MINIMUM_LIQUIDITY)
+                (- (sqrt (* amount0 amount1)) MINIMUM_LIQUIDITY))
               (let ((l0 (/ (* amount0 totalSupply) reserve0))
                     (l1 (/ (* amount1 totalSupply) reserve1))
                    )
@@ -230,8 +227,8 @@
           (balance1 (token1::get-balance pair-account))
           (liquidity_ (tokens.get-balance pair-key pair-account))
           (total-supply (tokens.total-supply pair-key))
-          (amount0 (/ (* liquidity_ balance0) total-supply))
-          (amount1 (/ (* liquidity_ balance1) total-supply))
+          (amount0 (round-unit token0 (/ (* liquidity_ balance0) total-supply)))
+          (amount1 (round-unit token1 (/ (* liquidity_ balance1) total-supply)))
         )
         (enforce (and (> amount0 0.0) (> amount1 0.0))
           "remove-liquidity: insufficient liquidity burned")
@@ -299,7 +296,7 @@
         "swap-exact-in: insufficient output amount")
       ;; initial dummy is correct for initial transfer
       (with-capability (SWAPPING)
-        (swap sender to to-guard (reverse allocs)))
+        (swap-pair sender to to-guard (reverse allocs)))
     )
   )
 
@@ -376,7 +373,7 @@
         (format "swap-exact-in: excessive input amount {}"
           [allocs]))
       (with-capability (SWAPPING)
-        (swap sender to to-guard allocs1))
+        (swap-pair sender to to-guard allocs1))
     )
   )
 
@@ -408,7 +405,7 @@
 
 
 
-  (defun swap
+  (defun swap-pair
     ( sender:string
       to:string
       to-guard:guard
@@ -425,8 +422,7 @@
       (+ [ { 'token: (format "{}" [head-token])
            , 'amount: out } ]
         (map
-          (swap-leg
-            noop-callable
+          (swap-alloc
             (- (length allocs) 1)
             to
             to-guard)
@@ -434,14 +430,35 @@
     )
   )
 
-  (defun swap-leg
-    ( callable:module{swap-callable-v1}
-      last:integer
+  (defun swap-alloc
+    ( last:integer
       to:string
       guard:guard
       alloc:object{alloc}
     )
     (require-capability (SWAPPING))
+    (let*
+      ( (path (at 'path alloc))
+        (is-last (= last (at 'idx alloc)))
+        (next-pair
+          (if is-last (at 'pair alloc) (get-pair (at 0 path) (at 1 path))))
+        (recipient
+          (if is-last to (at 'account next-pair)))
+        (recip-guard
+          (if is-last guard (at 'guard next-pair)))
+      )
+    (swap-leg noop-callable recipient recip-guard alloc))
+  )
+
+  (defun swap-leg
+    ( callable:module{swap-callable-v1}
+      recipient:string
+      recip-guard:guard
+      alloc:object{alloc}
+    )
+    " Constant-product transfer for ALLOC to RECIPIENT+RECIP_GUARD. \
+    \ CALLABLE is callback for optimistic transfer. \
+    \ ALLOC fields 'path' and 'idx' are unused, and 'in'"
     (let*
       ( (amount-out (at 'out alloc))
         (amount-in (at 'in alloc))
@@ -450,25 +467,13 @@
         (token:module{fungible-v2} (at 'token-out alloc))
         (token-in:module{fungible-v2} (at 'token-in alloc))
         (reserve-out (reserve-for p token))
-        (path (at 'path alloc))
-        (is-last (= last (at 'idx alloc)))
-        (recipient
-          (if is-last to
-            (at 'account (get-pair (at 0 path) (at 1 path)))))
-        (recip-guard
-          (if is-last guard
-            (at 'guard (get-pair (at 0 path) (at 1 path)))))
       )
       (enforce (> amount-out 0.0) "swap-leg: insufficient output")
       (enforce (< amount-out reserve-out) "swap-leg: insufficient liquidity")
       (enforce (!= recipient account) "swap-leg: invalid TO")
       ;;fire swap event
-      (with-capability
-        (SWAP account recipient
-          amount-in token-in
-          amount-out token)
-        (install-capability (token::TRANSFER account recipient amount-out))
-        (token::transfer-create account recipient recip-guard amount-out))
+      (install-capability (token::TRANSFER account recipient amount-out))
+      (token::transfer-create account recipient recip-guard amount-out)
 
       (callable::swap-call token-in token amount-in amount-out
         account recipient recip-guard)
@@ -482,8 +487,9 @@
           (balance1 (token1::get-balance account))
           (reserve0 (at 'reserve leg0))
           (reserve1 (at 'reserve leg1))
-          (amount0Out (if (is-leg0 p token) amount-out 0.0))
-          (amount1Out (if (is-leg0 p token) 0.0 amount-out))
+          (canon (is-leg0 p token))
+          (amount0Out (if canon amount-out 0.0))
+          (amount1Out (if canon 0.0 amount-out))
           (amount0In (if (> balance0 (- reserve0 amount0Out))
                         (- balance0 (- reserve0 amount0Out))
                         0.0))
@@ -494,14 +500,22 @@
           (balance1adjusted (- (* balance1 1000) (* amount1In 3)))
         )
         (enforce (or (> amount0In 0.0) (> amount1In 0.0))
-          "swap-leg: insufficient input amount")
+          (format "swap-leg: insufficient input amount {}"
+          [[amount0In amount1In token0 token1 token balance0 balance1 reserve0 reserve1 account recipient reserve-out]]))
         (enforce (>= (* balance0adjusted balance1adjusted)
                      (* (* reserve0 reserve1) 10000))
           "swap-leg: K")
         (with-capability (UPDATING)
-          (update-reserves p (get-pair-key token0 token1) balance0 balance1))
+          (with-capability
+            (SWAP account recipient
+              (if canon amount1In amount0In)
+              token-in amount-out token)
+            (update-reserves p
+              (get-pair-key token0 token1) balance0 balance1)))
         { 'token: (format "{}" [token])
         , 'amount: amount-out
+        ;, 'stuff: [balance0 balance1 balance0adjusted balance1adjusted reserve0 reserve1 amount0In amount0Out amount1In amount1Out
+        ;   (* balance0adjusted balance1adjusted) (* (* reserve0 reserve1) 10000)]
         }
       )
     )
@@ -534,6 +548,7 @@
         (insert pairs key p)
         (token0::create-account a g)
         (token1::create-account a g)
+        (tokens.create-account key a g)
         { "key": key
         , "account": a
         })))
