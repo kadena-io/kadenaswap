@@ -280,12 +280,15 @@
 
 ;; not re-testing events for liquidity adding
 (env-events true)
+(commit-tx)
 
 
 ;;
 ;; swap-exact-in
 ;;
 
+(begin-tx)
+(use swap.exchange)
 (env-sigs [
   { 'key: "alice"
   , 'caps:
@@ -331,8 +334,12 @@
     }
   ]
   (env-events true))
+(rollback-tx)
 
 ;; 3-way swap
+
+(begin-tx)
+(use swap.exchange)
 
 (env-sigs [
   { 'key: "alice"
@@ -343,28 +350,28 @@
 
 (expect "swap exact in 3-way"
   [ { "token": "test.abc", "amount": 30.0}
-    { "token": "coin", "amount": 15.535624025463}
-    { "token": "test.xyz", "amount": 8.04700786369056}
+    { "token": "coin", "amount": 13.009438475925}
+    { "token": "test.xyz", "amount": 6.88874731466592}
   ]
   (swap-exact-in 30.0 1.0 [test.abc coin test.xyz]
     "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 (expect "abc debited for alice"
-  19988.13221787760298 (test.abc.get-balance "Alice"))
+  19970.0 (test.abc.get-balance "Alice"))
 (expect "abc credited for coin:abc"
-  211.86778212239702
+  230.0
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 (expect "kda debited for coin:abc"
-  94.464375974537
+  86.990561524075
   (coin.get-balance (at 'account (get-pair coin test.abc))))
 (expect "kda credited for coin:xyz"
-  115.535624025463
+  113.009438475925
   (coin.get-balance (at 'account (get-pair coin test.xyz))))
 (expect "xyz debited for coin:xyz"
-  51.95299213630944
+  53.11125268533408
   (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
 (expect "xyz credited for alice"
-  8.04700786369056 (test.xyz.get-balance "Alice"))
+  6.88874731466592 (test.xyz.get-balance "Alice"))
 
 (expect "swap-exact-in 3-way events"
   [ { "module-hash": (at 'hash (describe-module "test.abc"))
@@ -374,38 +381,38 @@
     { "module-hash": (at 'hash (describe-module "coin"))
     , "name": "coin.TRANSFER"
     , "params": [ (at 'account (get-pair test.abc coin))
-                  (at 'account (get-pair test.xyz coin)) 15.535624025463]
+                  (at 'account (get-pair test.xyz coin)) 13.009438475925]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.SWAP"
     , "params": [ (at 'account (get-pair test.abc coin))
                   (at 'account (get-pair test.xyz coin))
-                  30.0 test.abc 15.535624025463 coin]
+                  30.0 test.abc 13.009438475925 coin]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.UPDATE"
     , "params": [ (get-pair-key coin test.abc)
-                  94.464375974537 211.86778212239702]
+                  86.990561524075 230.0]
     }
     { "module-hash": (at 'hash (describe-module "test.xyz"))
     , "name": "test.xyz.TRANSFER"
     , "params": [ (at 'account (get-pair test.xyz coin))
-                  "Alice" 8.04700786369056]
+                  "Alice" 6.88874731466592]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.SWAP"
     , "params": [ (at 'account (get-pair test.xyz coin)) "Alice"
-                  15.535624025463 coin 8.04700786369056 test.xyz]
+                  13.009438475925 coin 6.88874731466592 test.xyz]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.UPDATE"
     , "params": [ (get-pair-key coin test.xyz)
-                  115.535624025463 51.95299213630944]
+                  113.009438475925 53.11125268533408]
     }
   ]
   (env-events true))
 
-(commit-tx)
+(rollback-tx)
 
 ;;
 ;; swap-exact-out
@@ -417,30 +424,33 @@
 (env-sigs [
   { 'key: "alice"
   , 'caps:
-    [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 4.693597999833)
+    [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 5.278994879374)
     ]
   }])
 
 (expect "swap exact out"
-  [ { "token": "coin", "amount": 4.693597999833 }
+  [ { "token": "coin", "amount": 5.278994879374 }
     { "token": "test.abc", "amount": 10.0 }
   ]
-  (swap-exact-out 10.0 5.0 [coin test.abc]
+  (swap-exact-out 10.0 6.0 [coin test.abc]
     "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 (expect "kda debited for alice"
-  9985.306402000167 (coin.get-balance "Alice"))
+  9994.721005120626 (coin.get-balance "Alice"))
 (expect "abc credited for alice"
-  19998.13221787760298 (test.abc.get-balance "Alice"))
+  20010.0 (test.abc.get-balance "Alice"))
 (expect "kda credited for pair"
-  99.157973974370 (coin.get-balance (at 'account (get-pair coin test.abc))))
+  105.278994879374 (coin.get-balance (at 'account (get-pair coin test.abc))))
 (expect "abc debited for pair"
-  201.86778212239702
+  190.0
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
+(rollback-tx)
 
 ;; 3-way out
 
+(begin-tx)
+(use swap.exchange)
 (env-sigs [
   { 'key: "alice"
   , 'caps:
@@ -448,8 +458,8 @@
       28.78004347733101)]}])
 
 (expect "swap exact out 3-way"
-  [ { "token": "test.abc", "amount": 28.78004347733101 }
-    { "token": "coin", "amount": 12.340350271030 }
+  [ { "token": "test.abc", "amount": 20.12659831606604 }
+    { "token": "coin", "amount": 9.118263882556 }
     { "token": "test.xyz", "amount": 5.0 }
   ]
   (swap.exchange.swap-exact-out 5.0 100.0 [test.abc coin test.xyz]
@@ -457,23 +467,23 @@
 
 
 (expect "abc debited for alice"
-  19969.35217440027197 (test.abc.get-balance "Alice"))
+  19979.87340168393396 (test.abc.get-balance "Alice"))
 (expect "abc credited for coin:abc"
-  230.64782559972803
+  220.12659831606604
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 (expect "kda debited for coin:abc"
-  86.817623703340
+  90.881736117444
   (coin.get-balance (at 'account (get-pair coin test.abc))))
 (expect "kda credited for coin:xyz"
-  127.875974296493
+  109.118263882556
   (coin.get-balance (at 'account (get-pair coin test.xyz))))
 (expect "xyz debited for coin:xyz"
-  46.95299213630944
+  55.0
   (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
 (expect "xyz credited for alice"
-  13.04700786369056 (test.xyz.get-balance "Alice"))
+  5.0 (test.xyz.get-balance "Alice"))
 
-(commit-tx)
+(rollback-tx)
 
 ;;
 ;; optimistic transfer
