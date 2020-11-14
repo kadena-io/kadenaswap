@@ -162,7 +162,7 @@
           (amount1 (- balance1 reserve1))
           (key (get-pair-key tokenA tokenB))
           (totalSupply (tokens.total-supply key))
-          (liquidity (tokens.round-unit key
+          (liquidity (tokens.truncate key
             (if (= totalSupply 0.0)
               (with-capability (ISSUING)
                 (mint key LOCK_ACCOUNT (at 'guard p) MINIMUM_LIQUIDITY)
@@ -229,8 +229,8 @@
           (balance1 (token1::get-balance pair-account))
           (liquidity_ (tokens.get-balance pair-key pair-account))
           (total-supply (tokens.total-supply pair-key))
-          (amount0 (round-unit token0 (/ (* liquidity_ balance0) total-supply)))
-          (amount1 (round-unit token1 (/ (* liquidity_ balance1) total-supply)))
+          (amount0 (truncate token0 (/ (* liquidity_ balance0) total-supply)))
+          (amount1 (truncate token1 (/ (* liquidity_ balance1) total-supply)))
         )
         (enforce (and (> amount0 0.0) (> amount1 0.0))
           "remove-liquidity: insufficient liquidity burned")
@@ -322,7 +322,7 @@
       (+ [ { 'token-out: token-out
            , 'token-in: token-in
            , 'in: amountIn
-           , 'out: (round-unit token-out (/ numerator denominator))
+           , 'out: (truncate token-out (/ numerator denominator))
            , 'idx: (+ 1 (at 'idx head))
            , 'pair: p
            , 'path: (drop 1 (at 'path head))
@@ -373,7 +373,7 @@
       )
       (enforce (<= (at 'out (at 0 allocs1)) amountInMax)
         (format "swap-exact-out: excessive input amount {}"
-          [allocs]))
+          [(at 'out (at 0 allocs1))]))
       (with-capability (SWAPPING)
         (swap-pair sender to to-guard allocs1))
     )
@@ -395,7 +395,7 @@
       )
       (+ [ { 'token-out: token-out
            , 'token-in: token-in
-           , 'in: (round-unit token-in (/ numerator denominator))
+           , 'in: (ceiling (/ numerator denominator) (token-in::precision))
            , 'out: amountOut
            , 'idx: (- (at 'idx head) 1)
            , 'pair: p
@@ -463,9 +463,10 @@
       amount-out:decimal
       token-in:module{fungible-v2}
     )
-    " Constant-product transfer for ALLOC to RECIPIENT+RECIP_GUARD. \
-    \ CALLABLE is callback for optimistic transfer. \
-    \ ALLOC fields 'path' and 'idx' are unused, and 'in'"
+    " Swap AMOUNT-OUT of TOKEN to RECIPIENT/RECIP-GUARD, \
+    \ such that a corresponding transfer to TOKEN-IN, either \
+    \ previously or during the execution of 'CALLABLE::swap-call', \
+    \ will satisfy the constant-product invariant for the pair."
     (let*
       ( (p (get-pair token token-in))
         (account (at 'account p))
@@ -499,15 +500,15 @@
           (amount1In (if (> balance1 (- reserve1 amount1Out))
                         (- balance1 (- reserve1 amount1Out))
                         0.0))
-          (balance0adjusted (- (* balance0 1000) (* amount0In 3)))
-          (balance1adjusted (- (* balance1 1000) (* amount1In 3)))
+          (balance0adjusted (- balance0 (* amount0In 0.003)))
+          (balance1adjusted (- balance1 (* amount1In 0.003)))
         )
         (enforce (or (> amount0In 0.0) (> amount1In 0.0))
-          (format "swap-leg: insufficient input amount {}"
-          [[amount0In amount1In token0 token1 token balance0 balance1 reserve0 reserve1 account recipient reserve-out]]))
+          "swap-leg: insufficient input amount")
         (enforce (>= (* balance0adjusted balance1adjusted)
-                     (* (* reserve0 reserve1) 1000000))
-          "swap-leg: K")
+                     (* reserve0 reserve1))
+          (format "swap-leg: K ({} < {})"
+          [(* balance0adjusted balance1adjusted) (* reserve0 reserve1)]))
         (with-capability (UPDATING)
           (with-capability
             (SWAP account recipient
@@ -608,9 +609,11 @@
     (hash (+ hint (+ key (format "{}" [(at 'block-time (chain-data))]))))
   )
 
-  (defun round-unit (token:module{fungible-v2} amount:decimal)
+  (defun truncate (token:module{fungible-v2} amount:decimal)
     (floor amount (token::precision))
   )
+
+
 
 )
 

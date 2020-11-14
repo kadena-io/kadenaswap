@@ -12,7 +12,7 @@
       recipient-guard:guard
     )
     " Operate on an optimistic swap of AMOUNT-OUT of TOKEN-OUT \
-    \ from SENDER to RECIPIENT. TOKEN-IN and AMOUNT-IN are provided \
+    \ from SENDER to RECIPIENT/RECIPIENT-GUARD. TOKEN-IN is provided \
     \ to give the pair context as well as the inbound amount swapped. \
     \ Boolean result value is ignored."
   )

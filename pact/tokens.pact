@@ -99,7 +99,7 @@
       "precision violation")
   )
 
-  (defun round-unit:decimal (token:string amount:decimal)
+  (defun truncate:decimal (token:string amount:decimal)
     (floor amount (precision token))
   )
 

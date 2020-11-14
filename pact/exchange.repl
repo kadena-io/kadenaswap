@@ -534,12 +534,34 @@
 (rollback-tx)
 
 ;;
+;;
+;; compute-in tests
+;;
+
+(begin-tx)
+(use swap.exchange)
+(fixture.setup-abc 1000.0 1000.0)
+
+(expect "compute-in"
+ [ 0.001003010031 0.001 ]
+ (map (at 'in)
+  (compute-in
+    [ { 'token-out: coin
+      , 'token-in: test.abc
+      , 'out: 0.0
+      , 'in: 0.001
+      , 'idx: 2
+      , 'pair: (get-pair coin test.abc)
+      , 'path: []
+      }] coin)))
+
+;;
 ;; swap-exact-out
 ;;
 
 (begin-tx)
 (use swap.exchange)
-(fixture.setup-abc 30.0 30.0)
+(fixture.setup-abc 1000.0 1000.0)
 
 (env-sigs [
   { 'key: "alice"
@@ -548,21 +570,20 @@
     ]
   }])
 
-(expect-failure "swap exact out TODO"
-  ;[ { "token": "coin", "amount": 15.045135406218 }
-  ;  { "token": "test.abc", "amount": 10.0 }
-  ;]
-  (swap-exact-out 10.0 10000.0 [coin test.abc]
+(expect "swap exact out"
+  [ { "token": "coin", "amount": 0.001003010031 }
+    { "token": "test.abc", "amount": 0.001 }
+  ]
+  (swap-exact-out 0.001 0.002 [coin test.abc]
     "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
-
 (expect "kda debited for alice"
-  9984.954864593782 (coin.get-balance "Alice"))
+  9999.998996989969 (coin.get-balance "Alice"))
 (expect "abc credited for alice"
-  20010.0 (test.abc.get-balance "Alice"))
+  20000.001 (test.abc.get-balance "Alice"))
 (expect "kda credited for pair"
-  45.045135406218 (coin.get-balance (at 'account (get-pair coin test.abc))))
+  1000.001003010031 (coin.get-balance (at 'account (get-pair coin test.abc))))
 (expect "abc debited for pair"
-  20.0
+  999.999
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
 (rollback-tx)
@@ -580,39 +601,39 @@
     [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin))
       28.78004347733101)]}])
 
-(expect-failure "swap exact out 3-way TODO"
-  ;[ { "token": "test.abc", "amount": 7.55088351629471 }
-  ;  { "token": "coin", "amount": 6.018054162487 }
-  ;  { "token": "test.xyz", "amount": 15.0 }
-  ;]
+(expect "swap exact out 3-way TODO"
+  [ { "token": "test.abc", "amount": 7.55088351629628 }
+   { "token": "coin", "amount": 6.018054162488 }
+   { "token": "test.xyz", "amount": 15.0 }
+  ]
   (swap.exchange.swap-exact-out 15.0 100.0 [test.abc coin test.xyz]
     "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
 
 
 (expect "abc debited for alice"
-  19992.44911648370529 (test.abc.get-balance "Alice"))
+  19992.44911648370372 (test.abc.get-balance "Alice"))
 (expect "abc credited for coin:abc"
-  37.55088351629471
+  37.55088351629628
   (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 (expect "kda debited for coin:abc"
-  23.981945837513
+  23.981945837512
   (coin.get-balance (at 'account (get-pair coin test.abc))))
 (expect "kda credited for coin:xyz"
-  16.018054162487
+  16.018054162488
   (coin.get-balance (at 'account (get-pair coin test.xyz))))
 (expect "xyz debited for coin:xyz"
   25.0
   (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
-(expect-failure "xyz credited for alice TODO"
-  ;15.0
+(expect "xyz credited for alice TODO"
+  15.0
   (test.xyz.get-balance "Alice"))
 
 (rollback-tx)
 
+;;
+;; test callback
+;;
 (begin-tx)
-(use swap.exchange)
-(fixture.setup-abc 30.0 30.0)
-;(fixture.setup-xyz 10.0 40.0)
 
 (module optimistic-transfer G
   (defcap G () true)
@@ -630,6 +651,13 @@
   )
 )
 
+(commit-tx)
+
+(begin-tx)
+(use swap.exchange)
+(fixture.setup-abc 30.0 30.0)
+
+
 (env-sigs [
   { 'key: "alice"
   , 'caps:
@@ -637,13 +665,56 @@
      (at 'account (get-pair test.abc coin))
       8.0)]}])
 
-(swap-leg
+(expect "swap+callback success"
+  { "token": "test.abc"
+  , "amount": 6.30082157151885
+  }
+  (swap-leg
   optimistic-transfer
-  "Alice"
-  (read-keyset 'alice)
-  test.abc
-  6.30082157151885
-  coin
-  )
+  "Alice" (read-keyset 'alice)
+  test.abc 6.30082157151885
+  coin))
 
-(env-events true)
+(expect "callback events"
+  [ { "module-hash": (at 'hash (describe-module "test.abc"))
+    , "name": "test.abc.TRANSFER"
+    , "params": [ (at 'account (get-pair coin test.abc)) "Alice"
+                  6.30082157151885]
+    }
+    { "module-hash": (at 'hash (describe-module "coin"))
+    ,"name": "coin.TRANSFER"
+    ,"params": ["Alice" (at 'account (get-pair coin test.abc)) 8.0]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    ,"name": "swap.exchange.SWAP"
+    ,"params": [ (at 'account (get-pair coin test.abc)) "Alice"
+                 8.0 coin 6.30082157151885 test.abc]
+    }
+    { "module-hash": (at 'hash (describe-module "swap.exchange"))
+    , "name": "swap.exchange.UPDATE"
+    , "params": ["coin:test.abc" 38.0 23.69917842848115]
+    } ]
+  (env-events true))
+
+(rollback-tx)
+
+(begin-tx)
+(use swap.exchange)
+(fixture.setup-abc 30.0 30.0)
+
+
+(env-sigs [
+  { 'key: "alice"
+  , 'caps:
+    [(coin.TRANSFER "Alice"
+     (at 'account (get-pair test.abc coin))
+      8.0)]}])
+
+(expect-failure "swap+callback failure"
+  "K"
+  (swap-leg
+  optimistic-transfer
+  "Alice" (read-keyset 'alice)
+  test.abc 6.30082157151886
+  coin))
+(rollback-tx)
