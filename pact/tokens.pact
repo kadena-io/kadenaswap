@@ -261,6 +261,10 @@
     (step (enforce false "cross chain not supported"))
     )
 
+  (defun get-tokens ()
+    "Get all token identifiers"
+    (keys supplies))
+
 )
 
 (create-table ledger)
