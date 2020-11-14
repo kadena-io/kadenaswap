@@ -518,8 +518,6 @@
               (get-pair-key token0 token1) balance0 balance1)))
         { 'token: (format "{}" [token])
         , 'amount: amount-out
-        ;, 'stuff: [balance0 balance1 balance0adjusted balance1adjusted reserve0 reserve1 amount0In amount0Out amount1In amount1Out
-        ;   (* balance0adjusted balance1adjusted) (* (* reserve0 reserve1) 10000)]
         }
       )
     )

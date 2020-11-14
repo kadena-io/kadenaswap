@@ -411,12 +411,16 @@
     [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 100.0)]
   }])
 
+(env-gasmodel 'table)
+(env-gaslimit 30000)
 (expect "swap exact in"
   [ { "token": "coin", "amount": 8.0 }
     { "token": "test.abc", "amount": 6.30082157151885 }
   ]
   (swap-exact-in 8.0 6.3 [coin test.abc]
     "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+(expect "swap gas" 1632 (env-gas))
+(env-gasmodel 'fixed 0)
 
 (expect "kda debited for alice"
   9992.0 (coin.get-balance "Alice"))
