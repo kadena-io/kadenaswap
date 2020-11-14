@@ -449,13 +449,13 @@
         (recip-guard
           (if is-last guard (at 'guard next-pair)))
       )
-      (swap-leg noop-callable recipient recip-guard
+      (swap noop-callable recipient recip-guard
         (at 'token-out alloc)
         (at 'out alloc)
         (at 'token-in alloc)))
   )
 
-  (defun swap-leg
+  (defun swap
     ( callable:module{swap-callable-v1}
       recipient:string
       recip-guard:guard
@@ -472,9 +472,9 @@
         (account (at 'account p))
         (reserve-out (reserve-for p token))
       )
-      (enforce (> amount-out 0.0) "swap-leg: insufficient output")
-      (enforce (< amount-out reserve-out) "swap-leg: insufficient liquidity")
-      (enforce (!= recipient account) "swap-leg: invalid TO")
+      (enforce (> amount-out 0.0) "swap: insufficient output")
+      (enforce (< amount-out reserve-out) "swap: insufficient liquidity")
+      (enforce (!= recipient account) "swap: invalid TO")
       ;;fire swap event
       (install-capability (token::TRANSFER account recipient amount-out))
       (token::transfer-create account recipient recip-guard amount-out)
@@ -504,10 +504,10 @@
           (balance1adjusted (- balance1 (* amount1In 0.003)))
         )
         (enforce (or (> amount0In 0.0) (> amount1In 0.0))
-          "swap-leg: insufficient input amount")
+          "swap: insufficient input amount")
         (enforce (>= (* balance0adjusted balance1adjusted)
                      (* reserve0 reserve1))
-          (format "swap-leg: K ({} < {})"
+          (format "swap: K ({} < {})"
           [(* balance0adjusted balance1adjusted) (* reserve0 reserve1)]))
         (with-capability (UPDATING)
           (with-capability

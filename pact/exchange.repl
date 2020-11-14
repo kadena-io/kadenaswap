@@ -293,7 +293,7 @@
       (coin.transfer "Alice"
         (at 'account (get-pair test.abc coin))
         swapAmount))
-    (swap-leg swap.noop-callable
+    (swap swap.noop-callable
       "Alice"
       (read-keyset "alice")
       test.abc
@@ -319,7 +319,7 @@
       (coin.transfer "Alice"
         (at 'account (get-pair test.abc coin))
         inputAmount))
-    (swap-leg swap.noop-callable
+    (swap swap.noop-callable
       "Alice"
       (read-keyset "alice")
       coin
@@ -669,7 +669,7 @@
   { "token": "test.abc"
   , "amount": 6.30082157151885
   }
-  (swap-leg
+  (swap
   optimistic-transfer
   "Alice" (read-keyset 'alice)
   test.abc 6.30082157151885
@@ -712,7 +712,7 @@
 
 (expect-failure "swap+callback failure"
   "K"
-  (swap-leg
+  (swap
   optimistic-transfer
   "Alice" (read-keyset 'alice)
   test.abc 6.30082157151886
