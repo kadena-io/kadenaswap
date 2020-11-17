@@ -1,0 +1,165 @@
+(module abc GOVERNANCE
+
+  (implements fungible-v2)
+
+  (defschema entry
+    balance:decimal
+    guard:guard)
+
+  (deftable ledger1:{entry})
+
+  (defcap GOVERNANCE () (enforce false "autonomous"))
+
+  (defcap DEBIT (sender:string)
+    (enforce-guard (at 'guard (read ledger1 sender))))
+
+  (defcap CREDIT (receiver:string) true)
+
+  (defcap TRANSFER:bool
+    ( sender:string
+      receiver:string
+      amount:decimal
+    )
+    @managed amount TRANSFER-mgr
+    (enforce-unit amount)
+    (enforce (> amount 0.0) "Positive amount")
+    (compose-capability (DEBIT sender))
+    (compose-capability (CREDIT receiver))
+  )
+
+  (defun TRANSFER-mgr:decimal
+    ( managed:decimal
+      requested:decimal
+    )
+
+    (let ((newbal (- managed requested)))
+      (enforce (>= newbal 0.0)
+        (format "TRANSFER exceeded for balance {}" [managed]))
+      newbal)
+  )
+
+  (defconst MINIMUM_PRECISION 14)
+
+  (defun enforce-unit:bool (amount:decimal)
+    (enforce
+      (= (floor amount MINIMUM_PRECISION)
+         amount)
+      "precision violation")
+    )
+
+
+  (defun create-account:string
+    ( account:string
+      guard:guard
+    )
+    (insert ledger1 account
+      { "balance" : 0.0
+      , "guard"   : guard
+      })
+    )
+
+  (defun get-balance:decimal (account:string)
+    (at 'balance (read ledger1 account))
+    )
+
+  (defun details:object{fungible-v2.account-details}
+    ( account:string )
+    (with-read ledger1 account
+      { "balance" := bal
+      , "guard" := g }
+      { "account" : account
+      , "balance" : bal
+      , "guard": g })
+    )
+
+  (defun rotate:string (account:string new-guard:guard)
+    (with-read ledger1 account
+      { "guard" := old-guard }
+
+      (enforce-guard old-guard)
+
+      (update ledger1 account
+        { "guard" : new-guard }))
+    )
+
+
+  (defun precision:integer ()
+    MINIMUM_PRECISION)
+
+  (defun transfer:string (sender:string receiver:string amount:decimal)
+
+    (enforce (!= sender receiver)
+      "sender cannot be the receiver of a transfer")
+
+    (with-capability (TRANSFER sender receiver amount)
+      (debit sender amount)
+      (with-read ledger1 receiver
+        { "guard" := g }
+        (credit receiver g amount))
+      )
+    )
+
+  (defun transfer-create:string
+    ( sender:string
+      receiver:string
+      receiver-guard:guard
+      amount:decimal )
+
+    (enforce (!= sender receiver)
+      "sender cannot be the receiver of a transfer")
+
+    (with-capability (TRANSFER sender receiver amount)
+      (debit sender amount)
+      (credit receiver receiver-guard amount))
+    )
+
+  (defun fund:string (account:string amount:decimal)
+    (with-capability (CREDIT account)
+      (credit account
+        (at 'guard (read ledger1 account))
+        amount))
+    )
+
+  (defun debit:string (account:string amount:decimal)
+
+    (require-capability (DEBIT account))
+    (with-read ledger1 account
+      { "balance" := balance }
+
+      (enforce (<= amount balance) "Insufficient funds")
+
+      (update ledger1 account
+        { "balance" : (- balance amount) }
+        ))
+    )
+
+
+  (defun credit:string (account:string guard:guard amount:decimal)
+
+    (require-capability (CREDIT account))
+    (with-default-read ledger1 account
+      { "balance" : 0.0, "guard" : guard }
+      { "balance" := balance, "guard" := retg }
+      ; we don't want to overwrite an existing guard with the user-supplied one
+      (enforce (= retg guard)
+        "account guards do not match")
+
+      (write ledger1 account
+        { "balance" : (+ balance amount)
+        , "guard"   : retg
+        })
+      ))
+
+
+  (defpact transfer-crosschain:string
+    ( sender:string
+      receiver:string
+      receiver-guard:guard
+      target-chain:string
+      amount:decimal )
+    (step (enforce false "cross chain not supported"))
+    )
+
+)
+
+(create-table ledger1)
