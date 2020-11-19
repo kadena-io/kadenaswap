@@ -231,9 +231,14 @@
           (total-supply (tokens.total-supply pair-key))
           (amount0 (truncate token0 (/ (* liquidity_ balance0) total-supply)))
           (amount1 (truncate token1 (/ (* liquidity_ balance1) total-supply)))
+          (canon (is-canonical tokenA tokenB))
         )
         (enforce (and (> amount0 0.0) (> amount1 0.0))
           "remove-liquidity: insufficient liquidity burned")
+        (enforce (>= (if canon amount0 amount1) amountAMin)
+          "remove-liquidity: insufficient A amount")
+        (enforce (>= (if canon amount1 amount0) amountBMin)
+          "remove-liquidity: insufficient B amount")
         (with-capability (ISSUING)
           (burn pair-key pair-account liquidity))
         (install-capability (token0::TRANSFER pair-account to amount0))
@@ -342,7 +347,7 @@
       deadline:time
     )
     (enforce-deadline deadline)
-    (enforce (>= (length path) 2) "swap-exact-in: invalid path")
+    (enforce (>= (length path) 2) "swap-exact-out: invalid path")
     ;; fold over tail of reverse path with dummy first value to compute inputs
     ;; assembles allocs in forward order
     (let*

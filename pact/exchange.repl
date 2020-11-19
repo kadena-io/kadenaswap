@@ -206,8 +206,8 @@
   , "amount1": 29.9 }
   (remove-liquidity test.abc coin
     29.9
-    200.0
-    100.0
+    29.9
+    29.9
     "Bob"
     "Bob"
     (read-keyset 'bob)
@@ -259,8 +259,37 @@
 (expect "abc debited for pair"
   0.1 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
 
+(rollback-tx)
 
+(begin-tx)
+(use swap.exchange)
+(fixture.setup-abc 30.0 30.0)
+(expect-failure "remove-liquidity insufficient A"
+  "insufficient A amount"
+  (remove-liquidity test.abc coin
+    29.9
+    30.0
+    29.9
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    (at 'block-time (chain-data))))
 
+(rollback-tx)
+
+(begin-tx)
+(use swap.exchange)
+(fixture.setup-abc 30.0 30.0)
+(expect-failure "remove-liquidity insufficient B"
+  "insufficient B amount"
+  (remove-liquidity test.abc coin
+    29.9
+    29.9
+    30.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    (at 'block-time (chain-data))))
 ;;
 ;; swaps
 ;;
