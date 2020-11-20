@@ -3,12 +3,15 @@ import { ThemeProvider } from 'styled-components';
 import Router from './router/router';
 import { theme } from './styles/theme';
 import GlobalStyle from './styles/globalStyle';
+import { PactProvider } from './contexts/PactContext';
 
 const App = () => {
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyle />
-      <Router />
+      <PactProvider>
+        <GlobalStyle />
+        <Router />
+      </PactProvider>
     </ThemeProvider>
   );
 };

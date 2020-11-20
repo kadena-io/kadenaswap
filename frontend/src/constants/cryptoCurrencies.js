@@ -1,7 +1,10 @@
 import React from 'react';
 import { ReactComponent as EthereumIcon } from '../assets/images/crypto/ethereum.svg';
+import { ReactComponent as KadenaIcon } from '../assets/images/crypto/kadena-logo.svg';
 
 export default {
+  KDA: { name: 'kadena', code: 'KDA', icon: <KadenaIcon /> },
+  SIL: { name: 'silver', code: 'SIL', icon: <KadenaIcon /> },
   ETH: { name: 'ethereum', code: 'ETH', icon: <EthereumIcon /> },
   FOUR: { name: 'four', code: 'FOUR', icon: <EthereumIcon /> },
   FKE1: { name: 'FAKE1', code: 'FKE1', icon: <EthereumIcon /> },

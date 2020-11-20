@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { NavLink, useHistory } from 'react-router-dom';
+import { Button, Modal } from 'semantic-ui-react'
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
+import { PactContext } from '../../../contexts/PactContext';
+import KdaModal from '../../../modals/kdaModal/KdaModal';
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
@@ -68,7 +71,11 @@ const Item = styled(NavLink)`
 `;
 
 const Header = () => {
+
+  const [showEthModal, setShowEthModal] = useState(false);
+  const [showPactModal, setShowPactModal] = useState(false);
   const history = useHistory();
+  const pact = useContext(PactContext);
 
   return (
     <Container>
@@ -82,12 +89,19 @@ const Header = () => {
         <Item className="mobile-none" to="#">
           {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
         </Item>
-        <Item to="#">
-          <PowerIcon />
+        <Item className="mobile-none" to="#">
+          {pact.account.account ? reduceToken(pact.account.account): "KDA"}
         </Item>
-        <Item to="#">
-          <CogIcon />
-        </Item>
+        <Modal
+          trigger={<Button>ETH Wallet</Button>}
+          // content={<EthModal/>}
+          actions={[{ key: 'done', content: 'Done', positive: true }]}
+        />
+        <Modal
+          trigger={<Button>KDA Wallet</Button>}
+          content={<KdaModal/>}
+          actions={[{ key: 'done', content: 'Done', positive: true}]}
+        />
         <Item to="#">
           <HamburgerIcon />
         </Item>
