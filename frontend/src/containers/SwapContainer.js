@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import styled from 'styled-components/macro';
 import { ReactComponent as SwapArrowsIcon } from '../assets/images/shared/swap-arrows.svg';
 import FormContainer from '../components/shared/FormContainer';
@@ -8,6 +8,7 @@ import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
 import TokenSelector from '../components/shared/TokenSelector';
+import { PactContext } from '../contexts/PactContext';
 
 const Container = styled.div`
   display: flex;
@@ -33,6 +34,8 @@ const SwapContainer = () => {
   const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '' });
   const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '' });
 
+  const pact = useContext(PactContext);
+
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
     if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
@@ -52,6 +55,7 @@ const SwapContainer = () => {
   };
 
   const getButtonLabel = () => {
+    if (!pact.account.account) return 'Connect your KDA account';
     if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
     return 'SWAP';

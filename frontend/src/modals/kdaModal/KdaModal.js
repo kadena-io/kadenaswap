@@ -15,7 +15,14 @@ export default function Account() {
       <Modal.Description>
         <Header>{"Your KDA Account"}</Header>
         <Input
-        onChange={(e, { value }) => setInputValue((prev) => ({ ...prev, account: value }))}
+          value={pact.account.account}
+          onChange={(e, { value }) => setInputValue((prev) => ({ ...prev, account: value }))}
+        />
+        <Header>{"Your Private Key"}</Header>
+        <Input
+          value={pact.privKey}
+          onChange={(e, { value }) => pact.storePrivKey(value)}
+          type='password'
         />
       </Modal.Description>
       </Modal.Content>
@@ -23,10 +30,7 @@ export default function Account() {
         <Button
           onClick={async () => {
             try{
-              // (account, token0, token1, amountDesired0, amountDesired1, amountMin0, amountMin1)
-              // pact.addLiquidity("user1", "coin", "abc", 10.1, 20.1, 5.1, 5.1);
-              pact.getTokenAccount("abc", fromInput.account);
-              pact.setVerifiedAccount(fromInput.account);
+              await pact.setVerifiedAccount(fromInput.account);
             } catch (e){
               console.log(e)
             }

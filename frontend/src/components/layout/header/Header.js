@@ -90,7 +90,7 @@ const Header = () => {
           {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
         </Item>
         <Item className="mobile-none" to="#">
-          {pact.account.account ? reduceToken(pact.account.account): "KDA"}
+          {pact.account.account ? `${reduceToken(pact.account.account)} ${pact.account.balance}kda`: "KDA"}
         </Item>
         <Modal
           trigger={<Button>ETH Wallet</Button>}

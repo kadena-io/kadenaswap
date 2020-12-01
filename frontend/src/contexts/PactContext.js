@@ -2,11 +2,17 @@ import React, { useState, createContext, useEffect } from 'react';
 import Pact from "pact-lang-api";
 
 export const PactContext = createContext();
+
+const savedAcct = localStorage.getItem('acct');
+const savedPrivKey = localStorage.getItem('pk')
+
 export const PactProvider = (props) => {
 
   const network = "http://localhost:9001"
-  const [account, setAccount] = useState({account: null, guard: null, balance: 0});
-  const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
+  const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
+  const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""))
+  const [tokenOneAccount, setTokenOneAccount] = useState({account: null, guard: null, balance: 0});
+  const [tokenTwoAccount, setTokenTwoAccount] = useState({account: null, guard: null, balance: 0});
   const [tokenList, setTokenList] = useState({tokens: []})
   const [pairAccount, setPairAccount] = useState("")
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
@@ -30,6 +36,7 @@ export const PactProvider = (props) => {
         console.log(data)
         if (data.result.status === "success"){
           setAccount(data.result.data);
+          await localStorage.setItem('acct', JSON.stringify(data.result.data));
           console.log("Account is set to ", accountName);
         } else {
           console.log("Account is not verified")
@@ -39,7 +46,7 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getTokenAccount = async (token, account) => {
+  const getTokenAccount = async (token, account, first) => {
     // token = "user.token-token";
     try {
       let data = await Pact.fetch.local({
@@ -48,7 +55,7 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", "3" ,0.01,100000000, 28800, creationTime()),
         }, network);
         if (data.result.status === "success"){
-          setTokenAccount(data.result.data);
+          first ? setTokenOneAccount(data.result.data) : setTokenTwoAccount(data.result.data)
           console.log(data.result.data)
           console.log("Account is set to ", account);
         } else {
@@ -145,12 +152,17 @@ export const PactProvider = (props) => {
     return getTokenPrice(toToken)/getTokenPrice(fromToken);
   }
 
+  const storePrivKey = async (pk) => {
+    await setPrivKey(pk)
+    await localStorage.setItem('pk', pk);
+  }
+
   return (
     <PactContext.Provider
       value={{
         account,
         setVerifiedAccount,
-        tokenAccount,
+        tokenOneAccount,
         getTokenAccount,
         getTokenPrice,
         getRatio,
@@ -159,7 +171,9 @@ export const PactProvider = (props) => {
         addLiquidity,
         pairAccount,
         getPairAccount,
-        getPairAccountBalance
+        getPairAccountBalance,
+        privKey,
+        storePrivKey
       }}
     >
       {props.children}
