@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { NavLink, useHistory } from 'react-router-dom';
-import { Button, Modal } from 'semantic-ui-react'
+import { Modal, Message } from 'semantic-ui-react'
+import Button from '../../shared/Button';
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
 import { PactContext } from '../../../contexts/PactContext';
@@ -83,25 +84,48 @@ const Header = () => {
         <KDALogo style={{ cursor: 'pointer' }} onClick={() => history.push(ROUTE_INDEX)} />
         <Item to={ROUTE_SWAP}>swap</Item>
         <Item to={ROUTE_POOL}>pool</Item>
+        {/*
         <Item to={ROUTE_WRAP}>wrap</Item>
+        */}
       </LeftContainer>
       <RightContainer>
+      {/*
         <Item className="mobile-none" to="#">
           {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
         </Item>
-        <Item className="mobile-none" to="#">
-          {pact.account.account ? `${reduceToken(pact.account.account)} ${pact.account.balance}kda`: "KDA"}
-        </Item>
+      */}
+      {(pact.account.account
+        ?
+        <>
+          <Item className="mobile-none" to="#">
+            <Message color='violet' size='mini'>
+              {pact.account.account ? `${reduceToken(pact.account.account)}`: "KDA"}
+            </Message>
+          </Item>
+          <Item className="mobile-none" to="#">
+            <Message color='purple' size='mini'>
+              {pact.account.account ? `${pact.account.balance} KDA`: ""}
+            </Message>
+          </Item>
+        </>
+        :
+        <></>
+      )}
+
+        {/*
         <Modal
           trigger={<Button>ETH Wallet</Button>}
           // content={<EthModal/>}
           actions={[{ key: 'done', content: 'Done', positive: true }]}
         />
-        <Modal
-          trigger={<Button>KDA Wallet</Button>}
-          content={<KdaModal/>}
-          actions={[{ key: 'done', content: 'Done', positive: true}]}
-        />
+        */}
+        <Item className="mobile-none" to="#">
+          <Modal
+            trigger={<Message color='pink' size='mini'>KDA Wallet</Message>}
+            content={<KdaModal/>}
+            actions={[{ key: 'done', content: 'Done', positive: true}]}
+          />
+        </Item>
         <Item to="#">
           <HamburgerIcon />
         </Item>

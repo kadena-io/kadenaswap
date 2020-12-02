@@ -31,8 +31,8 @@ const Label = styled.span`
 const SwapContainer = () => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
-  const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '' });
-  const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '' });
+  const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '', address: '' });
+  const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '', address: '' });
 
   const pact = useContext(PactContext);
 
@@ -49,15 +49,26 @@ const SwapContainer = () => {
     setToValues({ ...from });
   };
 
-  const onTokenClick = ({ crypto }) => {
-    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: 123, coin: crypto.code }));
-    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: 123, coin: crypto.code }));
+  const onTokenClick = async ({ crypto }) => {
+    console.log(crypto)
+    let balance;
+    if (crypto.name === 'coin') {
+      balance = pact.account.balance
+    } else {
+      let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
+      balance = acct.balance
+    }
+    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
+    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
   };
 
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
+    if (!pact.privKey) return 'Enter your KDA account private key';
     if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
+    if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
+    if (toValues.amount > toValues.balance) return `Insufficient ${toValues.coin} balance`
     return 'SWAP';
   };
 
@@ -87,7 +98,10 @@ const SwapContainer = () => {
           numberOnly
           value={fromValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('from')}
-          onChange={(e, { value }) => setFromValues((prev) => ({ ...prev, amount: value }))}
+          onChange={async (e, { value }) => {
+            await pact.getPair(fromValues.address, toValues.address);
+            setFromValues((prev) => ({ ...prev, amount: value }))
+          }}
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
         <Input
@@ -107,7 +121,10 @@ const SwapContainer = () => {
           numberOnly
           value={toValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('to')}
-          onChange={(e, { value }) => setToValues((prev) => ({ ...prev, amount: value }))}
+          onChange={async (e, { value }) => {
+            await pact.getPair(fromValues.address, toValues.address);
+            setToValues((prev) => ({ ...prev, amount: value }))
+          }}
         />
         {fromValues.amount && fromValues.coin && toValues.amount && toValues.coin && (
           <>
@@ -123,7 +140,7 @@ const SwapContainer = () => {
         )}
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
-          disabled={!fromValues.amount || !fromValues.coin || !toValues.amount || !toValues.coin}
+          disabled={getButtonLabel() !== "SWAP"}
           onClick={() => console.log('SWAPPED')}
         >
           {getButtonLabel()}

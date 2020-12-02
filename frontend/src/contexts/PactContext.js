@@ -11,20 +11,17 @@ export const PactProvider = (props) => {
   const network = "http://localhost:9001"
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""))
-  const [tokenOneAccount, setTokenOneAccount] = useState({account: null, guard: null, balance: 0});
-  const [tokenTwoAccount, setTokenTwoAccount] = useState({account: null, guard: null, balance: 0});
+  const [tokenFromAccount, setTokenFromAccount] = useState({account: null, guard: null, balance: 0});
+  const [tokenToAccount, setTokenToAccount] = useState({account: null, guard: null, balance: 0});
   const [tokenList, setTokenList] = useState({tokens: []})
   const [pairAccount, setPairAccount] = useState("")
+  const [pair, setPair] = useState("")
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [supplied, setSupplied] = useState(false)
   const tokenPrice = {
     "KDA": 1,
     "SIL": 1
   }
-
-  useEffect(() => {
-
-  }, []);
 
   const setVerifiedAccount = async (accountName) => {
     try {
@@ -47,19 +44,20 @@ export const PactProvider = (props) => {
   }
 
   const getTokenAccount = async (token, account, first) => {
-    // token = "user.token-token";
     try {
       let data = await Pact.fetch.local({
           pactCode: `(${token}.details ${JSON.stringify(account)})`,
           keyPairs: Pact.crypto.genKeyPair(),
           meta: Pact.lang.mkMeta("", "3" ,0.01,100000000, 28800, creationTime()),
         }, network);
+        console.log(data.result.data)
         if (data.result.status === "success"){
-          first ? setTokenOneAccount(data.result.data) : setTokenTwoAccount(data.result.data)
-          console.log(data.result.data)
-          console.log("Account is set to ", account);
+          first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
+          return data.result.data
         } else {
-          console.log("Account is not verified")
+          first ? setTokenFromAccount({ account: null, guard: null, balance: 0 }) : setTokenToAccount({ account: null, guard: null, balance: 0 })
+          return { account: null, guard: null, balance: 0 }
+          console.log("Account does not exist")
         }
     } catch (e) {
       console.log(e)
@@ -125,6 +123,30 @@ export const PactProvider = (props) => {
     }
   }
 
+  const getPair = async (token0, token1) => {
+    console.log('getting pair')
+    try {
+      console.log('getting pairdddd')
+      let data = await Pact.fetch.local({
+          pactCode: `(swap.exchange.get-pair ${token0} ${token1})`,
+          keyPairs: Pact.crypto.genKeyPair(),
+          meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
+        }, network);
+        console.log(data)
+        if (data.result.status === "success"){
+          setPair(data.result.data);
+          return data.result.data;
+          console.log("Pair is set to", data.result.data);
+        } else {
+          console.log("Pair does not exist")
+        }
+        console.log(data);
+    } catch (e) {
+      console.log('fail')
+      console.log(e)
+    }
+  }
+
 
   const getPairAccountBalance = async (token0, token1, account) => {
     try {
@@ -162,7 +184,6 @@ export const PactProvider = (props) => {
       value={{
         account,
         setVerifiedAccount,
-        tokenOneAccount,
         getTokenAccount,
         getTokenPrice,
         getRatio,
@@ -173,7 +194,10 @@ export const PactProvider = (props) => {
         getPairAccount,
         getPairAccountBalance,
         privKey,
-        storePrivKey
+        storePrivKey,
+        tokenFromAccount,
+        tokenToAccount,
+        getPair
       }}
     >
       {props.children}
