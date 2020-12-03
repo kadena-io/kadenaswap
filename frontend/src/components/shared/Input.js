@@ -73,7 +73,9 @@ const Input = ({
   disabled,
   value,
   onSelectButtonClick,
-  onChange
+  onChange,
+  error,
+  type
 }) => {
   const getIcon = () => {
     if (withSelectButton && !inputRightComponent)
@@ -111,6 +113,8 @@ const Input = ({
         size={size}
         disabled={disabled}
         value={value}
+        error={error}
+        type={type}
         onChange={(e, props) => {
           if (numberOnly && props.value.match(/[a-zA-Z]/)) return;
           onChange(e, props);

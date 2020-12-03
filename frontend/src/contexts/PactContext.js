@@ -36,6 +36,7 @@ export const PactProvider = (props) => {
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
           console.log("Account is set to ", accountName);
         } else {
+          setAccount({account: null, guard: null, balance: 0});
           console.log("Account is not verified")
         }
     } catch (e) {

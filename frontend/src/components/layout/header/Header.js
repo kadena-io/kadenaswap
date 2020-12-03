@@ -123,7 +123,7 @@ const Header = () => {
           <Modal
             trigger={<Message color='pink' size='mini'>KDA Wallet</Message>}
             content={<KdaModal/>}
-            actions={[{ key: 'done', content: 'Done', positive: true}]}
+            actions={[{ key: 'done', content:'done', positive: true}]}
           />
         </Item>
         <Item to="#">
