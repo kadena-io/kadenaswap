@@ -53,6 +53,7 @@ export const PactProvider = (props) => {
   }
 
   const getTokenAccount = async (token, account, first) => {
+    console.log("gettokenaccount", token, `(${token}.details ${JSON.stringify(account)})`)
     try {
       let data = await Pact.fetch.local({
           pactCode: `(${token}.details ${JSON.stringify(account)})`,
@@ -75,8 +76,8 @@ export const PactProvider = (props) => {
       console.log(e)
     }
   }
-
-  const getTotalTokenSupply = async (token0, token1, first) => {
+  
+  const getTotalTokenSupply = async (token0, token1) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `(swap.tokens.total-supply (get-pair-key ${token0} ${token1}))`,
@@ -84,12 +85,11 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", "3" ,0.01,100000000, 28800, creationTime()),
         }, network);
         if (data.result.status === "success"){
-          first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
-          return data.result.data
+          setTokenAccount(data.result.data);
+          console.log(data.result.data)
+          console.log("Account is set to ", account);
         } else {
-          first ? setTokenFromAccount({ account: null, guard: null, balance: 0 }) : setTokenToAccount({ account: null, guard: null, balance: 0 })
-          return { account: null, guard: null, balance: 0 }
-          console.log("Account does not exist")
+          console.log("Account is not verified")
         }
     } catch (e) {
       console.log(e)
