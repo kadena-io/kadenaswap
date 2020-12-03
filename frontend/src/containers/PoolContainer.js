@@ -57,9 +57,12 @@ const PoolContainer = () => {
       {
         selectedView
         ? <LiquidityContainer
-            closeLiquidity = {() => setSelectedView(false)}/>
+            closeLiquidity = {() => setSelectedView(false)}
+            selectedView = { selectedView }
+            />
         : <LiquidityList
-            selectLiquidity = {() => setSelectedView(true)}
+            selectCreatePair = {() => setSelectedView("Create A Pair")}
+            selectAddLiquidity = {() => setSelectedView("Add Liquidity")}
           />
       }
     </Container>

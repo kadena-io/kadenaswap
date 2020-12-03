@@ -87,16 +87,8 @@ const Header = () => {
       </LeftContainer>
       <RightContainer>
         <Item className="mobile-none" to="#">
-          {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
-        </Item>
-        <Item className="mobile-none" to="#">
           {pact.account.account ? reduceToken(pact.account.account): "KDA"}
         </Item>
-        <Modal
-          trigger={<Button>ETH Wallet</Button>}
-          // content={<EthModal/>}
-          actions={[{ key: 'done', content: 'Done', positive: true }]}
-        />
         <Modal
           trigger={<Button>KDA Wallet</Button>}
           content={<KdaModal/>}

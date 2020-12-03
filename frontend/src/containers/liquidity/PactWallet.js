@@ -74,10 +74,12 @@ function PactWallet(props) {
         <Modal.Actions>
           <Button color='black'
             onClick={async () => {
-              console.log(pact.supplied,open, "supplied")
               if (open) {
-                console.log("supplied")
-                pact.addLiquidity(pact.account.account, "coin", "abc", fromValues.amount, toValues.amount)
+                if (props.liquidityView==="Create A Pair"){
+                  pact.createTokenPair(pact.account.account, "coin", "abc", fromValues.amount, toValues.amount);  
+                } else{
+                  pact.addLiquidity(pact.account.account, "coin", "abc", fromValues.amount, toValues.amount);
+                }
               } else {openConfirmSupply();}
             }
           }>

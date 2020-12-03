@@ -18,6 +18,24 @@ const Container = styled.div`
   align-items: center;
 `;
 
+const RightContainer = styled.div`
+  display: flex;
+  align-items: center;
+
+  & > *:first-child {
+    margin-right: 13px;
+  }
+
+  & > *:not(:first-child):not(:last-child) {
+    margin-right: 14px;
+  }
+  @media (min-width: ${({ theme: { mediaQueries } }) => mediaQueries.mobileBreakpoint}) {
+    & > *:not(:first-child):not(:last-child) {
+      margin-right: 16px;
+    }
+  }
+`;
+
 const RowContainer = styled.div`
   display: flex;
   justify-content: space-between;
@@ -51,11 +69,17 @@ const LiquidityList = (props) => {
   const pact = useContext(PactContext);
   return (
     <FormContainer title="Your Liquidity">
-      <Button
-         buttonStyle={{ marginTop: 24, marginRight: 0 }}
-         onClick={() => props.selectLiquidity()}>
-         Add Liquidity
-       </Button>
+      <RightContainer>
+        <Button
+           buttonStyle={{ marginLeft: 24 }}
+           onClick={() => props.selectCreatePair()}>
+           Create a pair
+        </Button>
+        <Button
+           onClick={() => props.selectAddLiquidity()}>
+           Add Liquidity
+        </Button>
+      </RightContainer>
       <TokenPair
         account={pact.account.balance}
         pairList= {[{"from": "KDA", "to": "SIL"}]}
