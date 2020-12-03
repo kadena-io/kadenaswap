@@ -5,9 +5,24 @@ import Button from '../../components/shared/Button';
 import { PactContext } from '../../contexts/PactContext'
 
 export default function Account() {
-  const [fromInput, setInputValue] = useState({ account: '' });
-  const [open, setOpen] = React.useState(false)
   const pact = useContext(PactContext);
+  const [fromInput, setInputValue] = useState({ account: pact.account.account });
+  const [open, setOpen] = React.useState(false)
+
+  const is_hexadecimal = (str) => {
+     const regexp = /^[0-9a-fA-F]+$/;
+     if (regexp.test(str)) return true;
+     else return false;
+  }
+
+  const checkKey = (key) => {
+     if (key.length !== 64) {
+         return false
+     } else if (!is_hexadecimal(key)){
+         return false
+     }
+     return true;
+  }
 
   return (
     <>
@@ -15,24 +30,35 @@ export default function Account() {
       <Modal.Description>
         <Header>{"Your KDA Account"}</Header>
         <Input
-        onChange={(e, { value }) => setInputValue((prev) => ({ ...prev, account: value }))}
+          error={pact.account.account === null}
+          value={fromInput.account}
+          onChange={async (e, { value }) => {
+            setInputValue(value);
+            await pact.setVerifiedAccount(value);
+          }}
+        />
+        <Header>{"Your Private Key"}</Header>
+        <Input
+          value={pact.privKey}
+          onChange={(e, { value }) => pact.storePrivKey(value)}
+          type='password'
+          error={!checkKey(pact.privKey)}
         />
       </Modal.Description>
       </Modal.Content>
+      {/*
       <Modal.Actions>
         <Button
           onClick={async () => {
             try{
-              // (account, token0, token1, amountDesired0, amountDesired1, amountMin0, amountMin1)
-              // pact.addLiquidity("user1", "coin", "abc", 10.1, 20.1, 5.1, 5.1);
-              pact.getTokenAccount("abc", fromInput.account);
-              pact.setVerifiedAccount(fromInput.account);
+              await pact.setVerifiedAccount(fromInput.account);
             } catch (e){
               console.log(e)
             }
           }}
         >Connect</Button>
       </Modal.Actions>
+      */}
     </>
   )
 }
