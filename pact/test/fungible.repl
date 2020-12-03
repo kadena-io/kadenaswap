@@ -54,18 +54,29 @@
 
     (expect-failure
       "Uncreated account does not exist"
-      (f::get-balance "Bob"))
+      (f::details "Bob"))
 
     (env-data {'bob: ["bob"]})
     (with-applied-env
-      (expect-that "Account creation succeeds"
-        (constantly true) ;; avoid requiring specific response
-        (f::create-account "Bob" (read-keyset 'bob))))
+      (let ((bob-ks (read-keyset 'bob)))
 
-    (expect
-      "Account successfully created with 0.0 balance"
-      0.0
-      (f::get-balance "Bob"))
+        (expect-that "Account creation succeeds"
+          (constantly true) ;; avoid requiring specific response
+          (f::create-account "Bob" bob-ks))
+
+        (expect
+          "Account successfully created with correct details"
+          { 'account: "Bob"
+          , 'balance: 0.0
+          , 'guard: bob-ks
+          }
+          (f::details "Bob"))
+
+        (expect
+          "Account balance correct"
+          0.0
+          (f::get-balance "Bob"))
+    ))
 
     (expect-failure
       "Creation of account with existing account ID fails"
@@ -93,6 +104,11 @@
 
     (rollback-tx)
   )
+
+  ;
+  ; (defun create-account-tests (f:module{fungible-v2})
+  ;   (begin-tx "create-account-tests")
+
 
 )
 (commit-tx)
