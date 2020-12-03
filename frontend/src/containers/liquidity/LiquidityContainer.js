@@ -52,7 +52,8 @@ const LiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [fromValues, setFromValues] = useState({ amount: 0, balance: pact.account.balance, coin: cryptoCurrencies.KDA.code });
-  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin: cryptoCurrencies.SIL.code });
+  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin:cryptoCurrencies.SIL.code });
+  const liquidityView = props.selectedView;
 
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
@@ -80,15 +81,13 @@ const LiquidityContainer = (props) => {
   }
 
   return (
-    <Container>
-      <TokenSelector
-        show={tokenSelectorType !== null}
-        selectedToken={selectedToken}
-        onTokenClick={onTokenClick}
-        onClose={() => setTokenSelectorType(null)}
-      />
-      <FormContainer title="pool">
-
+      <FormContainer title={liquidityView}>
+        <TokenSelector
+          show={tokenSelectorType !== null}
+          selectedToken={selectedToken}
+          onTokenClick={onTokenClick}
+          onClose={() => setTokenSelectorType(null)}
+        />
         <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
         <Input
           leftLabel="input"
@@ -153,9 +152,9 @@ const LiquidityContainer = (props) => {
         <PactWallet
           toValues={toValues}
           fromValues={fromValues}
+          liquidityView = {liquidityView}
         />
       </FormContainer>
-    </Container>
   );
 };
 
