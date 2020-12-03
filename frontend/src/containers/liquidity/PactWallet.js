@@ -22,7 +22,6 @@ function PactWallet(props) {
       2: "Supply",
       3: (token) => `Insufficient ${token} Balance`
     }
-    console.log(pact.tokenAccount)
     if (fromValues.amount === 0 && toValues.amount === 0) return status[1];
     else if (fromValues.amount > pact.account.balance) return status[3](fromValues.coin);
     else if (toValues.amount > pact.tokenAccount.balance) return status[3](toValues.coin)
@@ -76,7 +75,7 @@ function PactWallet(props) {
             onClick={async () => {
               if (open) {
                 if (props.liquidityView==="Create A Pair"){
-                  pact.createTokenPair(pact.account.account, "coin", "abc", fromValues.amount, toValues.amount);  
+                  pact.createTokenPair(pact.account.account, "coin", "abc", fromValues.amount, toValues.amount).then(console.log)
                 } else{
                   pact.addLiquidity(pact.account.account, "coin", "abc", fromValues.amount, toValues.amount);
                 }

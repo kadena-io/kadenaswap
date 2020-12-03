@@ -10,6 +10,7 @@ import cryptoCurrencies from '../constants/cryptoCurrencies';
 import TokenSelector from '../components/shared/TokenSelector';
 import PactWallet from './liquidity/PactWallet';
 import LiquidityContainer from './liquidity/LiquidityContainer';
+import RemoveLiquidityContainer from './liquidity/RemoveLiquidityContainer';
 import LiquidityList from './liquidity/LiquidityList';
 import { PactContext } from '../contexts/PactContext'
 
@@ -55,14 +56,21 @@ const PoolContainer = () => {
   return (
     <Container>
       {
-        selectedView
-        ? <LiquidityContainer
+        selectedView==="Remove Liquidity"
+        ? <RemoveLiquidityContainer
+            closeLiquidity = {() => setSelectedView(false)}
+            selectedView = { selectedView }
+          />
+        : selectedView
+        ?
+        <LiquidityContainer
             closeLiquidity = {() => setSelectedView(false)}
             selectedView = { selectedView }
             />
         : <LiquidityList
             selectCreatePair = {() => setSelectedView("Create A Pair")}
             selectAddLiquidity = {() => setSelectedView("Add Liquidity")}
+            selectRemoveLiquidity = {() => setSelectedView("Remove Liquidity")}
           />
       }
     </Container>
