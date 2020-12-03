@@ -1,4 +1,7 @@
-1. Run local pact server on port 9001(For test purpose)
+
+## Local Pact Server Instruction (For build/test purpose)
+
+1. Run local pact server on port 9001
 
 `npm run start:pact`
 
@@ -6,6 +9,6 @@
 
 `npm run start:deploy`
 
-3. Start React App on port 3000
+3. Start React App on http://localhost:3000 
 
 `npm start`
