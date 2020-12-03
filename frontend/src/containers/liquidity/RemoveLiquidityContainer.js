@@ -53,7 +53,7 @@ const RemoveLiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [fromValues, setFromValues] = useState({ amount: 0, balance: pact.account.balance, coin: cryptoCurrencies.KDA.code });
-  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin:cryptoCurrencies.SIL.code });
+  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin:cryptoCurrencies.ABC.code });
   const liquidityView = props.selectedView;
   const [amount, setAmount] = useState(0)
 

@@ -52,10 +52,13 @@ const LiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [fromValues, setFromValues] = useState({ amount: 0, balance: pact.account.balance, coin: cryptoCurrencies.KDA.code });
-  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin:cryptoCurrencies.SIL.code });
+  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin:cryptoCurrencies.ABC.code });
   const liquidityView = props.selectedView;
 
   useEffect(() => {
+    pact.getTokenAccount(cryptoCurrencies.ABC.name, pact.account.account);
+    pact.setVerifiedAccount(pact.account.account);
+    pact.getReserves("coin", "abc")
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
     if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
     return setSelectedToken(null);
@@ -68,18 +71,23 @@ const LiquidityContainer = (props) => {
 
   const setTokenAmount = (amount1, amount2) => {
     let ratio;
+    console.log(pact.pairReserve, "settoken")
+
+    // if (pact.pairReserve===""){
+    //
+    //   setFromValues((prev) => ({ ...prev, amount: amount1 }));;
+    // }
     if (amount1) {
-      ratio = pact.getRatio(fromValues.coin, toValues.coin)
+      // ratio = pact.getRatio(fromValues.coin, toValues.coin)
       setFromValues((prev) => ({ ...prev, amount: amount1 }));
-      setToValues((prev) => ({ ...prev, amount: amount1/ratio }));
+      // setToValues((prev) => ({ ...prev, amount: amount1/ratio }));
     } else if (amount2){
-      ratio = pact.getRatio( toValues.coin, fromValues.coin)
+      // ratio = pact.getRatio( toValues.coin, fromValues.coin)
       setToValues((prev) => ({ ...prev, amount: amount2}));
-      setFromValues((prev) => ({ ...prev, amount: amount2/ratio}))
+      // setFromValues((prev) => ({ ...prev, amount: amount2/ratio}))
     }
 
   }
-
   return (
       <FormContainer title={liquidityView}>
         <TokenSelector

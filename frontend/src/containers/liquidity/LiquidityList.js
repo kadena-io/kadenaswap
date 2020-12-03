@@ -82,7 +82,7 @@ const LiquidityList = (props) => {
       </RightContainer>
       <TokenPair
         account={pact.account.balance}
-        pairList= {[{"from": "KDA", "to": "SIL"}]}
+        pairList= {[{"from": "KDA", "to": "ABC"}]}
         selectAddLiquidity = {props.selectAddLiquidity}
         selectRemoveLiquidity = {props.selectRemoveLiquidity}
       />

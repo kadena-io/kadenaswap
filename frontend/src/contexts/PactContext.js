@@ -15,23 +15,24 @@ export const PactProvider = (props) => {
 
   const network = "http://localhost:9001"
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
-  const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});	  const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""))
+  const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
+  const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""))
   const [tokenFromAccount, setTokenFromAccount] = useState({account: null, guard: null, balance: 0});
   const [tokenToAccount, setTokenToAccount] = useState({account: null, guard: null, balance: 0});
   const [tokenList, setTokenList] = useState({tokens: []})
   const [pairAccount, setPairAccount] = useState("")
+  const [pairReserve, setPairReserve] = useState("")
   const [pair, setPair] = useState("")
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [supplied, setSupplied] = useState(false)
-
   const tokenPrice = {
     "KDA": 1,
-    "SIL": 1.05
+    "ABC": 1.05
   }
 
-  useEffect(() => {
 
+  useEffect(() => {
   }, []);
 
   const setVerifiedAccount = async (accountName) => {
@@ -42,8 +43,8 @@ export const PactProvider = (props) => {
         }, network);
         console.log(data)
         if (data.result.status === "success"){
-          setAccount(data.result.data);
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
+          setAccount(data.result.data);
           console.log("Account is set to ", accountName);
         } else {
           setAccount({account: null, guard: null, balance: 0});
@@ -55,13 +56,16 @@ export const PactProvider = (props) => {
   }
 
   const getTokenAccount = async (token, account, first) => {
+    console.log("gettokenaccount", token, `(${token}.details ${JSON.stringify(account)})`)
     try {
       let data = await Pact.fetch.local({
           pactCode: `(${token}.details ${JSON.stringify(account)})`,
           keyPairs: Pact.crypto.genKeyPair(),
           meta: Pact.lang.mkMeta("", "3" ,0.01,100000000, 28800, creationTime()),
         }, network);
+        console.log(data, "gettoken")
         console.log(data.result.data)
+        setTokenAccount(data.result.data);
         if (data.result.status === "success"){
           first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
           console.log(data.result.data)
@@ -94,10 +98,6 @@ export const PactProvider = (props) => {
       console.log(e)
     }
   }
-  //
-  // (p (get-pair tokenA tokenB))
-  //   (reserveA (reserve-for p tokenA))
-  //   (reserveB (reserve-for p tokenB))
 
   const createTokenPair = async (account, token0, token1, amountDesired0, amountDesired1) => {
     try {
@@ -271,12 +271,38 @@ export const PactProvider = (props) => {
     }
   }
 
+  const getReserves = async (token0, token1) => {
+    try {
+      let data = await Pact.fetch.local({
+          pactCode: `
+          (use swap.exchange)
+          (let*
+            (
+              (p (get-pair ${token0} ${token1}))
+              (reserveA (reserve-for p ${token0}))
+              (reserveB (reserve-for p ${token1}))
+            )[reserveA reserveB])
+           `,
+          meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
+        }, network);
+        if (data.result.status === "success"){
+          console.log("succeeded, update reserve")
+          await setPairReserve({token0: data.result.data[0], token1: data.result.data[1]});
+          console.log(pairReserve, " reserve")
+        } else {
+          console.log("Failed")
+        }
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
   const getTokenPrice = (token) => {
     return tokenPrice[token];
   }
 
   const getRatio = (toToken, fromToken) => {
-    return getTokenPrice(toToken)/getTokenPrice(fromToken);
+    return pairReserve["token0"]/pairReserve["token1"]
   }
 
   const storePrivKey = async (pk) => {
@@ -305,7 +331,9 @@ export const PactProvider = (props) => {
         storePrivKey,
         tokenFromAccount,
         tokenToAccount,
-        getPair
+        getPair,
+        getReserves,
+        pairReserve
       }}
     >
       {props.children}

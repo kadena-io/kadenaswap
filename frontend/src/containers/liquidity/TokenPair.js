@@ -13,7 +13,7 @@ import {PactContext} from '../../contexts/PactContext'
 const TokenPair = (props) => {
   let pact = useContext(PactContext);
   const [pairBalance, setPairBalance] = useState({ balance: null });
-  let pair = {to: "KDA", from: "SIL"}
+  let pair = {to: "KDA", from: "ABC"}
   useEffect(() => {
     pact.getPairAccountBalance("coin", "abc", pact.account.account);
   });
