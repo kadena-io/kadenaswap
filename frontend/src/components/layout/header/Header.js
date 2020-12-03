@@ -20,7 +20,6 @@ const Container = styled.div`
   justify-content: space-between;
   min-height: ${({ theme: { header } }) => `${header.height}px`};
   width: calc(100% - 3em);
-
   @media (min-width: ${({ theme: { mediaQueries } }) => mediaQueries.mobileBreakpoint}) {
     width: inherit;
     left: unset;
@@ -31,7 +30,6 @@ const LeftContainer = styled.div`
   display: flex;
   align-items: center;
   margin-right: 25px;
-
   & > *:not(:last-child) {
     margin-right: 25px;
   }
@@ -40,15 +38,12 @@ const LeftContainer = styled.div`
 const RightContainer = styled.div`
   display: flex;
   align-items: center;
-
   & > *:first-child {
     margin-right: 13px;
   }
-
   & > *:not(:first-child):not(:last-child) {
     margin-right: 14px;
   }
-
   @media (min-width: ${({ theme: { mediaQueries } }) => mediaQueries.mobileBreakpoint}) {
     & > *:not(:first-child):not(:last-child) {
       margin-right: 16px;
@@ -61,11 +56,9 @@ const Item = styled(NavLink)`
   font-size: 14px;
   text-decoration: none;
   text-transform: capitalize;
-
   &.active {
     font-family: neue-bold;
   }
-
   &:hover {
     color: white;
   }
