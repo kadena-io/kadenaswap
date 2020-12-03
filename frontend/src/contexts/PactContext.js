@@ -76,7 +76,7 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getTotalTokenSupply = async (token0, token1) => {
+  const getTotalTokenSupply = async (token0, token1, first) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `(swap.tokens.total-supply (get-pair-key ${token0} ${token1}))`,
@@ -249,30 +249,6 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getPair = async (token0, token1) => {
-    console.log('getting pair')
-    try {
-      console.log('getting pairdddd')
-      let data = await Pact.fetch.local({
-          pactCode: `(swap.exchange.get-pair ${token0} ${token1})`,
-          keyPairs: Pact.crypto.genKeyPair(),
-          meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
-        }, network);
-        console.log(data)
-        if (data.result.status === "success"){
-          setPair(data.result.data);
-          return data.result.data;
-          console.log("Pair is set to", data.result.data);
-        } else {
-          console.log("Pair does not exist")
-        }
-        console.log(data);
-    } catch (e) {
-      console.log('fail')
-      console.log(e)
-    }
-  }
-
   const getPairAccountBalance = async (token0, token1, account) => {
     try {
       let data = await Pact.fetch.local({
@@ -324,11 +300,6 @@ export const PactProvider = (props) => {
 
   const getRatio = (toToken, fromToken) => {
     return pairReserve["token0"]/pairReserve["token1"]
-  }
-
-  const storePrivKey = async (pk) => {
-    await setPrivKey(pk)
-    await localStorage.setItem('pk', pk);
   }
 
   const storePrivKey = async (pk) => {
