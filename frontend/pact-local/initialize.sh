@@ -19,3 +19,4 @@ pact -a pact-local/yaml/load-exchange.yaml | curl -H "$JSON" -d @- $NETWORK
 pact -a pact-local/yaml/create-abc.yaml | curl -H "$JSON" -d @- $NETWORK
 pact -a pact-local/yaml/create-xyz.yaml | curl -H "$JSON" -d @- $NETWORK
 pact -a pact-local/yaml/create-account.yaml | curl -H "$JSON" -d @- $NETWORK
+pact -a pact-local/yaml/add-liquidity.yaml | curl -H "$JSON" -d @- $NETWORK
