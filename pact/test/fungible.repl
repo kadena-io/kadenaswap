@@ -1,0 +1,102 @@
+
+(begin-tx)
+(load "../root/fungible-v2.pact")
+(env-enable-repl-natives true)
+(module fungible-v2-test G
+  " Test suite for fungibles. "
+  (defcap G () true)
+
+  (defconst FUNDER_ACCT "FUNDER_ACCT"
+    "Name of test funding account")
+
+  (defconst FUNDER_GUARD:guard (funder-guard)
+    "Guard for test funding account")
+
+  (defconst FUNDER_BALANCE 10000.0
+    "Initial balance for test funding account")
+
+  (defun funder-guard ()
+    (create-module-guard "FUNDER_ACCT"))
+
+  (defun suite (f:module{fungible-v2})
+    " Run suite on fungible module F. Requires special account \
+    \ 'FUNDER_ACCT' to exist with 'FUNDER_GUARD' guard and \
+    \ 'FUNDER_BALANCE' balance."
+    (test-funder f)
+    (create-account-tests f)
+  )
+
+  (defun test-funder (f:module{fungible-v2})
+    (expect "Funder account funded" 10000.0
+      (f::get-balance FUNDER_ACCT)))
+
+  (defun fund-create
+    ( f:module{fungible-v2}
+      account:string
+      guard:guard
+      amount:decimal )
+    "Fixture: create and fund ACCOUNT with GUARD for AMOUNT"
+    (install-capability (f::TRANSFER FUNDER_ACCT account amount))
+    (f::transfer-create FUNDER_ACCT account guard amount)
+  )
+
+  (defun fund
+    ( f:module{fungible-v2}
+      account:string
+      amount:decimal )
+    "Fixture: Fund existing ACCOUNT for AMOUNT"
+    (install-capability (f::TRANSFER FUNDER_ACCT account amount))
+    (f::transfer FUNDER_ACCT account amount)
+  )
+
+  (defun create-account-tests (f:module{fungible-v2})
+    (begin-tx "create-account-tests")
+
+    (expect-failure "account doesn't exist yet"
+      (f::get-balance "Bob"))
+
+    (env-data {'bob: ["bob"]})
+    (with-applied-env
+      (expect-that "account creation succeeds"
+        (constantly true) ;; avoid requiring specific response
+        (f::create-account "Bob" (read-keyset 'bob))))
+
+    (expect "new account with 0 balance"
+      0.0
+      (f::get-balance "Bob"))
+
+    (expect-failure "failure creating dupe account"
+      (f::create-account "Bob" FUNDER_GUARD))
+
+    ;; fund for testing
+    (fund f "Bob" 1.0)
+    ;; test ownership
+    (env-sigs
+      [ {"key": "not-bob"
+      , "caps": [(f::TRANSFER "Bob" "Alice" 1.0)]}])
+    (with-applied-env
+      (expect-failure "Bob guard prevents transfer with bad key"
+        (f::transfer-create "Bob" "Alice" FUNDER_GUARD 1.0)))
+
+    (env-sigs
+      [ {"key": "bob"
+      , "caps": [(f::TRANSFER "Bob" "Alice" 1.0)]}])
+    (with-applied-env
+      (expect-that "Bob guard permits transfer with good key"
+        (constantly true)
+        (f::transfer-create "Bob" "Alice" FUNDER_GUARD 1.0)))
+
+    (rollback-tx)
+  )
+
+)
+(commit-tx)
+
+(begin-tx)
+(load "../root/coin.pact")
+(test-capability (coin.COINBASE))
+(use fungible-v2-test)
+(coin.coinbase FUNDER_ACCT FUNDER_GUARD 10000.0)
+(commit-tx)
+
+(fungible-v2-test.suite coin)

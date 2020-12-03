@@ -1,4 +1,24 @@
+
+(load "fungible.repl")
+
+(begin-tx)
 (define-namespace 'test (sig-keyset) (sig-keyset))
-(load "../root/fungible-v2.pact")
 (load "ABC.pact")
 (load "XYZ.pact")
+(commit-tx)
+
+(begin-tx)
+(use fungible-v2-test)
+(test-capability (test.abc.CREDIT FUNDER_ACCT))
+(test.abc.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
+(commit-tx)
+
+(fungible-v2-test.suite test.abc)
+
+(begin-tx)
+(use fungible-v2-test)
+(test-capability (test.xyz.CREDIT FUNDER_ACCT))
+(test.xyz.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
+(commit-tx)
+
+(fungible-v2-test.suite test.xyz)

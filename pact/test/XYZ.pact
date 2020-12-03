@@ -114,13 +114,6 @@
       (credit receiver receiver-guard amount))
     )
 
-  (defun fund:string (account:string amount:decimal)
-    (with-capability (CREDIT account)
-      (credit account
-        (at 'guard (read ledger account))
-        amount))
-    )
-
   (defun debit:string (account:string amount:decimal)
 
     (require-capability (DEBIT account))
