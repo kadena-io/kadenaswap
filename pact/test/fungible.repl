@@ -6,6 +6,23 @@
   { "alice": ["alice-key"]
   , "bob": ["bob-key"]}
   )
+
+(interface fungible-test-helper
+  "Interface for interacting with test."
+  (defun pre-rotate:bool
+    ( account:string
+      new-guard:string
+    )
+    "Execute capability install or other prerequisites for 'rotate'."
+  )
+)
+
+(module fungible-test-helper-default G
+  (defcap G () true)
+  (implements fungible-test-helper)
+  (defun pre-rotate:bool (account:string new-guard:string) true)
+)
+
 (module fungible-v2-test G
   " Test suite for fungibles. "
   (defcap G () true)
@@ -19,6 +36,12 @@
   (defconst FUNDER_BALANCE 10000.0
     "Initial balance for test funding account")
 
+  (defcap XCHAIN ()
+    " Dummy capability for bringing sigs into scope \
+    \ for transfer-crosschain."
+    true
+  )
+
   (defconst ALICE "alice")
   (defconst ALICE_KEY:string (at 0 (read-msg ALICE)))
   (defconst ALICE_GUARD (read-keyset ALICE))
@@ -27,7 +50,7 @@
   (defconst BOB_KEY (at 0 (read-msg BOB)))
   (defconst BOB_GUARD (read-keyset BOB))
 
-  (defconst CARLA "carla")
+  (defconst XCHAIN_HASH (hash "XCHAIN"))
 
   (defun funder-guard ()
     (create-module-guard "FUNDER_ACCT"))
@@ -61,24 +84,35 @@
     "Compute minimum value for F fungible."
     (pow 10.0 (- (f::precision))))
 
+
   ;;
   ;; TEST SUITE
   ;;
 
-  (defun suite (f:module{fungible-v2})
+  (defun suite
+    ( f:module{fungible-v2}
+      h:module{fungible-test-helper}
+      skip:string
+    )
     " Run suite on fungible module F. Requires special account \
     \ 'FUNDER_ACCT' to exist with 'FUNDER_GUARD' guard and \
     \ 'FUNDER_BALANCE' balance."
     (fixture-tests f)
-    (create-account-tests f)
-    (transfer-tests f)
-    (transfer-create-tests f)
-    (transfer-crosschain-tests f)
-    (rotate-tests f)
-    (enforce-unit-tests f)
+    (and (contains skip "create-account-tests")
+      (create-account-tests f))
+    (and (contains skip "transfer-tests")
+      (transfer-tests f))
+    (and (contains skip "transfer-create-tests")
+      (transfer-create-tests f))
+    (and (contains skip "transfer-crosschain-tests")
+      (transfer-crosschain-tests f))
+    (and (contains skip "rotate-tests")
+      (rotate-tests f h))
+    (and (contains skip "enforce-unit-tests")
+      (enforce-unit-tests f))
   )
 
-  (defun fixture-tests (f:module{fungible-v2})
+  (defun fixture-tests:bool (f:module{fungible-v2})
     (expect "Funder account funded" 10000.0
       (f::get-balance FUNDER_ACCT))
     (expect "pow 10 -1" 0.1 (pow 10.0 -1))
@@ -87,7 +121,7 @@
     (expect "pow 9 3" 729.0 (pow 9.0 3))
   )
 
-  (defun create-account-tests (f:module{fungible-v2})
+  (defun create-account-tests:bool (f:module{fungible-v2})
     " Covers:                                  \
     \ 1) inherent create-account invariants.   "
 
@@ -143,6 +177,7 @@
         (f::transfer-create BOB ALICE ALICE_GUARD 1.0)))
 
     (rollback-tx)
+    true
   )
 
 
@@ -308,11 +343,12 @@
     ])
 
     (rollback-tx)
+    true
   )
 
 
 
-  (defun transfer-create-tests (f:module{fungible-v2})
+  (defun transfer-create-tests:bool (f:module{fungible-v2})
     " Covers:                                        \
     \ 1) properties on 'transfer-create'             \
     \ 2) managed capability calculus                 \
@@ -477,23 +513,110 @@
     ])
 
     (rollback-tx)
-
+    true
   )
 
-  (defun transfer-crosschain-tests (f:module{fungible-v2})
-    (begin-tx "transfer-crosschain-tests")
+  (defun begin-xchain
+    ( f:module{fungible-v2}
+      i:integer
+      account:string
+      guard:guard
+      key:string
+      fund-amount:decimal
+    )
+    (begin-tx (format "xchain-{}" [i]))
+    (fund-create f account guard fund-amount)
+    (env-hash XCHAIN_HASH)
+    (env-sigs [{"key": key,"caps":[(XCHAIN)]}])
+  )
 
+  (defun transfer-crosschain-tests:bool (f:module{fungible-v2})
+    " Covers:                                             \
+    \ 1) properties on 'transfer-crosschain'              \
+    \ 2) precision violations                             \
+    \ Exceptions:                                         \
+    \ - bad-same-sender-receiver property in fungible-v2  \
+    \   which is unsound/to be removed                    \
+    \ - empty sender ID (covered by create-account tests) "
+
+
+    (begin-tx "transfer-crosschain-tests 1")
+    (expect-failure
+      "Cross-chain transfer fails for unknown account"
+      (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 2.0)
+    )
+    (commit-tx)
+
+    (begin-tx "transfer-crosschain-tests 2")
+    (fund-create f BOB BOB_GUARD 2.0)
+    (expect-failure
+      "Cross-chain transfer fails without signature"
+      (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 2.0)
+    )
+    (commit-tx)
+
+    (begin-xchain f 3 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails with negative amount"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" -0.1))))
     (rollback-tx)
+
+    (begin-xchain f 4 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails with 0.0 amount"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 0.0))))
+    (rollback-tx)
+
+    (begin-xchain f 5 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails with min precision / 10 value"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1"
+          (/ (precision-min-value f) 10.0)))))
+    (rollback-tx)
+
+    (begin-xchain f 6 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails for empty receiver"
+        (f::transfer-crosschain BOB "" ALICE_GUARD "1" 1.0))))
+    (rollback-tx)
+
+    (begin-xchain f 7 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails for insufficient funds"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 10.0))))
+    (rollback-tx)
+
+    (begin-xchain f 8 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-that
+        "Cross-chain transfer succeeds"
+        (constantly true)
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 1.0))
+      (env-chain-data { 'chain-id: "0" })
+      (expect-failure ;; TODO need multiple env updates #846
+        "Resumption on wrong chain fails"
+        (format "{}" [(pact-state)])
+        (continue-pact 1))
+    ))
+    (rollback-tx)
+
+    true
   )
 
-  (defun rotate-tests (f:module{fungible-v2})
+  (defun rotate-tests:bool (f:module{fungible-v2} h:module{fungible-test-helper})
     (begin-tx "rotate-tests")
 
     (rollback-tx)
+    true
   )
 
 
-  (defun enforce-unit-tests (f:module{fungible-v2})
+  (defun enforce-unit-tests:bool (f:module{fungible-v2})
     (begin-tx "enforce-unit-tests")
 
     (expect-that "1.0 succeeds"
@@ -504,6 +627,7 @@
       (f::enforce-unit (/ (precision-min-value f) 10.0)))
 
     (rollback-tx)
+    true
   )
 )
 (commit-tx)
@@ -515,4 +639,6 @@
 (coin.coinbase FUNDER_ACCT FUNDER_GUARD 10000.0)
 (commit-tx)
 
-(fungible-v2-test.suite coin)
+
+
+(fungible-v2-test.suite coin fungible-test-helper-default "")
