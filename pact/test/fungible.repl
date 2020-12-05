@@ -51,6 +51,8 @@
   (defconst BOB_GUARD (read-keyset BOB))
 
   (defconst XCHAIN_HASH (hash "XCHAIN"))
+  (defconst CHAIN_0 "0")
+  (defconst CHAIN_1 "1")
 
   (defun funder-guard ()
     (create-module-guard "FUNDER_ACCT"))
@@ -83,6 +85,26 @@
   (defun precision-min-value (f:module{fungible-v2})
     "Compute minimum value for F fungible."
     (pow 10.0 (- (f::precision))))
+
+
+  (defun begin-xchain
+    ( f:module{fungible-v2}
+      i:integer
+      account:string
+      guard:guard
+      key:string
+      fund-amount:decimal
+    )
+    " Fixture: set up transaction I for cross-chain, \
+    \ funding ACCOUNT/GUARD for FUND-AMOUNT \
+    \ and signing with KEY, setting hash to XCHAIN_HASH \
+    \ and sending chain to CHAIN_0."
+    (begin-tx (format "xchain-{}" [i]))
+    (fund-create f account guard fund-amount)
+    (env-hash XCHAIN_HASH)
+    (env-chain-data { 'chain-id: CHAIN_0 })
+    (env-sigs [{"key": key,"caps":[(XCHAIN)]}])
+  )
 
 
   ;;
@@ -516,19 +538,6 @@
     true
   )
 
-  (defun begin-xchain
-    ( f:module{fungible-v2}
-      i:integer
-      account:string
-      guard:guard
-      key:string
-      fund-amount:decimal
-    )
-    (begin-tx (format "xchain-{}" [i]))
-    (fund-create f account guard fund-amount)
-    (env-hash XCHAIN_HASH)
-    (env-sigs [{"key": key,"caps":[(XCHAIN)]}])
-  )
 
   (defun transfer-crosschain-tests:bool (f:module{fungible-v2})
     " Covers:                                             \
@@ -539,41 +548,40 @@
     \   which is unsound/to be removed                    \
     \ - empty sender ID (covered by create-account tests) "
 
-
     (begin-tx "transfer-crosschain-tests 1")
     (expect-failure
       "Cross-chain transfer fails for unknown account"
-      (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 2.0)
+      (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 2.0)
     )
-    (commit-tx)
+    (rollback-tx)
 
     (begin-tx "transfer-crosschain-tests 2")
     (fund-create f BOB BOB_GUARD 2.0)
     (expect-failure
       "Cross-chain transfer fails without signature"
-      (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 2.0)
+      (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 2.0)
     )
-    (commit-tx)
+    (rollback-tx)
 
     (begin-xchain f 3 BOB BOB_GUARD BOB_KEY 2.0)
     (with-applied-env (with-capability (XCHAIN)
       (expect-failure
         "Cross-chain transfer fails with negative amount"
-        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" -0.1))))
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 -0.1))))
     (rollback-tx)
 
     (begin-xchain f 4 BOB BOB_GUARD BOB_KEY 2.0)
     (with-applied-env (with-capability (XCHAIN)
       (expect-failure
         "Cross-chain transfer fails with 0.0 amount"
-        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 0.0))))
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 0.0))))
     (rollback-tx)
 
     (begin-xchain f 5 BOB BOB_GUARD BOB_KEY 2.0)
     (with-applied-env (with-capability (XCHAIN)
       (expect-failure
         "Cross-chain transfer fails with min precision / 10 value"
-        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1
           (/ (precision-min-value f) 10.0)))))
     (rollback-tx)
 
@@ -581,29 +589,107 @@
     (with-applied-env (with-capability (XCHAIN)
       (expect-failure
         "Cross-chain transfer fails for empty receiver"
-        (f::transfer-crosschain BOB "" ALICE_GUARD "1" 1.0))))
+        (f::transfer-crosschain BOB "" ALICE_GUARD CHAIN_1 1.0))))
     (rollback-tx)
 
     (begin-xchain f 7 BOB BOB_GUARD BOB_KEY 2.0)
     (with-applied-env (with-capability (XCHAIN)
       (expect-failure
         "Cross-chain transfer fails for insufficient funds"
-        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 10.0))))
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 10.0))))
     (rollback-tx)
 
-    (begin-xchain f 8 BOB BOB_GUARD BOB_KEY 2.0)
+    (begin-xchain f 7 BOB BOB_GUARD BOB_KEY 2.0)
     (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails to same chain"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD "0" 1.0))))
+    (rollback-tx)
+
+    (begin-xchain f 8 BOB BOB_GUARD BOB_KEY 3.0)
+
+    (with-applied-env (with-capability (XCHAIN)
+
       (expect-that
         "Cross-chain transfer succeeds"
         (constantly true)
-        (f::transfer-crosschain BOB ALICE ALICE_GUARD "1" 1.0))
-      (env-chain-data { 'chain-id: "0" })
-      (expect-failure ;; TODO need multiple env updates #846
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 1.0))
+
+      (expect
+        "Cross-chain transfer: sender balance correct"
+        2.0 (f::get-balance BOB))
+
+      (expect-failure
+        "Cross-chain transfer: receiver not credited on source chain"
+        (f::get-balance ALICE))
+
+      (expect-failure
         "Resumption on wrong chain fails"
-        (format "{}" [(pact-state)])
+        "yield provenance" ;; from pact internals
         (continue-pact 1))
+
+      (env-chain-data { 'chain-id: CHAIN_1 })
+      (with-applied-env [
+        (expect-that
+          "Cross-chain transfer: Resumption on correct chain succeeds"
+          (constantly true)
+          (continue-pact 1))
+
+        (expect-failure
+          "Duplicate resumption of cross-chain prevented"
+          "pact completed" ;; from pact internals
+          (continue-pact 1))
+      ])
+
     ))
+
+    (expect
+      "Cross-chain transfer: receiver balance correct"
+      1.0 (f::get-balance ALICE))
+
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 0.1)]}
+      ])
+    (with-applied-env
+      (expect-that
+        "Cross-chain transfer: receiver guard correct"
+        (constantly true)
+        (f::transfer ALICE BOB 0.1)))
+
+    (expect
+      "Cross-chain transfer: receiver balance correct after test tfr"
+      0.9 (f::get-balance ALICE))
+
+    (expect
+      "Cross-chain transfer: sender balance correct after test tfr"
+      2.1 (f::get-balance BOB))
+
     (rollback-tx)
+
+    (begin-xchain f 9 BOB BOB_GUARD BOB_KEY 1.0)
+
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-that
+        "Cross-chain transfer min value succeeds"
+        (constantly true)
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1
+          (precision-min-value f)))
+
+      (env-chain-data { 'chain-id: CHAIN_1 })
+      (with-applied-env
+        (expect-that
+          "Cross-chain transfer min value: Resumption on correct chain succeeds"
+          (constantly true)
+          (continue-pact 1)))))
+
+    (expect
+      "Cross-chain transfer min value: receiver balance correct"
+      (precision-min-value f) (f::get-balance ALICE))
+
+    (expect
+      "Cross-chain transfer min value: sender balance correct"
+      (- 1.0 (precision-min-value f)) (f::get-balance BOB))
 
     true
   )
