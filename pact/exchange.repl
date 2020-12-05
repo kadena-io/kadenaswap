@@ -14,6 +14,7 @@
 
 
 (define-namespace 'test (sig-keyset) (sig-keyset))
+(load "test/fungible-util.pact")
 (load "test/ABC.pact")
 (load "test/XYZ.pact")
 (commit-tx)
@@ -448,7 +449,7 @@
   ]
   (swap-exact-in 8.0 6.3 [coin test.abc]
     "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
-(expect "swap gas" 1632 (env-gas))
+(expect "swap gas" 1672 (env-gas))
 (env-gasmodel 'fixed 0)
 
 (expect "kda debited for alice"
