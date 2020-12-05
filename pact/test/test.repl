@@ -13,7 +13,7 @@
 (test.abc.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
 (commit-tx)
 
-(fungible-v2-test.suite test.abc)
+(fungible-v2-test.suite test.abc fungible-test-helper-default "transfer-crosschain-tests")
 
 (begin-tx)
 (use fungible-v2-test)
@@ -21,4 +21,4 @@
 (test.xyz.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
 (commit-tx)
 
-(fungible-v2-test.suite test.xyz)
+(fungible-v2-test.suite test.xyz fungible-test-helper-default "transfer-crosschain-tests")

@@ -9,21 +9,20 @@
 
 (interface fungible-test-helper
   "Interface for interacting with test."
-  (defun setup-rotate:string
+  (defun setup-rotate:bool
     ( account:string
       old-key:string
     )
-    " Allow for managed or non-managed control of 'rotate'. \
-    \ Using ACCOUNT and OLD-KEY, set up sigs and/or capabilities \
-    \ for successful execution of 'rotate'."
+    " Supply setup for 'rotate'. Simply return 'false' to use \
+    \ non-managed key-based setup, or perform managed capability \
+    \ setup with OLD_KEY and return 'true'."
   )
 )
 
 (module fungible-test-helper-default G
   (defcap G () true)
   (implements fungible-test-helper)
-  (defun setup-rotate:string (account:string old-key:string)
-    (env-keys [old-key]))
+  (defun setup-rotate:bool (account:string old-key:string) false)
 )
 
 (module fungible-v2-test G
@@ -42,6 +41,12 @@
   (defcap XCHAIN ()
     " Dummy capability for bringing sigs into scope \
     \ for transfer-crosschain."
+    true
+  )
+
+  (defcap ROTATE ()
+    " Dummy capability for bringing sigs into scope \
+    \ for rotate."
     true
   )
 
@@ -123,17 +128,17 @@
     \ 'FUNDER_ACCT' to exist with 'FUNDER_GUARD' guard and \
     \ 'FUNDER_BALANCE' balance."
     (fixture-tests f)
-    (and (contains skip "create-account-tests")
+    (or (contains "create-account-tests" skip)
       (create-account-tests f))
-    (and (contains skip "transfer-tests")
+    (or (contains "transfer-tests" skip)
       (transfer-tests f))
-    (and (contains skip "transfer-create-tests")
+    (or (contains "transfer-create-tests" skip)
       (transfer-create-tests f))
-    (and (contains skip "transfer-crosschain-tests")
+    (or (contains "transfer-crosschain-tests" skip)
       (transfer-crosschain-tests f))
-    (and (contains skip "rotate-tests")
+    (or (contains "rotate-tests" skip)
       (rotate-tests f h))
-    (and (contains skip "enforce-unit-tests")
+    (or (contains "enforce-unit-tests" skip)
       (enforce-unit-tests f))
   )
 
@@ -703,7 +708,7 @@
     )
     " Covers rotate semantics, namely that old guard is enforced \
     \ and new guard verified to be correct."
-    
+
     (begin-tx "rotate-tests")
 
     (fund-create f ALICE ALICE_GUARD 100.0)
@@ -712,14 +717,26 @@
       "rotate without setup fails"
       (f::rotate ALICE BOB_GUARD))
 
+
+    (expect-that "pre-rotate bad key succeeds"
+      (constantly true)
+      (if (h::setup-rotate ALICE BOB_KEY) true
+        (env-sigs [{"key": BOB_KEY, "caps": [(ROTATE)]}])))
+
+    (with-applied-env (with-capability (ROTATE)
+      (expect-failure "rotate fails with bad key"
+            (f::rotate ALICE BOB_GUARD))))
+
     (expect-that "pre-rotate succeeds"
       (constantly true)
-      (h::setup-rotate ALICE ALICE_KEY))
+      (if (h::setup-rotate ALICE ALICE_KEY) true
+        (env-sigs [{"key": ALICE_KEY, "caps": [(ROTATE)]}])))
 
-    (with-applied-env
+    (with-applied-env (with-capability (ROTATE)
       (expect-that "rotate succeeds"
         (constantly true)
-        (f::rotate ALICE BOB_GUARD)))
+        (f::rotate ALICE BOB_GUARD))))
+
 
     (env-sigs
       [ { "key": ALICE_KEY
@@ -779,8 +796,9 @@
 (module coin-helper G
   (defcap G () true)
   (implements fungible-test-helper)
-  (defun setup-rotate:string (account:string old-key:string)
+  (defun setup-rotate:bool (account:string old-key:string)
     (env-sigs [{"key": old-key,"caps":[(coin.ROTATE account)]}])
+    true
   )
 )
 (commit-tx)
