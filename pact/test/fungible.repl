@@ -9,18 +9,21 @@
 
 (interface fungible-test-helper
   "Interface for interacting with test."
-  (defun pre-rotate:bool
+  (defun setup-rotate:string
     ( account:string
-      new-guard:string
+      old-key:string
     )
-    "Execute capability install or other prerequisites for 'rotate'."
+    " Allow for managed or non-managed control of 'rotate'. \
+    \ Using ACCOUNT and OLD-KEY, set up sigs and/or capabilities \
+    \ for successful execution of 'rotate'."
   )
 )
 
 (module fungible-test-helper-default G
   (defcap G () true)
   (implements fungible-test-helper)
-  (defun pre-rotate:bool (account:string new-guard:string) true)
+  (defun setup-rotate:string (account:string old-key:string)
+    (env-keys [old-key]))
 )
 
 (module fungible-v2-test G
@@ -694,8 +697,57 @@
     true
   )
 
-  (defun rotate-tests:bool (f:module{fungible-v2} h:module{fungible-test-helper})
+  (defun rotate-tests:bool
+    ( f:module{fungible-v2}
+      h:module{fungible-test-helper}
+    )
+    " Covers rotate semantics, namely that old guard is enforced \
+    \ and new guard verified to be correct."
+    
     (begin-tx "rotate-tests")
+
+    (fund-create f ALICE ALICE_GUARD 100.0)
+
+    (expect-failure
+      "rotate without setup fails"
+      (f::rotate ALICE BOB_GUARD))
+
+    (expect-that "pre-rotate succeeds"
+      (constantly true)
+      (h::setup-rotate ALICE ALICE_KEY))
+
+    (with-applied-env
+      (expect-that "rotate succeeds"
+        (constantly true)
+        (f::rotate ALICE BOB_GUARD)))
+
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure "post-rotate transfer fails with old key"
+        (f::transfer-create ALICE BOB BOB_GUARD 0.2))
+      ])
+
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-that "post-rotate transfer succeeds"
+        (constantly true)
+        (f::transfer-create ALICE BOB BOB_GUARD 0.2))
+      ])
+
+    (expect
+      "sender balance correct"
+      99.8 (f::get-balance ALICE))
+
+    (expect
+      "receiver balance correct"
+      0.2 (f::get-balance BOB))
 
     (rollback-tx)
     true
@@ -703,6 +755,7 @@
 
 
   (defun enforce-unit-tests:bool (f:module{fungible-v2})
+    "Strictly covers min precision only."
     (begin-tx "enforce-unit-tests")
 
     (expect-that "1.0 succeeds"
@@ -723,8 +776,15 @@
 (test-capability (coin.COINBASE))
 (use fungible-v2-test)
 (coin.coinbase FUNDER_ACCT FUNDER_GUARD 10000.0)
+(module coin-helper G
+  (defcap G () true)
+  (implements fungible-test-helper)
+  (defun setup-rotate:string (account:string old-key:string)
+    (env-sigs [{"key": old-key,"caps":[(coin.ROTATE account)]}])
+  )
+)
 (commit-tx)
 
 
 
-(fungible-v2-test.suite coin fungible-test-helper-default "")
+(fungible-v2-test.suite coin coin-helper "")
