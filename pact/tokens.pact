@@ -27,7 +27,8 @@
 
   (defconst ISSUER_KEY "I")
 
-  (defcap GOVERNANCE () (enforce false "autonomous"))
+  ; (defcap GOVERNANCE () (enforce false "autonomous"))
+  (defcap GOVERNANCE () (enforce (keyset-ref-guard 'swap-ns-admin)))
 
   (defcap DEBIT (token:string sender:string)
     (enforce-guard

@@ -1,5 +1,8 @@
+(define-keyset 'swap-ns-user)
+(define-keyset 'swap-ns-admin)
+(ns.write-registry 'swap (keyset-ref-guard 'swap-ns-admin) true)
 (define-namespace
   "swap"
-  (read-keyset 'swap-ns-user)
-  (read-keyset 'swap-ns-admin)
+  (keyset-ref-guard 'swap-ns-user)
+  (keyset-ref-guard 'swap-ns-admin)
 )
