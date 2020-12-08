@@ -23,6 +23,7 @@ export const PactProvider = (props) => {
   const [pairAccount, setPairAccount] = useState("")
   const [pairReserve, setPairReserve] = useState("")
   const [pair, setPair] = useState("")
+  const [ratio, setRatio] = useState(null)
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [supplied, setSupplied] = useState(false)
@@ -30,6 +31,11 @@ export const PactProvider = (props) => {
     "KDA": 1,
     "ABC": 1.05
   }
+
+  useEffect(() => {
+    setRatio(pairReserve['token0']/pairReserve['token1']);
+  }, [pairReserve]);
+
 
   const setVerifiedAccount = async (accountName) => {
     try {
@@ -61,7 +67,6 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", "3" ,0.01,100000000, 28800, creationTime()),
         }, network);
         console.log(data, "gettoken")
-        console.log(data.result.data)
         setTokenAccount(data.result.data);
         if (data.result.status === "success"){
           first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
@@ -76,7 +81,7 @@ export const PactProvider = (props) => {
       console.log(e)
     }
   }
-  
+
   const getTotalTokenSupply = async (token0, token1) => {
     try {
       let data = await Pact.fetch.local({
@@ -284,6 +289,7 @@ export const PactProvider = (props) => {
         }, network);
         if (data.result.status === "success"){
           console.log("succeeded, update reserve")
+          console.log(data.result.data);
           await setPairReserve({token0: data.result.data[0], token1: data.result.data[1]});
           console.log(pairReserve, " reserve")
         } else {
@@ -329,8 +335,8 @@ export const PactProvider = (props) => {
         tokenToAccount,
         getPair,
         getReserves,
-        pairReserve
-
+        pairReserve,
+        ratio
       }}
     >
       {props.children}

@@ -33,14 +33,90 @@ const SwapContainer = () => {
   const [selectedToken, setSelectedToken] = useState(null);
   const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '', address: '' });
   const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '', address: '' });
+  const [ratio, setRatio] = useState(null);
 
   const pact = useContext(PactContext);
+
+  // useEffect(() => {
+  //   if (tokenSelectorType === 'from') {
+  //     console.log('from')
+  //     setSelectedToken(fromValues.coin);
+  //     if (fromValues.amount !== '' && toValues.amount !== '') {
+  //       console.log('both have')
+  //       setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+  //     } else if (fromValues.amount !== '') {
+  //       console.log('only from')
+  //       return setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+  //     }
+  //
+  //   }
+  //   if (tokenSelectorType === 'to') {
+  //     console.log('to')
+  //     setSelectedToken(toValues.coin);
+  //   }
+  //   // if (fromValues.amount !== '' && toValues.amount !== '') {
+  //   //   console.log('both have')
+  //   //   if (tokenSelectorType === 'from') return setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+  //   //   if (tokenSelectorType === 'to') return setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
+  //   // } else if (fromValues.amount !== '') {
+  //   //   console.log('only from')
+  //   //   return setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+  //   // } else if (toValues.amount !== '') {
+  //   //   console.log('only to')
+  //   //   return setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
+  //   // }
+  //   // const getReserves = async () => {
+  //   //   if (toValues.coin !== '' && fromValues.coin !== '') {
+  //   //     await pact.getReserves(fromValues.address, toValues.address)
+  //   //     // if (toValues.amount === '' && fromValues.amount !== '') {
+  //   //     //   console.log('hi')
+  //   //     //   console.log(fromValues.amount / pact.ratio)
+  //   //     //   setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+  //   //     //   // toValues.amount = fromValues.amount / pact.ratio
+  //   //     // } else if (fromValues.amount === '' && toValues.amount !== '') {
+  //   //     //   console.log(fromValues.amount / pact.ratio)
+  //   //     //   setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
+  //   //     //   // toValues.amount = fromValues.amount / pact.ratio
+  //   //     // } else {
+  //   //     //
+  //   //     // }
+  //   //   }
+  //   // }
+  //   // getReserves();
+  //   setSelectedToken(null);
+  // }, [tokenSelectorType, fromValues, toValues, pact.ratio]);
+
+  useEffect(() => {
+    setToValues({ ...toValues, amount: "" })
+    if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio) && fromValues.amount === "") {
+      console.log(fromValues)
+      setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+    }
+  }, [fromValues.amount])
+
+  useEffect(() => {
+    console.log('here')
+    setFromValues({ ...fromValues, amount: "" })
+    if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio) && toValues.amount === "") {
+      setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
+    }
+  }, [toValues.amount])
 
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
     if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
     return setSelectedToken(null);
-  }, [tokenSelectorType, fromValues, toValues]);
+  }, [tokenSelectorType]);
+
+  useEffect(() => {
+    const getReserves = async () => {
+      if (toValues.coin !== '' && fromValues.coin !== '') {
+        await pact.getReserves(fromValues.address, toValues.address)
+      }
+    }
+    getReserves();
+  }, [fromValues.coin, toValues.coin])
+
 
   const swapValues = () => {
     const from = { ...fromValues };
@@ -50,7 +126,6 @@ const SwapContainer = () => {
   };
 
   const onTokenClick = async ({ crypto }) => {
-    console.log(crypto)
     let balance;
     if (crypto.name === 'coin') {
       balance = pact.account.balance
@@ -65,8 +140,8 @@ const SwapContainer = () => {
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
     if (!pact.privKey) return 'Enter your KDA account private key';
-    if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
+    if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
     if (toValues.amount > toValues.balance) return `Insufficient ${toValues.coin} balance`
     return 'SWAP';
@@ -130,12 +205,20 @@ const SwapContainer = () => {
           <>
             <RowContainer>
               <Label>price</Label>
-              <span>0.0000956556 ETH per 0xMR</span>
+              <span>{`${pact.ratio} ${fromValues.coin} per ${toValues.coin}`}</span>
             </RowContainer>
+            <RowContainer style={{ marginTop: 10 }}>
+              <Label>max slippage</Label>
+              <span>0.5%</span>
+            </RowContainer>
+            {/*
+              NEED TO FIGURE OUT PRE AND POST PRICES
+              RUN A LOCAL OF THE ACTUAL TRADE AND CHECK NEW PRICES
             <RowContainer style={{ margin: 0 }}>
               <Label>price impact</Label>
               <span>15.16%</span>
             </RowContainer>
+            */}
           </>
         )}
         <Button

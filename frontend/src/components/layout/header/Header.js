@@ -96,9 +96,9 @@ const Header = () => {
             </Message>
           </Item>
           <Item className="mobile-none" to="#">
-            <Message color='purple' size='mini'>
-              {pact.account.account ? `${pact.account.balance} KDA`: ""}
-            </Message>
+              <Message color='purple' size='mini'>
+                {pact.account.account ? `${pact.account.balance} KDA`: ""}
+              </Message>
           </Item>
         </>
         :
