@@ -36,11 +36,15 @@ const SwapContainer = () => {
   const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '', address: '' });
   const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '', address: '' });
   const [inputSide, setInputSide] = useState("")
+  const [fromNote, setFromNote] = useState("")
+  const [toNote, setToNote] = useState("")
 
   const pact = useContext(PactContext);
 
   useEffect(() => {
     if (inputSide === 'from' && fromValues.amount !== "") {
+      setToNote("(estimated)")
+      setFromNote("")
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (fromValues.amount.length < 5) {
@@ -57,6 +61,8 @@ const SwapContainer = () => {
 
   useEffect(() => {
     if (inputSide === 'to' && toValues.amount !== "") {
+      setFromNote("(estimated)")
+      setToNote("")
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (toValues.amount.length < 5) {
@@ -142,7 +148,7 @@ const SwapContainer = () => {
       />
       <FormContainer title="swap">
         <Input
-          leftLabel="from"
+          leftLabel={`from ${fromNote}`}
           rightLabel={`balance: ${fromValues.balance ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
@@ -165,7 +171,7 @@ const SwapContainer = () => {
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
         <Input
-          leftLabel="to"
+          leftLabel={`to ${toNote}`}
           rightLabel={`balance: ${toValues.balance ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
@@ -192,9 +198,13 @@ const SwapContainer = () => {
               <Label>price</Label>
               <span>{`${pact.ratio} ${fromValues.coin} per ${toValues.coin}`}</span>
             </RowContainer>
-            <RowContainer style={{ marginTop: 10 }}>
+            <RowContainer style={{ marginTop: 5 }}>
               <Label>max slippage</Label>
               <span>0.5%</span>
+            </RowContainer>
+            <RowContainer style={{ marginTop: 5 }}>
+              <Label>liquidity provider fee</Label>
+              <span>{`${0.003 * parseFloat(fromValues.amount)} ${fromValues.coin}`}</span>
             </RowContainer>
             {/*
               NEED TO FIGURE OUT PRE AND POST PRICES
