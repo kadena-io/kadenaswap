@@ -23,7 +23,7 @@ export const PactProvider = (props) => {
   const [pairAccount, setPairAccount] = useState("")
   const [pairReserve, setPairReserve] = useState("")
   const [pair, setPair] = useState("")
-  const [ratio, setRatio] = useState(null)
+  const [ratio, setRatio] = useState(NaN)
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [supplied, setSupplied] = useState(false)
@@ -33,7 +33,7 @@ export const PactProvider = (props) => {
   }
 
   useEffect(() => {
-    setRatio(pairReserve['token0']/pairReserve['token1']);
+    pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
   }, [pairReserve]);
 
 
@@ -211,7 +211,6 @@ export const PactProvider = (props) => {
   }
 
   const getPair = async (token0, token1) => {
-    console.log('getting pair')
     try {
       console.log('getting pairdddd')
       let data = await Pact.fetch.local({
@@ -290,9 +289,10 @@ export const PactProvider = (props) => {
         if (data.result.status === "success"){
           console.log("succeeded, update reserve")
           console.log(data.result.data);
-          await setPairReserve({token0: data.result.data[0], token1: data.result.data[1]});
+          setPairReserve({token0: data.result.data[0], token1: data.result.data[1]});
           console.log(pairReserve, " reserve")
         } else {
+          await setPairReserve(null)
           console.log("Failed")
         }
     } catch (e) {

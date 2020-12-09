@@ -9,6 +9,8 @@ import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
 import TokenSelector from '../components/shared/TokenSelector';
 import { PactContext } from '../contexts/PactContext';
+import _ from 'lodash';
+import { throttle, debounce } from "throttle-debounce";
 
 const Container = styled.div`
   display: flex;
@@ -33,74 +35,55 @@ const SwapContainer = () => {
   const [selectedToken, setSelectedToken] = useState(null);
   const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '', address: '' });
   const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '', address: '' });
-  const [ratio, setRatio] = useState(null);
+  const [inputSide, setInputSide] = useState("")
 
   const pact = useContext(PactContext);
 
-  // useEffect(() => {
-  //   if (tokenSelectorType === 'from') {
-  //     console.log('from')
-  //     setSelectedToken(fromValues.coin);
-  //     if (fromValues.amount !== '' && toValues.amount !== '') {
-  //       console.log('both have')
-  //       setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
-  //     } else if (fromValues.amount !== '') {
-  //       console.log('only from')
-  //       return setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
-  //     }
-  //
-  //   }
-  //   if (tokenSelectorType === 'to') {
-  //     console.log('to')
-  //     setSelectedToken(toValues.coin);
-  //   }
-  //   // if (fromValues.amount !== '' && toValues.amount !== '') {
-  //   //   console.log('both have')
-  //   //   if (tokenSelectorType === 'from') return setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
-  //   //   if (tokenSelectorType === 'to') return setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
-  //   // } else if (fromValues.amount !== '') {
-  //   //   console.log('only from')
-  //   //   return setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
-  //   // } else if (toValues.amount !== '') {
-  //   //   console.log('only to')
-  //   //   return setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
-  //   // }
-  //   // const getReserves = async () => {
-  //   //   if (toValues.coin !== '' && fromValues.coin !== '') {
-  //   //     await pact.getReserves(fromValues.address, toValues.address)
-  //   //     // if (toValues.amount === '' && fromValues.amount !== '') {
-  //   //     //   console.log('hi')
-  //   //     //   console.log(fromValues.amount / pact.ratio)
-  //   //     //   setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
-  //   //     //   // toValues.amount = fromValues.amount / pact.ratio
-  //   //     // } else if (fromValues.amount === '' && toValues.amount !== '') {
-  //   //     //   console.log(fromValues.amount / pact.ratio)
-  //   //     //   setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
-  //   //     //   // toValues.amount = fromValues.amount / pact.ratio
-  //   //     // } else {
-  //   //     //
-  //   //     // }
-  //   //   }
-  //   // }
-  //   // getReserves();
-  //   setSelectedToken(null);
-  // }, [tokenSelectorType, fromValues, toValues, pact.ratio]);
-
   useEffect(() => {
-    setToValues({ ...toValues, amount: "" })
-    if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio) && fromValues.amount === "") {
-      console.log(fromValues)
-      setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+    if (inputSide === 'from' && fromValues.amount !== "") {
+      setInputSide(null)
+      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+        if (fromValues.amount.length < 5) {
+          throttle(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+        } else {
+          debounce(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+        }
+      }
+    }
+    if (isNaN(pact.ratio) || fromValues.amount === "") {
+      setToValues((prev) => ({ ...prev, amount: '' }))
     }
   }, [fromValues.amount])
 
   useEffect(() => {
-    console.log('here')
-    setFromValues({ ...fromValues, amount: "" })
-    if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio) && toValues.amount === "") {
-      setFromValues({ ...fromValues, amount: toValues.amount / pact.ratio })
+    if (inputSide === 'to' && toValues.amount !== "") {
+      setInputSide(null)
+      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+        if (toValues.amount.length < 5) {
+          throttle(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+        } else {
+          debounce(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+        }
+      }
+    }
+    if (isNaN(pact.ratio) || toValues.amount === "") {
+      setFromValues((prev) => ({ ...prev, amount: '' }))
     }
   }, [toValues.amount])
+
+
+  useEffect(() => {
+    console.log(pact.ratio)
+    if (!isNaN(pact.ratio)) {
+      if (fromValues.amount !== "" && toValues.amount === "") {
+        setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+      } if (fromValues.amount === "" && toValues.amount !== "") {
+        setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio })
+      } if (fromValues.amount !== "" && toValues.amount !== "")  {
+        setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+      }
+    }
+  }, [pact.ratio])
 
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
@@ -111,6 +94,7 @@ const SwapContainer = () => {
   useEffect(() => {
     const getReserves = async () => {
       if (toValues.coin !== '' && fromValues.coin !== '') {
+        await pact.getPair(fromValues.address, toValues.address);
         await pact.getReserves(fromValues.address, toValues.address)
       }
     }
@@ -141,9 +125,10 @@ const SwapContainer = () => {
     if (!pact.account.account) return 'Connect your KDA account';
     if (!pact.privKey) return 'Enter your KDA account private key';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
+    if (isNaN(pact.ratio)) return 'Pair does not exist!'
     if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
-    if (toValues.amount > toValues.balance) return `Insufficient ${toValues.coin} balance`
+    // if (toValues.amount > toValues.balance) return `Insufficient ${toValues.coin} balance`
     return 'SWAP';
   };
 
@@ -174,7 +159,7 @@ const SwapContainer = () => {
           value={fromValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('from')}
           onChange={async (e, { value }) => {
-            await pact.getPair(fromValues.address, toValues.address);
+            setInputSide('from')
             setFromValues((prev) => ({ ...prev, amount: value }))
           }}
         />
@@ -197,11 +182,11 @@ const SwapContainer = () => {
           value={toValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('to')}
           onChange={async (e, { value }) => {
-            await pact.getPair(fromValues.address, toValues.address);
+            setInputSide('to')
             setToValues((prev) => ({ ...prev, amount: value }))
           }}
         />
-        {fromValues.amount && fromValues.coin && toValues.amount && toValues.coin && (
+        {!isNaN(pact.ratio) && fromValues.amount && fromValues.coin && toValues.amount && toValues.coin && (
           <>
             <RowContainer>
               <Label>price</Label>
