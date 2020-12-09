@@ -22,7 +22,6 @@
   "Noop implementation of swap-callable-v1"
   (implements swap-callable-v1)
   (defcap G () (enforce (keyset-ref-guard 'swap-ns-admin)))
-  ; (defcap G () (enforce false "autonomous"))
   (defun swap-call:bool
     ( token-in:module{fungible-v2}
       token-out:module{fungible-v2}
