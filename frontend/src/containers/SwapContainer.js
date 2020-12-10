@@ -9,6 +9,7 @@ import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
 import reduceBalance from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
+import TxView from '../components/shared/TxView';
 import { PactContext } from '../contexts/PactContext';
 import { throttle, debounce } from "throttle-debounce";
 
@@ -38,6 +39,7 @@ const SwapContainer = () => {
   const [inputSide, setInputSide] = useState("")
   const [fromNote, setFromNote] = useState("")
   const [toNote, setToNote] = useState("")
+  const [showTxModal, setShowTxModal] = useState(true)
 
   const pact = useContext(PactContext);
 
@@ -153,6 +155,12 @@ const SwapContainer = () => {
         onTokenClick={onTokenClick}
         onClose={() => setTokenSelectorType(null)}
       />
+      <TxView
+        show={showTxModal}
+        selectedToken={selectedToken}
+        onTokenClick={onTokenClick}
+        onClose={() => setShowTxModal(false)}
+      />
       <FormContainer title="swap">
         <Input
           leftLabel={`from ${fromNote}`}
@@ -226,7 +234,7 @@ const SwapContainer = () => {
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
           disabled={getButtonLabel() !== "SWAP"}
-          onClick={() => pact.swap(
+          onClick={() => pact.swapLocal(
             { amount: fromValues.amount, address: fromValues.address },
             { amount: toValues.amount, address: toValues.address },
             (fromNote === "(estimated)" ? false : true)

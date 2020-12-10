@@ -29,6 +29,7 @@ export const PactProvider = (props) => {
   const [supplied, setSupplied] = useState(false);
   const [slippageTollerance, setSlippageTollerance] = useState(0.50);
   const [liquidityProviderFee, setLiquidityProviderFee] = useState(0.003);
+  const [cmd, setCmd] = useState(null);
   const tokenPrice = {
     "KDA": 1,
     "ABC": 1.05
@@ -311,9 +312,7 @@ export const PactProvider = (props) => {
   }
 
   const swap = async (token0, token1, isSwapIn) => {
-    console.log(JSON.stringify(pair))
     try {
-      console.log(token0, token1, isSwapIn)
       let pair = await getPairAccount(token0.address, token1.address);
 
       const inPactCode = `(swap.exchange.swap-exact-in
@@ -348,9 +347,55 @@ export const PactProvider = (props) => {
           },
           meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
       }
+      setCmd(cmd);
       console.log(cmd)
       let data = await Pact.fetch.send(cmd, network);
-        console.log(data);
+      console.log(data);
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  const swapLocal = async (token0, token1, isSwapIn) => {
+    try {
+      let pair = await getPairAccount(token0.address, token1.address);
+
+      const inPactCode = `(swap.exchange.swap-exact-in
+          ${keepDecimal(token0.amount)}
+          ${keepDecimal(token1.amount*(1-slippageTollerance))}
+          [${token0.address} ${token1.address}]
+          ${JSON.stringify(account.account)}
+          ${JSON.stringify(account.account)}
+          (read-keyset 'user-ks)
+          (at 'block-time (chain-data))
+        )`
+      const outPactCode = `(swap.exchange.swap-exact-out
+          ${keepDecimal(token1.amount)}
+          ${keepDecimal(token0.amount*(1+slippageTollerance))}
+          [${token0.address} ${token1.address}]
+          ${JSON.stringify(account.account)}
+          ${JSON.stringify(account.account)}
+          (read-keyset 'user-ks)
+          (at 'block-time (chain-data))
+        )`
+      const cmd = {
+          pactCode: (isSwapIn ? inPactCode : outPactCode),
+          keyPairs: {
+            publicKey: account.guard.keys[0],
+            secretKey: privKey,
+            clist: [
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount*(1+slippageTollerance))]},
+            ]
+          },
+          envData: {
+            "user-ks": account.guard
+          },
+          meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
+      }
+      setCmd(cmd);
+      console.log(cmd)
+      let data = await Pact.fetch.local(cmd, network);
+      console.log(data);
     } catch (e) {
       console.log(e)
     }
@@ -394,6 +439,7 @@ export const PactProvider = (props) => {
         pairReserve,
         ratio,
         swap,
+        swapLocal,
         slippageTollerance,
         getCorrectBalance,
         liquidityProviderFee
