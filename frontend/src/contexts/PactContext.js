@@ -5,7 +5,6 @@ const keepDecimal = decimal =>{
   const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
   return num
 }
-const slippageTolerance = 0.003;
 export const PactContext = createContext();
 
 const savedAcct = localStorage.getItem('acct');
@@ -27,6 +26,7 @@ export const PactProvider = (props) => {
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [supplied, setSupplied] = useState(false)
+  const [slippageTollerance, setSlippageTollerance] = useState(0.10);
   const tokenPrice = {
     "KDA": 1,
     "ABC": 1.05
@@ -35,6 +35,12 @@ export const PactProvider = (props) => {
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
   }, [pairReserve]);
+
+  const getCorrectBalance = (acctDetails) => {
+    const balance = (!isNaN(acctDetails.balance) ? acctDetails.balance : acctDetails.balance.decimal)
+    console.log(balance)
+    return balance
+  }
 
 
   const setVerifiedAccount = async (accountName) => {
@@ -46,7 +52,7 @@ export const PactProvider = (props) => {
         console.log(data)
         if (data.result.status === "success"){
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
-          setAccount(data.result.data);
+          setAccount({...data.result.data, balance: getCorrectBalance(data.result.data)});
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
           console.log("Account is set to ", accountName);
         } else {
@@ -67,7 +73,7 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", "3" ,0.01,100000000, 28800, creationTime()),
         }, network);
         console.log(data, "gettoken")
-        setTokenAccount(data.result.data);
+        setTokenAccount({...data.result.data, balance: getCorrectBalance(data.result.data)});
         if (data.result.status === "success"){
           first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
           console.log(data.result.data)
@@ -130,8 +136,8 @@ export const PactProvider = (props) => {
               ${token1}
               ${keepDecimal(amountDesired0)}
               ${keepDecimal(amountDesired1)}
-              ${keepDecimal(amountDesired0*(1-slippageTolerance))}
-              ${keepDecimal(amountDesired1*(1-slippageTolerance))}
+              ${keepDecimal(amountDesired0*(1-slippageTollerance))}
+              ${keepDecimal(amountDesired1*(1-slippageTollerance))}
               ${JSON.stringify(account)}
               ${JSON.stringify(account)}
               (read-keyset 'user-ks)
@@ -300,6 +306,40 @@ export const PactProvider = (props) => {
     }
   }
 
+  const swapExactIn = async (token0, token1) => {
+    try {
+      let pair = await getPairAccount(token0.address, token1.address);
+      const pactCode = `(swap.exchange.swap-exact-in
+          ${keepDecimal(token0.amount)}
+          ${keepDecimal(token1.amount*(1-slippageTollerance))}
+          [${token0.address} ${token1.address}]
+          ${JSON.stringify(account.account)}
+          ${JSON.stringify(account.account)}
+          (read-keyset 'user-ks)
+          (at 'block-time (chain-data))
+        )`
+      const cmd = {
+          pactCode: pactCode,
+          keyPairs: {
+            publicKey: account.guard.keys[0],
+            secretKey: privKey,
+            clist: [
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount)]},
+            ]
+          },
+          envData: {
+            "user-ks": account.guard
+          },
+          meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
+      }
+      console.log(cmd)
+      let data = await Pact.fetch.send(cmd, network);
+        console.log(data);
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
   const getTokenPrice = (token) => {
     return tokenPrice[token];
   }
@@ -336,7 +376,10 @@ export const PactProvider = (props) => {
         getPair,
         getReserves,
         pairReserve,
-        ratio
+        ratio,
+        swapExactIn,
+        slippageTollerance,
+        getCorrectBalance
       }}
     >
       {props.children}

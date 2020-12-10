@@ -7,9 +7,9 @@ import InputToken from '../components/shared/InputToken';
 import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
+import reduceBalance from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
 import { PactContext } from '../contexts/PactContext';
-import _ from 'lodash';
 import { throttle, debounce } from "throttle-debounce";
 
 const Container = styled.div`
@@ -121,7 +121,7 @@ const SwapContainer = () => {
       balance = pact.account.balance
     } else {
       let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
-      balance = acct.balance
+      balance = pact.getCorrectBalance(acct)
     }
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
     if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
@@ -149,7 +149,7 @@ const SwapContainer = () => {
       <FormContainer title="swap">
         <Input
           leftLabel={`from ${fromNote}`}
-          rightLabel={`balance: ${fromValues.balance ?? '-'}`}
+          rightLabel={`balance: ${reduceBalance(fromValues.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             fromValues.coin ? (
@@ -172,7 +172,7 @@ const SwapContainer = () => {
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
         <Input
           leftLabel={`to ${toNote}`}
-          rightLabel={`balance: ${toValues.balance ?? '-'}`}
+          rightLabel={`balance: ${reduceBalance(toValues.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             toValues.coin ? (
@@ -196,11 +196,11 @@ const SwapContainer = () => {
           <>
             <RowContainer>
               <Label>price</Label>
-              <span>{`${pact.ratio} ${fromValues.coin} per ${toValues.coin}`}</span>
+              <span>{`${reduceBalance(pact.ratio)} ${fromValues.coin} per ${toValues.coin}`}</span>
             </RowContainer>
             <RowContainer style={{ marginTop: 5 }}>
               <Label>max slippage</Label>
-              <span>0.5%</span>
+              <span>{`${pact.slippageTollerance*100}%`}</span>
             </RowContainer>
             <RowContainer style={{ marginTop: 5 }}>
               <Label>liquidity provider fee</Label>
@@ -219,7 +219,10 @@ const SwapContainer = () => {
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
           disabled={getButtonLabel() !== "SWAP"}
-          onClick={() => console.log('SWAPPED')}
+          onClick={() => pact.swapExactIn(
+            { amount: fromValues.amount, address: fromValues.address },
+            { amount: toValues.amount, address: toValues.address }
+          )}
         >
           {getButtonLabel()}
         </Button>
