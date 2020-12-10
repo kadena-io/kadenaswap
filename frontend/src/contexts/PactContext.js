@@ -307,28 +307,8 @@ export const PactProvider = (props) => {
         }
     } catch (e) {
       console.log(e)
+    }
   }
-  }
-
-  // (defun swap-exact-out
-  //   ( amountOut:decimal
-  //     amountInMax:decimal
-  //     path:[module{fungible-v2}]
-  //     sender:string
-  //     to:string
-  //     to-guard:guard
-  //     deadline:time
-  //   )
-  //
-  //   (defun swap-exact-in
-  //   ( amountIn:decimal
-  //     amountOutMin:decimal
-  //     path:[module{fungible-v2}]
-  //     sender:string
-  //     to:string
-  //     to-guard:guard
-  //     deadline:time
-  //   )
 
   const swap = async (token0, token1, isSwapIn) => {
     console.log(JSON.stringify(pair))
