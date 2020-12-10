@@ -2,31 +2,33 @@ import React, { useState, createContext, useEffect } from 'react';
 import Pact from "pact-lang-api";
 
 const keepDecimal = decimal =>{
-  const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
+  const num = decimal.toString().substring(0, 14).indexOf('.') === -1 ? `${decimal}.0` : decimal
   return num
 }
 export const PactContext = createContext();
 
 const savedAcct = localStorage.getItem('acct');
-const savedPrivKey = localStorage.getItem('pk')
+const savedPrivKey = localStorage.getItem('pk');
+const savedNetwork = localStorage.getItem('network');
 
 export const PactProvider = (props) => {
 
   const network = "http://localhost:9001"
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
-  const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""))
+  const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""));
   const [tokenFromAccount, setTokenFromAccount] = useState({account: null, guard: null, balance: 0});
   const [tokenToAccount, setTokenToAccount] = useState({account: null, guard: null, balance: 0});
-  const [tokenList, setTokenList] = useState({tokens: []})
-  const [pairAccount, setPairAccount] = useState("")
-  const [pairReserve, setPairReserve] = useState("")
-  const [pair, setPair] = useState("")
-  const [ratio, setRatio] = useState(NaN)
+  const [tokenList, setTokenList] = useState({tokens: []});
+  const [pairAccount, setPairAccount] = useState("");
+  const [pairReserve, setPairReserve] = useState("");
+  const [pair, setPair] = useState("");
+  const [ratio, setRatio] = useState(NaN);
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
-  const [supplied, setSupplied] = useState(false)
-  const [slippageTollerance, setSlippageTollerance] = useState(0.10);
+  const [supplied, setSupplied] = useState(false);
+  const [slippageTollerance, setSlippageTollerance] = useState(0.50);
+  const [liquidityProviderFee, setLiquidityProviderFee] = useState(0.003);
   const tokenPrice = {
     "KDA": 1,
     "ABC": 1.05
@@ -36,10 +38,13 @@ export const PactProvider = (props) => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
   }, [pairReserve]);
 
-  const getCorrectBalance = (acctDetails) => {
-    const balance = (!isNaN(acctDetails.balance) ? acctDetails.balance : acctDetails.balance.decimal)
-    console.log(balance)
-    return balance
+  useEffect(() => {
+    if (account.account) setVerifiedAccount(account.account)
+  }, [])
+
+  const getCorrectBalance = (balance) => {
+    const balanceClean = (!isNaN(balance) ? balance : balance.decimal)
+    return balanceClean
   }
 
 
@@ -52,7 +57,7 @@ export const PactProvider = (props) => {
         console.log(data)
         if (data.result.status === "success"){
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
-          setAccount({...data.result.data, balance: getCorrectBalance(data.result.data)});
+          setAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
           console.log("Account is set to ", accountName);
         } else {
@@ -73,7 +78,7 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", "3" ,0.01,100000000, 28800, creationTime()),
         }, network);
         console.log(data, "gettoken")
-        setTokenAccount({...data.result.data, balance: getCorrectBalance(data.result.data)});
+        setTokenAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
         if (data.result.status === "success"){
           first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
           console.log(data.result.data)
@@ -218,7 +223,6 @@ export const PactProvider = (props) => {
 
   const getPair = async (token0, token1) => {
     try {
-      console.log('getting pairdddd')
       let data = await Pact.fetch.local({
           pactCode: `(swap.exchange.get-pair ${token0} ${token1})`,
           keyPairs: Pact.crypto.genKeyPair(),
@@ -295,7 +299,7 @@ export const PactProvider = (props) => {
         if (data.result.status === "success"){
           console.log("succeeded, update reserve")
           console.log(data.result.data);
-          setPairReserve({token0: data.result.data[0], token1: data.result.data[1]});
+          setPairReserve({token0: getCorrectBalance(data.result.data[0]), token1: getCorrectBalance(data.result.data[1])});
           console.log(pairReserve, " reserve")
         } else {
           await setPairReserve(null)
@@ -303,13 +307,36 @@ export const PactProvider = (props) => {
         }
     } catch (e) {
       console.log(e)
-    }
+  }
   }
 
-  const swapExactIn = async (token0, token1) => {
+  // (defun swap-exact-out
+  //   ( amountOut:decimal
+  //     amountInMax:decimal
+  //     path:[module{fungible-v2}]
+  //     sender:string
+  //     to:string
+  //     to-guard:guard
+  //     deadline:time
+  //   )
+  //
+  //   (defun swap-exact-in
+  //   ( amountIn:decimal
+  //     amountOutMin:decimal
+  //     path:[module{fungible-v2}]
+  //     sender:string
+  //     to:string
+  //     to-guard:guard
+  //     deadline:time
+  //   )
+
+  const swap = async (token0, token1, isSwapIn) => {
+    console.log(JSON.stringify(pair))
     try {
+      console.log(token0, token1, isSwapIn)
       let pair = await getPairAccount(token0.address, token1.address);
-      const pactCode = `(swap.exchange.swap-exact-in
+
+      const inPactCode = `(swap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
           ${keepDecimal(token1.amount*(1-slippageTollerance))}
           [${token0.address} ${token1.address}]
@@ -318,13 +345,22 @@ export const PactProvider = (props) => {
           (read-keyset 'user-ks)
           (at 'block-time (chain-data))
         )`
+      const outPactCode = `(swap.exchange.swap-exact-out
+          ${keepDecimal(token1.amount)}
+          ${keepDecimal(token0.amount*(1+slippageTollerance))}
+          [${token0.address} ${token1.address}]
+          ${JSON.stringify(account.account)}
+          ${JSON.stringify(account.account)}
+          (read-keyset 'user-ks)
+          (at 'block-time (chain-data))
+        )`
       const cmd = {
-          pactCode: pactCode,
+          pactCode: (isSwapIn ? inPactCode : outPactCode),
           keyPairs: {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount)]},
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount*(1+slippageTollerance))]},
             ]
           },
           envData: {
@@ -377,9 +413,10 @@ export const PactProvider = (props) => {
         getReserves,
         pairReserve,
         ratio,
-        swapExactIn,
+        swap,
         slippageTollerance,
-        getCorrectBalance
+        getCorrectBalance,
+        liquidityProviderFee
       }}
     >
       {props.children}

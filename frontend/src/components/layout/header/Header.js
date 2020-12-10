@@ -4,6 +4,7 @@ import { Modal, Message } from 'semantic-ui-react'
 import Button from '../../shared/Button';
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
+import reduceBalance from '../../../utils/reduceBalance';
 import { PactContext } from '../../../contexts/PactContext';
 import KdaModal from '../../../modals/kdaModal/KdaModal';
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
@@ -97,7 +98,7 @@ const Header = () => {
           </Item>
           <Item className="mobile-none" to="#">
               <Message color='purple' size='mini'>
-                {pact.account.account ? `${pact.account.balance} KDA`: ""}
+                {pact.account.account ? `${reduceBalance(pact.account.balance)} KDA`: ""}
               </Message>
           </Item>
         </>

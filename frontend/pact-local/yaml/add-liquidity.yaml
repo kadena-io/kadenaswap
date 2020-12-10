@@ -6,6 +6,6 @@ keyPairs:
     secret: 251a920c403ae8c8f65f59142316af3c82b631fba46ddea92ee8c95035bd2898
     caps:
       - name: abc.TRANSFER
-        args: ["user1","TqSQR675MPLSZ4GOHlQW_564XFk5Ajlg_qaLf4742Z0",100.0]
+        args: ["user1","TqSQR675MPLSZ4GOHlQW_564XFk5Ajlg_qaLf4742Z0",1000000.0]
       - name: coin.TRANSFER
-        args: ["user1","TqSQR675MPLSZ4GOHlQW_564XFk5Ajlg_qaLf4742Z0",100.0]
+        args: ["user1","TqSQR675MPLSZ4GOHlQW_564XFk5Ajlg_qaLf4742Z0",1000000.0]

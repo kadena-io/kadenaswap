@@ -77,7 +77,6 @@ const SwapContainer = () => {
     }
   }, [toValues.amount])
 
-
   useEffect(() => {
     console.log(pact.ratio)
     if (!isNaN(pact.ratio)) {
@@ -113,6 +112,14 @@ const SwapContainer = () => {
     const to = { ...toValues };
     setFromValues({ ...to });
     setToValues({ ...from });
+    if (toNote === "(estimated)") {
+      setFromNote("(estimated)");
+      setToNote("");
+    }
+    if (fromNote === "(estimated)") {
+      setToNote("(estimated)");
+      setFromNote("")
+    }
   };
 
   const onTokenClick = async ({ crypto }) => {
@@ -121,7 +128,7 @@ const SwapContainer = () => {
       balance = pact.account.balance
     } else {
       let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
-      balance = pact.getCorrectBalance(acct)
+      balance = pact.getCorrectBalance(acct.balance)
     }
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
     if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
@@ -204,7 +211,7 @@ const SwapContainer = () => {
             </RowContainer>
             <RowContainer style={{ marginTop: 5 }}>
               <Label>liquidity provider fee</Label>
-              <span>{`${0.003 * parseFloat(fromValues.amount)} ${fromValues.coin}`}</span>
+              <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
             </RowContainer>
             {/*
               NEED TO FIGURE OUT PRE AND POST PRICES
@@ -219,9 +226,10 @@ const SwapContainer = () => {
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
           disabled={getButtonLabel() !== "SWAP"}
-          onClick={() => pact.swapExactIn(
+          onClick={() => pact.swap(
             { amount: fromValues.amount, address: fromValues.address },
-            { amount: toValues.amount, address: toValues.address }
+            { amount: toValues.amount, address: toValues.address },
+            (fromNote === "(estimated)" ? false : true)
           )}
         >
           {getButtonLabel()}
