@@ -1,0 +1,808 @@
+
+(begin-tx)
+(load "../root/fungible-v2.pact")
+(env-enable-repl-natives true)
+(env-data
+  { "alice": ["alice-key"]
+  , "bob": ["bob-key"]}
+  )
+
+(interface fungible-test-helper
+  "Interface for interacting with test."
+  (defun setup-rotate:bool
+    ( account:string
+      old-key:string
+    )
+    " Supply setup for 'rotate'. Simply return 'false' to use \
+    \ non-managed key-based setup, or perform managed capability \
+    \ setup with OLD_KEY and return 'true'."
+  )
+)
+
+(module fungible-test-helper-default G
+  (defcap G () true)
+  (implements fungible-test-helper)
+  (defun setup-rotate:bool (account:string old-key:string) false)
+)
+
+(module fungible-v2-test G
+  " Test suite for fungibles. "
+  (defcap G () true)
+
+  (defconst FUNDER_ACCT "FUNDER_ACCT"
+    "Name of test funding account")
+
+  (defconst FUNDER_GUARD:guard (funder-guard)
+    "Guard for test funding account")
+
+  (defconst FUNDER_BALANCE 10000.0
+    "Initial balance for test funding account")
+
+  (defcap XCHAIN ()
+    " Dummy capability for bringing sigs into scope \
+    \ for transfer-crosschain."
+    true
+  )
+
+  (defcap ROTATE ()
+    " Dummy capability for bringing sigs into scope \
+    \ for rotate."
+    true
+  )
+
+  (defconst ALICE "alice")
+  (defconst ALICE_KEY:string (at 0 (read-msg ALICE)))
+  (defconst ALICE_GUARD (read-keyset ALICE))
+
+  (defconst BOB "bob")
+  (defconst BOB_KEY (at 0 (read-msg BOB)))
+  (defconst BOB_GUARD (read-keyset BOB))
+
+  (defconst XCHAIN_HASH (hash "XCHAIN"))
+  (defconst CHAIN_0 "0")
+  (defconst CHAIN_1 "1")
+
+  (defun funder-guard ()
+    (create-module-guard "FUNDER_ACCT"))
+
+  (defun fund-create
+    ( f:module{fungible-v2}
+      account:string
+      guard:guard
+      amount:decimal )
+    "Fixture: create and fund ACCOUNT with GUARD for AMOUNT"
+    (install-capability (f::TRANSFER FUNDER_ACCT account amount))
+    (f::transfer-create FUNDER_ACCT account guard amount)
+  )
+
+  (defun fund
+    ( f:module{fungible-v2}
+      account:string
+      amount:decimal )
+    "Fixture: Fund existing ACCOUNT for AMOUNT"
+    (install-capability (f::TRANSFER FUNDER_ACCT account amount))
+    (f::transfer FUNDER_ACCT account amount)
+  )
+
+  (defun pow (v:decimal e:integer)
+    "Support negative exponents"
+    (if (>= e 0) (^ v e)
+      (fold (/) 1.0 (make-list (- e) v))))
+
+
+  (defun precision-min-value (f:module{fungible-v2})
+    "Compute minimum value for F fungible."
+    (pow 10.0 (- (f::precision))))
+
+
+  (defun begin-xchain
+    ( f:module{fungible-v2}
+      i:integer
+      account:string
+      guard:guard
+      key:string
+      fund-amount:decimal
+    )
+    " Fixture: set up transaction I for cross-chain, \
+    \ funding ACCOUNT/GUARD for FUND-AMOUNT \
+    \ and signing with KEY, setting hash to XCHAIN_HASH \
+    \ and sending chain to CHAIN_0."
+    (begin-tx (format "xchain-{}" [i]))
+    (fund-create f account guard fund-amount)
+    (env-hash XCHAIN_HASH)
+    (env-chain-data { 'chain-id: CHAIN_0 })
+    (env-sigs [{"key": key,"caps":[(XCHAIN)]}])
+  )
+
+
+  ;;
+  ;; TEST SUITE
+  ;;
+
+  (defun suite
+    ( f:module{fungible-v2}
+      h:module{fungible-test-helper}
+      skip:string
+    )
+    " Run suite on fungible module F. Requires special account \
+    \ 'FUNDER_ACCT' to exist with 'FUNDER_GUARD' guard and \
+    \ 'FUNDER_BALANCE' balance."
+    (fixture-tests f)
+    (or (contains "create-account-tests" skip)
+      (create-account-tests f))
+    (or (contains "transfer-tests" skip)
+      (transfer-tests f))
+    (or (contains "transfer-create-tests" skip)
+      (transfer-create-tests f))
+    (or (contains "transfer-crosschain-tests" skip)
+      (transfer-crosschain-tests f))
+    (or (contains "rotate-tests" skip)
+      (rotate-tests f h))
+    (or (contains "enforce-unit-tests" skip)
+      (enforce-unit-tests f))
+  )
+
+  (defun fixture-tests:bool (f:module{fungible-v2})
+    (expect "Funder account funded" 10000.0
+      (f::get-balance FUNDER_ACCT))
+    (expect "pow 10 -1" 0.1 (pow 10.0 -1))
+    (expect "pow 10 -2" 0.01 (pow 10.0 -2))
+    (expect "pow 4 -3" 0.015625 (pow 4.0 -3))
+    (expect "pow 9 3" 729.0 (pow 9.0 3))
+  )
+
+  (defun create-account-tests:bool (f:module{fungible-v2})
+    " Covers:                                  \
+    \ 1) inherent create-account invariants.   "
+
+    (begin-tx "create-account-tests")
+
+    (expect-failure
+      "Uncreated account does not exist"
+      (f::details BOB))
+
+    (expect-failure
+      "Account creation with empty ID fails [implied by transfer properties]"
+      (f::create-account "" BOB_GUARD))
+
+    (expect-that "Account creation succeeds"
+      (constantly true) ;; avoid requiring specific response
+      (f::create-account BOB BOB_GUARD))
+
+    (expect
+      "Account successfully created with correct details"
+      { 'account: BOB
+      , 'balance: 0.0
+      , 'guard: BOB_GUARD
+      }
+      (f::details BOB))
+
+    (expect
+      "Account balance correct"
+      0.0
+      (f::get-balance BOB))
+
+    (expect-failure
+      "Creation of account with existing account ID fails"
+      (f::create-account BOB BOB_KEY))
+
+    ;; fund for testing
+    (fund f BOB 1.0)
+    ;; test ownership
+    (env-sigs
+      [ {"key": ALICE_KEY
+      , "caps": [(f::TRANSFER BOB ALICE 1.0)]}])
+    (with-applied-env
+      (expect-failure
+        "Created account prevents unauthorized transfer"
+        (f::transfer-create BOB ALICE ALICE_GUARD 1.0)))
+
+    (env-sigs
+      [ {"key": BOB_KEY
+      , "caps": [(f::TRANSFER BOB ALICE 1.0)]}])
+    (with-applied-env
+      (expect-that
+        "Created account allows authorized transfer"
+        (constantly true)
+        (f::transfer-create BOB ALICE ALICE_GUARD 1.0)))
+
+    (rollback-tx)
+    true
+  )
+
+
+  (defun transfer-tests (f:module{fungible-v2})
+    " Covers:                                        \
+    \ 1) properties on 'transfer'                    \
+    \ 2) managed capability calculus                 \
+    \ 3) precision violations                        \
+    \ Exceptions:                                    \
+    \ - empty account IDs (covered by create-account \
+    \   and transfer-create tests.)                  "
+
+    (begin-tx "transfer-tests 1")
+
+    (expect-that "Bob account creation succeeds"
+      (constantly true) ;; avoid requiring specific response
+      (f::create-account BOB BOB_GUARD))
+
+    (expect-that "Alice account creation succeeds"
+      (constantly true) ;; avoid requiring specific response
+      (f::create-account ALICE ALICE_GUARD))
+
+    (fund f BOB 1.0)
+
+    (expect-failure
+      "Cannot transfer Bob-Alice without managed capability"
+      "capability not installed" ;; text from Pact, not module
+      (f::transfer BOB ALICE 1.0))
+
+    (fund f ALICE 2.0)
+
+    (expect-failure
+      "Cannot transfer Alice-Bob without managed capability"
+      "capability not installed" ;; text from Pact, not module
+      (f::transfer ALICE BOB 2.0))
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER BOB ALICE 1.0)]}
+        { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 2.0)]}
+      ])
+    (with-applied-env [
+
+      (expect-failure
+        "Transfer fails with negative amount"
+        (f::transfer BOB ALICE -0.1)
+      )
+
+      (expect-failure
+        "Transfer fails with 0.0 amount"
+        (f::transfer BOB ALICE 0.0)
+      )
+
+      (expect-failure
+        "Transfer fails with min precision / 10 value"
+        (f::transfer BOB ALICE
+          (/ (precision-min-value f) 10.0)))
+
+      (expect-failure
+        "Transfer fails with amount greater than cap"
+        (f::transfer BOB ALICE 10.0)
+      )
+
+      (expect-that
+        "Transfer Bob-Alice succeeds with exact cap"
+        (constantly true)
+        (f::transfer BOB ALICE 1.0))
+
+      (expect
+        "Transfer Bob-Alice: Bob balance correct"
+        0.0
+        (f::get-balance BOB))
+
+      (expect
+        "Transfer Bob-Alice: Alice balance correct"
+        3.0
+        (f::get-balance ALICE))
+
+      (expect-that
+        "Transfer Alice-Bob-1 succeeds with 1/2 cap"
+        (constantly true)
+        (f::transfer ALICE BOB 1.0))
+
+      (expect-failure
+        "Transfer Alice-Bob-2 fails for full cap"
+        (f::transfer ALICE BOB 2.0))
+
+      (expect-that
+        "Transfer Alice-Bob-2 succeeds with 1/2 cap"
+        (constantly true)
+        (f::transfer ALICE BOB 1.0))
+
+      (expect
+        "Transfer Alice-Bob: Bob balance correct"
+        2.0
+        (f::get-balance BOB))
+
+      (expect
+        "Transfer Alice-Bob: Alice balance correct"
+        1.0
+        (f::get-balance ALICE))
+
+    ])
+
+    (rollback-tx)
+
+    (begin-tx "transfer-tests-2")
+
+    (fund-create f BOB BOB_GUARD 1.0)
+    (fund-create f ALICE ALICE_GUARD 1.0)
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER BOB ALICE 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure
+        "Transfer fails without Bob signing"
+        (f::transfer BOB ALICE 1.0))
+    ])
+
+    (rollback-tx)
+
+
+    (begin-tx "transfer-tests-3")
+
+    (fund-create f BOB BOB_GUARD 1.0)
+    (fund-create f ALICE ALICE_GUARD 1.0)
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER BOB ALICE 5.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure
+        "Transfer fails for insufficient funds"
+        (f::transfer BOB ALICE 5.0))
+
+      (expect-that
+        "Transfer succeeds for min precision value"
+        (constantly true)
+        (f::transfer BOB ALICE (precision-min-value f)))
+
+      (expect
+        "Transfer min precision: Bob balance correct"
+        (- 1.0 (precision-min-value f))
+        (f::get-balance BOB))
+
+      (expect
+        "Transfer min precision: Alice balance correct"
+        (+ 1.0 (precision-min-value f))
+        (f::get-balance ALICE))
+    ])
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER BOB BOB 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure
+        "Transfer fails for same account"
+        (f::transfer BOB BOB 1.0))
+    ])
+
+    (rollback-tx)
+    true
+  )
+
+
+
+  (defun transfer-create-tests:bool (f:module{fungible-v2})
+    " Covers:                                        \
+    \ 1) properties on 'transfer-create'             \
+    \ 2) managed capability calculus                 \
+    \ 3) precision violations                        \
+    \ Exceptions:                                    \
+    \ - empty sender ID (covered by create-account tests) "
+
+    (begin-tx "transfer-create-tests 1")
+
+    (fund-create f ALICE ALICE_GUARD 1.0)
+
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER ALICE "" 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure
+        "Transfer-create fails for empty receiver account"
+        (f::transfer-create ALICE "" ALICE_GUARD 1.0))
+      ])
+
+
+    (expect-failure
+      "Cannot transfer-create Alice-Bob without managed capability"
+      "capability not installed" ;; text from Pact, not module
+      (f::transfer-create ALICE BOB BOB_GUARD 1.0))
+
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 1.0)]}
+      ])
+    (with-applied-env [
+
+      (expect-failure
+        "Transfer-create fails with negative amount"
+        (f::transfer-create ALICE BOB BOB_GUARD -0.1)
+      )
+
+      (expect-failure
+        "Transfer-create fails with 0.0 amount"
+        (f::transfer-create ALICE BOB BOB_GUARD 0.0)
+      )
+
+      (expect-failure
+        "Transfer-create fails with min precision / 10 value"
+        (f::transfer-create ALICE BOB BOB_GUARD
+          (/ (precision-min-value f) 10.0)))
+
+      (expect-failure
+        "Transfer-create fails with amount greater than cap"
+        (f::transfer-create ALICE BOB BOB_GUARD 10.0)
+      )
+
+      (expect-that
+        "Transfer-create succeeds Alice-Bob"
+        (constantly true)
+        (f::transfer-create ALICE BOB BOB_GUARD 1.0))
+
+      (expect
+        "Transfer Alice-Bob: Bob balance correct"
+        1.0
+        (f::get-balance BOB))
+
+      (expect
+        "Transfer Alice-Bob: Alice balance correct"
+        0.0
+        (f::get-balance ALICE))
+
+    ])
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER BOB ALICE 0.1)]}
+      ])
+    (with-applied-env [
+
+      (expect-that
+        "Transfer-create Bob-Alice-1 succeeds with 1/4 cap"
+        (constantly true)
+        (f::transfer-create BOB ALICE ALICE_GUARD 0.025))
+
+      (expect-failure
+        "Transfer-create Bob-Alice-2 fails for full cap"
+        (f::transfer-create BOB ALICE ALICE_GUARD 0.1))
+
+      (expect-that
+        "Transfer-create Bob-Alice-2 succeeds with 1/2 cap"
+        (constantly true)
+        (f::transfer-create BOB ALICE ALICE_GUARD 0.05))
+
+      (expect
+        "Transfer-create Bob-Alice: Bob balance correct"
+        0.925
+        (f::get-balance BOB))
+
+      (expect
+        "Transfer-create Bob-Alice: Alice balance correct"
+        0.075
+        (f::get-balance ALICE))
+
+      (expect-failure
+        "Transfer-create fails with mismatched guard"
+        (f::transfer-create BOB ALICE BOB_GUARD 0.025)
+      )
+
+    ])
+
+    (rollback-tx)
+
+    (begin-tx "transfer-create-tests-2")
+
+    (fund-create f BOB BOB_GUARD 1.0)
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER BOB ALICE 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure
+        "Transfer-create fails without Bob signing"
+        (f::transfer-create BOB ALICE ALICE_GUARD 1.0))
+    ])
+
+    (rollback-tx)
+
+    (begin-tx "transfer-create-tests-3")
+
+    (fund-create f BOB BOB_GUARD 1.0)
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER BOB ALICE 5.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure
+        "Transfer-create fails for insufficient funds"
+        (f::transfer-create BOB ALICE ALICE_GUARD 5.0))
+
+      (expect-that
+        "Transfer-create succeeds for min precision value"
+        (constantly true)
+        (f::transfer-create BOB ALICE ALICE_GUARD (precision-min-value f)))
+
+      (expect
+        "Transfer-create min precision: Bob balance correct"
+        (- 1.0 (precision-min-value f))
+        (f::get-balance BOB))
+
+      (expect
+        "Transfer-create min precision: Alice balance correct"
+        (precision-min-value f)
+        (f::get-balance ALICE))
+    ])
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER BOB BOB 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure
+        "Transfer-create fails for same account"
+        (f::transfer-create BOB BOB BOB_GUARD 1.0))
+    ])
+
+    (rollback-tx)
+    true
+  )
+
+
+  (defun transfer-crosschain-tests:bool (f:module{fungible-v2})
+    " Covers:                                             \
+    \ 1) properties on 'transfer-crosschain'              \
+    \ 2) precision violations                             \
+    \ Exceptions:                                         \
+    \ - bad-same-sender-receiver property in fungible-v2  \
+    \   which is unsound/to be removed                    \
+    \ - empty sender ID (covered by create-account tests) "
+
+    (begin-tx "transfer-crosschain-tests 1")
+    (expect-failure
+      "Cross-chain transfer fails for unknown account"
+      (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 2.0)
+    )
+    (rollback-tx)
+
+    (begin-tx "transfer-crosschain-tests 2")
+    (fund-create f BOB BOB_GUARD 2.0)
+    (expect-failure
+      "Cross-chain transfer fails without signature"
+      (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 2.0)
+    )
+    (rollback-tx)
+
+    (begin-xchain f 3 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails with negative amount"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 -0.1))))
+    (rollback-tx)
+
+    (begin-xchain f 4 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails with 0.0 amount"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 0.0))))
+    (rollback-tx)
+
+    (begin-xchain f 5 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails with min precision / 10 value"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1
+          (/ (precision-min-value f) 10.0)))))
+    (rollback-tx)
+
+    (begin-xchain f 6 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails for empty receiver"
+        (f::transfer-crosschain BOB "" ALICE_GUARD CHAIN_1 1.0))))
+    (rollback-tx)
+
+    (begin-xchain f 7 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails for insufficient funds"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 10.0))))
+    (rollback-tx)
+
+    (begin-xchain f 7 BOB BOB_GUARD BOB_KEY 2.0)
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-failure
+        "Cross-chain transfer fails to same chain"
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD "0" 1.0))))
+    (rollback-tx)
+
+    (begin-xchain f 8 BOB BOB_GUARD BOB_KEY 3.0)
+
+    (with-applied-env (with-capability (XCHAIN)
+
+      (expect-that
+        "Cross-chain transfer succeeds"
+        (constantly true)
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1 1.0))
+
+      (expect
+        "Cross-chain transfer: sender balance correct"
+        2.0 (f::get-balance BOB))
+
+      (expect-failure
+        "Cross-chain transfer: receiver not credited on source chain"
+        (f::get-balance ALICE))
+
+      (expect-failure
+        "Resumption on wrong chain fails"
+        "yield provenance" ;; from pact internals
+        (continue-pact 1))
+
+      (env-chain-data { 'chain-id: CHAIN_1 })
+      (with-applied-env [
+        (expect-that
+          "Cross-chain transfer: Resumption on correct chain succeeds"
+          (constantly true)
+          (continue-pact 1))
+
+        (expect-failure
+          "Duplicate resumption of cross-chain prevented"
+          "pact completed" ;; from pact internals
+          (continue-pact 1))
+      ])
+
+    ))
+
+    (expect
+      "Cross-chain transfer: receiver balance correct"
+      1.0 (f::get-balance ALICE))
+
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 0.1)]}
+      ])
+    (with-applied-env
+      (expect-that
+        "Cross-chain transfer: receiver guard correct"
+        (constantly true)
+        (f::transfer ALICE BOB 0.1)))
+
+    (expect
+      "Cross-chain transfer: receiver balance correct after test tfr"
+      0.9 (f::get-balance ALICE))
+
+    (expect
+      "Cross-chain transfer: sender balance correct after test tfr"
+      2.1 (f::get-balance BOB))
+
+    (rollback-tx)
+
+    (begin-xchain f 9 BOB BOB_GUARD BOB_KEY 1.0)
+
+    (with-applied-env (with-capability (XCHAIN)
+      (expect-that
+        "Cross-chain transfer min value succeeds"
+        (constantly true)
+        (f::transfer-crosschain BOB ALICE ALICE_GUARD CHAIN_1
+          (precision-min-value f)))
+
+      (env-chain-data { 'chain-id: CHAIN_1 })
+      (with-applied-env
+        (expect-that
+          "Cross-chain transfer min value: Resumption on correct chain succeeds"
+          (constantly true)
+          (continue-pact 1)))))
+
+    (expect
+      "Cross-chain transfer min value: receiver balance correct"
+      (precision-min-value f) (f::get-balance ALICE))
+
+    (expect
+      "Cross-chain transfer min value: sender balance correct"
+      (- 1.0 (precision-min-value f)) (f::get-balance BOB))
+
+    true
+  )
+
+  (defun rotate-tests:bool
+    ( f:module{fungible-v2}
+      h:module{fungible-test-helper}
+    )
+    " Covers rotate semantics, namely that old guard is enforced \
+    \ and new guard verified to be correct."
+
+    (begin-tx "rotate-tests")
+
+    (fund-create f ALICE ALICE_GUARD 100.0)
+
+    (expect-failure
+      "rotate without setup fails"
+      (f::rotate ALICE BOB_GUARD))
+
+
+    (expect-that "pre-rotate bad key succeeds"
+      (constantly true)
+      (if (h::setup-rotate ALICE BOB_KEY) true
+        (env-sigs [{"key": BOB_KEY, "caps": [(ROTATE)]}])))
+
+    (with-applied-env (with-capability (ROTATE)
+      (expect-failure "rotate fails with bad key"
+            (f::rotate ALICE BOB_GUARD))))
+
+    (expect-that "pre-rotate succeeds"
+      (constantly true)
+      (if (h::setup-rotate ALICE ALICE_KEY) true
+        (env-sigs [{"key": ALICE_KEY, "caps": [(ROTATE)]}])))
+
+    (with-applied-env (with-capability (ROTATE)
+      (expect-that "rotate succeeds"
+        (constantly true)
+        (f::rotate ALICE BOB_GUARD))))
+
+
+    (env-sigs
+      [ { "key": ALICE_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-failure "post-rotate transfer fails with old key"
+        (f::transfer-create ALICE BOB BOB_GUARD 0.2))
+      ])
+
+
+    (env-sigs
+      [ { "key": BOB_KEY
+        , "caps": [(f::TRANSFER ALICE BOB 1.0)]}
+      ])
+    (with-applied-env [
+      (expect-that "post-rotate transfer succeeds"
+        (constantly true)
+        (f::transfer-create ALICE BOB BOB_GUARD 0.2))
+      ])
+
+    (expect
+      "sender balance correct"
+      99.8 (f::get-balance ALICE))
+
+    (expect
+      "receiver balance correct"
+      0.2 (f::get-balance BOB))
+
+    (rollback-tx)
+    true
+  )
+
+
+  (defun enforce-unit-tests:bool (f:module{fungible-v2})
+    "Strictly covers min precision only."
+    (begin-tx "enforce-unit-tests")
+
+    (expect-that "1.0 succeeds"
+      (f::enforce-unit) 1.0)
+    (expect-that "min precision succeeds"
+      (f::enforce-unit) (precision-min-value f))
+    (expect-failure "min prec / 10 fails"
+      (f::enforce-unit (/ (precision-min-value f) 10.0)))
+
+    (rollback-tx)
+    true
+  )
+)
+(commit-tx)
+
+(begin-tx)
+(load "../root/coin.pact")
+(test-capability (coin.COINBASE))
+(use fungible-v2-test)
+(coin.coinbase FUNDER_ACCT FUNDER_GUARD 10000.0)
+(module coin-helper G
+  (defcap G () true)
+  (implements fungible-test-helper)
+  (defun setup-rotate:bool (account:string old-key:string)
+    (env-sigs [{"key": old-key,"caps":[(coin.ROTATE account)]}])
+    true
+  )
+)
+(commit-tx)
+
+
+
+(fungible-v2-test.suite coin coin-helper "")

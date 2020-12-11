@@ -21,6 +21,7 @@
 
 
 (define-namespace 'test (sig-keyset) (sig-keyset))
+(load "test/fungible-util.pact")
 (load "test/ABC.pact")
 (load "test/XYZ.pact")
 (commit-tx)
@@ -58,13 +59,13 @@
 
 (test-capability (coin.COINBASE))
 (coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
-(test.abc.create-account "Bob" (read-keyset 'bob))
-(test.abc.fund "Bob" 2000.0)
-(test.xyz.create-account "Bob" (read-keyset 'bob))
-(test.xyz.fund "Bob" 600.0)
+(test-capability (test.abc.CREDIT "Bob"))
+(test.abc.credit "Bob" (read-keyset 'bob) 2000.0)
+(test-capability (test.xyz.CREDIT "Bob"))
+(test.xyz.credit "Bob" (read-keyset 'bob) 600.0)
 (coin.coinbase "Alice" (read-keyset 'alice) 10000.0)
-(test.abc.create-account "Alice" (read-keyset 'alice))
-(test.abc.fund "Alice" 20000.0)
+(test-capability (test.abc.CREDIT "Alice"))
+(test.abc.credit "Alice" (read-keyset 'alice) 20000.0)
 (commit-tx)
 
 
@@ -455,7 +456,7 @@
   ]
   (swap-exact-in 8.0 6.3 [coin test.abc]
     "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
-(expect "swap gas" 1632 (env-gas))
+(expect "swap gas" 1672 (env-gas))
 (env-gasmodel 'fixed 0)
 
 (expect "kda debited for alice"

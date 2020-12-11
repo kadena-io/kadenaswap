@@ -2,6 +2,7 @@
 (module abc GOVERNANCE
 
   (implements fungible-v2)
+  (use fungible-util)
 
   (defschema entry
     balance:decimal
@@ -9,7 +10,8 @@
 
   (deftable ledger:{entry})
 
-  (defcap GOVERNANCE () (enforce false "autonomous"))
+  (defcap GOVERNANCE ()
+    (enforce (keyset-ref-guard 'swap-ns-admin)))
 
   (defcap DEBIT (sender:string)
     (enforce-guard (at 'guard (read ledger sender))))
@@ -22,8 +24,7 @@
       amount:decimal
     )
     @managed amount TRANSFER-mgr
-    (enforce-unit amount)
-    (enforce (> amount 0.0) "Positive amount")
+    (enforce-valid-transfer sender receiver (precision) amount)
     (compose-capability (DEBIT sender))
     (compose-capability (CREDIT receiver))
   )
@@ -42,17 +43,13 @@
   (defconst MINIMUM_PRECISION 14)
 
   (defun enforce-unit:bool (amount:decimal)
-    (enforce
-      (= (floor amount MINIMUM_PRECISION)
-         amount)
-      "precision violation")
-    )
-
+    (enforce-precision (precision) amount))
 
   (defun create-account:string
     ( account:string
       guard:guard
     )
+    (enforce-valid-account account)
     (insert ledger account
       { "balance" : 0.0
       , "guard"   : guard
@@ -61,7 +58,7 @@
 
   (defun get-balance:decimal (account:string)
     (at 'balance (read ledger account))
-    )
+  )
 
   (defun details:object{fungible-v2.account-details}
     ( account:string )
@@ -91,6 +88,7 @@
 
     (enforce (!= sender receiver)
       "sender cannot be the receiver of a transfer")
+    (enforce-valid-transfer sender receiver (precision) amount)
 
     (with-capability (TRANSFER sender receiver amount)
       (debit sender amount)
@@ -108,17 +106,11 @@
 
     (enforce (!= sender receiver)
       "sender cannot be the receiver of a transfer")
+    (enforce-valid-transfer sender receiver (precision) amount)
 
     (with-capability (TRANSFER sender receiver amount)
       (debit sender amount)
       (credit receiver receiver-guard amount))
-    )
-
-  (defun fund:string (account:string amount:decimal)
-    (with-capability (CREDIT account)
-      (credit account
-        (at 'guard (read ledger account))
-        amount))
     )
 
   (defun debit:string (account:string amount:decimal)
