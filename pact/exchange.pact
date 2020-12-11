@@ -4,8 +4,8 @@
 
 (module exchange GOVERNANCE
 
-  (defcap GOVERNANCE () (enforce false "autonomous"))
-
+  (defcap GOVERNANCE () (enforce (keyset-ref-guard 'swap-ns-admin)))
+  
   (defcap CREATE_PAIR
     ( token0:module{fungible-v2}
       token1:module{fungible-v2}
