@@ -11,9 +11,9 @@ const StyledButton = styled(SUIButton)`
   opacity: 1 !important;
 `;
 
-const Button = ({ props, disabled, buttonStyle, children, onClick }) => {
+const Button = ({ props, disabled, buttonStyle, children, onClick, loading }) => {
   return (
-    <StyledButton {...props} disabled={disabled} style={buttonStyle} onClick={onClick}>
+    <StyledButton {...props} disabled={disabled} style={buttonStyle} onClick={onClick} loading={loading}>
       {children}
     </StyledButton>
   );

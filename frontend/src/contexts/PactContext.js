@@ -1,8 +1,9 @@
 import React, { useState, createContext, useEffect } from 'react';
 import Pact from "pact-lang-api";
 
-const keepDecimal = decimal =>{
-  const num = decimal.toString().substring(0, 14).indexOf('.') === -1 ? `${decimal}.0` : decimal
+const keepDecimal = decimal => {
+  decimal = parseFloat(decimal).toPrecision(15)
+  const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
   return num
 }
 export const PactContext = createContext();
@@ -10,6 +11,7 @@ export const PactContext = createContext();
 const savedAcct = localStorage.getItem('acct');
 const savedPrivKey = localStorage.getItem('pk');
 const savedNetwork = localStorage.getItem('network');
+const savedSlippage = localStorage.getItem('slippage')
 
 export const PactProvider = (props) => {
 
@@ -27,9 +29,11 @@ export const PactProvider = (props) => {
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
   const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [supplied, setSupplied] = useState(false);
-  const [slippageTollerance, setSlippageTollerance] = useState(0.50);
+  const [slippage, setSlippage] = useState((savedSlippage ? savedSlippage : 0.50));
   const [liquidityProviderFee, setLiquidityProviderFee] = useState(0.003);
   const [cmd, setCmd] = useState(null);
+  const [localRes, setLocalRes] = useState({});
+  const [polling, setPolling] = useState(false);
   const tokenPrice = {
     "KDA": 1,
     "ABC": 1.05
@@ -46,6 +50,11 @@ export const PactProvider = (props) => {
   const getCorrectBalance = (balance) => {
     const balanceClean = (!isNaN(balance) ? balance : balance.decimal)
     return balanceClean
+  }
+
+  const storeSlippage = async (slippage) => {
+    await setSlippage(slippage)
+    await localStorage.setItem('slippage', slippage);
   }
 
 
@@ -142,8 +151,8 @@ export const PactProvider = (props) => {
               ${token1}
               ${keepDecimal(amountDesired0)}
               ${keepDecimal(amountDesired1)}
-              ${keepDecimal(amountDesired0*(1-slippageTollerance))}
-              ${keepDecimal(amountDesired1*(1-slippageTollerance))}
+              ${keepDecimal(amountDesired0*(1-slippage))}
+              ${keepDecimal(amountDesired1*(1-slippage))}
               ${JSON.stringify(account)}
               ${JSON.stringify(account)}
               (read-keyset 'user-ks)
@@ -317,7 +326,7 @@ export const PactProvider = (props) => {
 
       const inPactCode = `(swap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
-          ${keepDecimal(token1.amount*(1-slippageTollerance))}
+          ${keepDecimal(token1.amount*(1-slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -326,7 +335,7 @@ export const PactProvider = (props) => {
         )`
       const outPactCode = `(swap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
-          ${keepDecimal(token0.amount*(1+slippageTollerance))}
+          ${keepDecimal(token0.amount*(1+slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -339,7 +348,7 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount*(1+slippageTollerance))]},
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount*(1+slippage))]},
             ]
           },
           envData: {
@@ -359,10 +368,9 @@ export const PactProvider = (props) => {
   const swapLocal = async (token0, token1, isSwapIn) => {
     try {
       let pair = await getPairAccount(token0.address, token1.address);
-
       const inPactCode = `(swap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
-          ${keepDecimal(token1.amount*(1-slippageTollerance))}
+          ${keepDecimal(token1.amount*(1-slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -371,7 +379,7 @@ export const PactProvider = (props) => {
         )`
       const outPactCode = `(swap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
-          ${keepDecimal(token0.amount*(1+slippageTollerance))}
+          ${keepDecimal(token0.amount*(1+slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -384,7 +392,7 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount*(1+slippageTollerance))]},
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount*(1+slippage))]},
             ]
           },
           envData: {
@@ -393,11 +401,35 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
       }
       setCmd(cmd);
-      console.log(cmd)
       let data = await Pact.fetch.local(cmd, network);
+      setLocalRes(data);
       console.log(data);
     } catch (e) {
+      setLocalRes({});
       console.log(e)
+    }
+  }
+
+  const swapSend = async () => {
+    setPolling(true)
+    try {
+      const data = await Pact.fetch.send(cmd, network)
+      console.log(data)
+      await listen(data.requestKeys[0]);
+      setPolling(false)
+    } catch (e) {
+      setPolling(false)
+      console.log(e)
+    }
+  }
+
+  const listen = async (reqKey) => {
+    const res = await Pact.fetch.listen({listen: reqKey}, network);
+    console.log(res)
+    if (res.result.status === 'success') {
+      console.log('success send')
+    } else {
+      console.log('fail send')
     }
   }
 
@@ -440,9 +472,13 @@ export const PactProvider = (props) => {
         ratio,
         swap,
         swapLocal,
-        slippageTollerance,
+        swapSend,
+        slippage,
+        storeSlippage,
         getCorrectBalance,
-        liquidityProviderFee
+        liquidityProviderFee,
+        localRes,
+        polling
       }}
     >
       {props.children}

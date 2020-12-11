@@ -39,7 +39,8 @@ const SwapContainer = () => {
   const [inputSide, setInputSide] = useState("")
   const [fromNote, setFromNote] = useState("")
   const [toNote, setToNote] = useState("")
-  const [showTxModal, setShowTxModal] = useState(true)
+  const [showTxModal, setShowTxModal] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const pact = useContext(PactContext);
 
@@ -234,11 +235,19 @@ const SwapContainer = () => {
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
           disabled={getButtonLabel() !== "SWAP"}
-          onClick={() => pact.swapLocal(
-            { amount: fromValues.amount, address: fromValues.address },
-            { amount: toValues.amount, address: toValues.address },
-            (fromNote === "(estimated)" ? false : true)
-          )}
+          loading={loading}
+          onClick={async () => {
+            setLoading(true)
+            await pact.swapLocal(
+                { amount: fromValues.amount, address: fromValues.address },
+                { amount: toValues.amount, address: toValues.address },
+                (fromNote === "(estimated)" ? false : true)
+              )
+            setLoading(false)
+            setFromValues({ amount: '', balance: '', coin: '', address: '' });
+            setToValues({ amount: '', balance: '', coin: '', address: '' })
+            setShowTxModal(true)
+          }}
         >
           {getButtonLabel()}
         </Button>

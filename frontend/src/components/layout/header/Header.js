@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { NavLink, useHistory } from 'react-router-dom';
-import { Modal, Message } from 'semantic-ui-react'
+import { Modal, Message, Popup } from 'semantic-ui-react'
 import Button from '../../shared/Button';
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
@@ -12,6 +12,7 @@ import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
 import { ReactComponent as CogIcon } from '../../../assets/images/header/cog.svg';
 import { ReactComponent as HamburgerIcon } from '../../../assets/images/header/hamburger.svg';
+import Input from '../../shared/Input';
 
 const Container = styled.div`
   position: fixed;
@@ -34,6 +35,12 @@ const LeftContainer = styled.div`
   & > *:not(:last-child) {
     margin-right: 25px;
   }
+`;
+
+const Label = styled.span`
+  font-size: 13px;
+  font-family: neue-bold;
+  text-transform: capitalize;
 `;
 
 const RightContainer = styled.div`
@@ -88,6 +95,16 @@ const Header = () => {
           {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
         </Item>
       */}
+      {(pact.polling
+        ?
+          <Item className="mobile-none" to="#">
+            <Message color='yellow' size='mini'>
+              {`tx ${pact.localRes.reqKey} pending...`}
+            </Message>
+          </Item>
+        :
+          <></>
+      )}
       {(pact.account.account
         ?
         <>
@@ -119,6 +136,23 @@ const Header = () => {
             content={<KdaModal/>}
             actions={[{ key: 'done', content:'done', positive: true}]}
           />
+        </Item>
+        <Item to="#">
+          <Popup
+           trigger={<CogIcon />}
+           on='click'
+           offset={[0, 10]}
+           position='bottom center'
+          >
+            <Label style={{ margin: 30 }}>Slippage (%)</Label>
+            <Input
+              error={pact.account.account === null}
+              value={(isNaN(pact.slippage) ? ' ' : `${pact.slippage*100}`)}
+              onChange={async (e, { value }) => {
+                pact.storeSlippage(value/100);
+              }}
+            />
+          </Popup>
         </Item>
         <Item to="#">
           <HamburgerIcon />

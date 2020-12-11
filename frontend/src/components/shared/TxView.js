@@ -46,17 +46,26 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
     return (
       <>
         <Message color='green'>
-          <Label style={{ marginBottom: 4, color: 'purple' }}>Success!</Label>
+          <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
           <RowContainer>
-            <Label style={{ marginBottom: 4 }}>Sent</Label>
-            <span>~10 ETH</span>
+            <Label style={{ marginBottom: 4 }}>Send</Label>
+            <span>{`${pact.localRes.result.data[0].amount} ${pact.localRes.result.data[0].token.toUpperCase()}`}</span>
           </RowContainer>
           <RowContainer>
-            <Label style={{ marginBottom: 4 }}>Received</Label>
-            <span>~40 ABC</span>
+            <Label style={{ marginBottom: 4 }}>Receive</Label>
+            <span>{`${pact.localRes.result.data[1].amount} ${pact.localRes.result.data[1].token.toUpperCase()}`}</span>
+          </RowContainer>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
+            <span style={{ color: 'black' }}>0 KDA</span>
           </RowContainer>
         </Message>
-        <Button>
+        <Button
+          onClick={async () => {
+            pact.swapSend();
+            onClose()
+          }}
+        >
           Send Transaction
         </Button>
       </>
@@ -67,18 +76,17 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
     return (
       <>
         <Message color='red'>
-          <Label style={{ marginBottom: 4, color: 'purple' }}>Success!</Label>
+          <Label style={{ marginBottom: 4, color: 'purple' }}>Preview Failed!</Label>
           <RowContainer>
-            <Label style={{ marginBottom: 4 }}>Sent</Label>
-            <span>~10 ETH</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4 }}>Received</Label>
-            <span>~40 ABC</span>
+            <span>{pact.localRes.result.error.message}</span>
           </RowContainer>
         </Message>
-        <Button>
-          Send Transaction
+        <Button
+          onClick={() => {
+            onClose()
+          }}
+        >
+          Retry
         </Button>
       </>
     )
@@ -92,7 +100,12 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
           <Container style={props}>
             <Backdrop onClose={onClose} />
             <FormContainer title="transaction details" containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }} onClose={onClose}>
-              {successView()}
+              {(pact.localRes.result.status === 'success'
+                ?
+                  successView()
+                :
+                  failView()
+                )}
               <Divider />
             </FormContainer>
           </Container>
