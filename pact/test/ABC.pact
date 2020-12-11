@@ -10,7 +10,8 @@
 
   (deftable ledger:{entry})
 
-  (defcap GOVERNANCE () (enforce false "autonomous"))
+  (defcap GOVERNANCE ()
+    (enforce (keyset-ref-guard 'swap-ns-admin)))
 
   (defcap DEBIT (sender:string)
     (enforce-guard (at 'guard (read ledger sender))))

@@ -1,7 +1,8 @@
 (namespace 'test)
 (module fungible-util GOVERNANCE
 
-  (defcap GOVERNANCE () (enforce false "autonomous"))
+  (defcap GOVERNANCE ()
+    (enforce (keyset-ref-guard 'swap-ns-admin)))
 
   (defun enforce-valid-amount
     ( precision:integer
