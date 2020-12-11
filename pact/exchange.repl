@@ -27,6 +27,17 @@
 (commit-tx)
 
 (begin-tx)
+(load "test/tokens-test-fungible.pact")
+(load "test/fungible.repl")
+(test-capability (swap.tokens.CREDIT TOKEN FUNDER_ACCT))
+(expect "fund success" true
+  (test-fund FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE))
+(commit-tx)
+
+(fungible-v2-test.suite tokens-test-fungible
+   fungible-test-helper-default "transfer-crosschain-tests")
+
+(begin-tx)
 
 ;; test pair canonicity
 (use swap.exchange)

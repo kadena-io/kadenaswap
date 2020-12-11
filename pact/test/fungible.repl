@@ -1,6 +1,5 @@
 
-(begin-tx)
-(load "../root/fungible-v2.pact")
+
 (env-enable-repl-natives true)
 (env-data
   { "alice": ["alice-key"]
@@ -786,23 +785,3 @@
     true
   )
 )
-(commit-tx)
-
-(begin-tx)
-(load "../root/coin.pact")
-(test-capability (coin.COINBASE))
-(use fungible-v2-test)
-(coin.coinbase FUNDER_ACCT FUNDER_GUARD 10000.0)
-(module coin-helper G
-  (defcap G () true)
-  (implements fungible-test-helper)
-  (defun setup-rotate:bool (account:string old-key:string)
-    (env-sigs [{"key": old-key,"caps":[(coin.ROTATE account)]}])
-    true
-  )
-)
-(commit-tx)
-
-
-
-(fungible-v2-test.suite coin coin-helper "")
