@@ -1,12 +1,19 @@
 
 (begin-tx)
+(env-data
+ { 'ns-admin-keyset: ["admin"]
+ , 'ns-operate-keyset: ["operate"]
+ , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
 (load "root/fungible-v2.pact")
 (load "root/coin.pact")
+(load "root/ns.pact")
 
 (env-data
   { 'swap-ns-user: []
   , 'swap-ns-admin: []
   })
+(env-keys ["operate"])
+
 (load "ns.pact")
 (load "tokens.pact")
 (load "swap-callable.pact")
