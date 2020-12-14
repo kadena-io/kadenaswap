@@ -2,7 +2,7 @@
 (module xyz GOVERNANCE
 
   (implements fungible-v2)
-  (use fungible-util)
+  (use swap.fungible-util)
 
   (defschema entry
     balance:decimal

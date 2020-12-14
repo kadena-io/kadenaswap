@@ -6,7 +6,8 @@
 
 (begin-tx)
 (define-namespace 'test (sig-keyset) (sig-keyset))
-(load "fungible-util.pact")
+(define-namespace 'swap (sig-keyset) (sig-keyset))
+(load "../fungible-util.pact")
 (load "ABC.pact")
 (load "XYZ.pact")
 (commit-tx)

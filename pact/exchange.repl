@@ -15,13 +15,13 @@
 (env-keys ["operate"])
 
 (load "ns.pact")
+(load "fungible-util.pact")
 (load "tokens.pact")
 (load "swap-callable.pact")
 (load "exchange.pact")
 
 
 (define-namespace 'test (sig-keyset) (sig-keyset))
-(load "test/fungible-util.pact")
 (load "test/ABC.pact")
 (load "test/XYZ.pact")
 (commit-tx)

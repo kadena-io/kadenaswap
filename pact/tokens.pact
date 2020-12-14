@@ -13,6 +13,8 @@
 
   (deftable ledger:{entry})
 
+  (use fungible-util)
+
   (defschema issuer
     guard:guard
   )
@@ -109,6 +111,7 @@
       account:string
       guard:guard
     )
+    (enforce-valid-account account)
     (insert ledger (key token account)
       { "balance" : 0.0
       , "guard"   : guard
@@ -149,6 +152,8 @@
 
     (enforce (!= sender receiver)
       "sender cannot be the receiver of a transfer")
+    (enforce-valid-transfer sender receiver (precision token) amount)
+
 
     (with-capability (TRANSFER token sender receiver amount)
       (debit token sender amount)
@@ -168,6 +173,7 @@
 
     (enforce (!= sender receiver)
       "sender cannot be the receiver of a transfer")
+    (enforce-valid-transfer sender receiver (precision token) amount)
 
     (with-capability (TRANSFER token sender receiver amount)
       (debit token sender amount)

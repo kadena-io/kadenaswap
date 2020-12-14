@@ -1,4 +1,6 @@
-(namespace 'test)
+
+(namespace 'swap)
+
 (module fungible-util GOVERNANCE
 
   (defcap GOVERNANCE ()

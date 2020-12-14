@@ -10,10 +10,12 @@
   (implements fungible-v2)
 
   (defschema entry guard:guard version:integer)
-  (deftable entries:{entry})
+  (deftable entries:{entry}
+    "Track GUARD and maintain VERSION for delegate guard")
 
   (defschema caps pending:[object])
-  (deftable capstate:{caps})
+  (deftable capstate:{caps}
+    "Singleton storage for accumulating delegate TRANSFER cap install")
   (defconst S "SINGLETON")
 
   (defcap TRANSFER:bool
@@ -22,7 +24,9 @@
       amount:decimal
     )
     @managed amount TRANSFER-mgr
-    (compose-capability (USER sender (enforce-entry sender)))
+    (enforce-entry sender)
+    ;; managed caps are called on install, track
+    ;; for delegate install in transfer function
     (with-default-read capstate S
       { 'pending: [] }
       { 'pending := caps }
@@ -34,6 +38,7 @@
   )
 
   (defun install-pending ()
+    "Install pending delegate TRANSFER caps"
     (with-default-read capstate S
       { 'pending: [] }
       { 'pending := caps }
@@ -50,9 +55,12 @@
       ))
   )
 
-  (defcap USER (account:string version:integer) true)
+  (defcap DELEGATE (account:string version:integer)
+    "Delegate of user guard to underlying token custody."
+    true)
 
   (defun enforce-entry:integer (account:string)
+    "Enforce tracked guard and return current delegate version."
     (let ((e (read entries account)))
       (enforce-guard (at 'guard e))
       (at 'version e)
@@ -63,6 +71,7 @@
     ( managed:decimal
       requested:decimal
     )
+    "All-pass manager so underlying can be tested."
     requested
   )
 
@@ -73,7 +82,9 @@
     )
     (with-capability (TRANSFER sender receiver amount)
       (install-pending)
-      (swap.tokens.transfer TOKEN sender receiver amount)
+      (with-capability
+        (DELEGATE sender (at 'version (read entries sender)))
+        (swap.tokens.transfer TOKEN sender receiver amount))
     )
 
   )
@@ -86,8 +97,21 @@
     )
     (with-capability (TRANSFER sender receiver amount)
       (install-pending)
-      (swap.tokens.transfer-create
-        TOKEN sender receiver receiver-guard amount)
+      (with-default-read entries receiver
+        { 'guard: receiver-guard, 'version: 0 }
+        { 'guard := g, 'version:= v }
+        (let
+          ( (del-guard
+              (if (= receiver-guard g)
+                ;; correct case, write and return current delegate
+                (let ((d (delegate-guard receiver v)))
+                  (write entries receiver { 'guard: g, 'version: v })
+                  d)
+                ;; incorrect case, pass invalid delegate to ensure enforcement
+                (delegate-guard receiver (+ 1 v)))) )
+          (with-capability (DELEGATE sender (at 'version (read entries sender)))
+            (swap.tokens.transfer-create
+              TOKEN sender receiver del-guard amount))))
     )
   )
 
@@ -123,11 +147,11 @@
   )
 
   (defun delegate-guard (account:string version:integer)
-    (create-user-guard (delegate-user-guard account version))
+    (create-user-guard (require-delegate account version))
   )
 
-  (defun delegate-user-guard (account:string version:integer)
-    (require-capability (USER account version))
+  (defun require-delegate (account:string version:integer)
+    (require-capability (DELEGATE account version))
   )
 
 
@@ -143,12 +167,20 @@
     ( account:string
       new-guard:guard
     )
-    (let ((v (enforce-entry account)))
+    " Enforces tracked user guard, increments delegate version \
+    \ while calling underlying with old delegate in scope to \
+    \ enforce old guard."
+    (let*
+      ( (v (enforce-entry account))
+        (v1 (+ 1 v))
+      )
       (write entries account
         { 'guard: new-guard
-        , 'version: (+ 1 v)
+        , 'version: v1
       })
-      (swap.tokens.rotate TOKEN account (delegate-guard account 0))
+      (with-capability (DELEGATE account v)
+        (swap.tokens.rotate TOKEN account
+          (delegate-guard account v1)))
     ))
 
   (defun test-fund
