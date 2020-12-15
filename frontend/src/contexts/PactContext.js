@@ -18,11 +18,7 @@ const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0
 const chainId = "0";
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 
-// const network = "http://localhost:9001"
-const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact";
-const chainId = "0";
-const creationTime = () => Math.round((new Date).getTime()/1000)-10;
-
+export const PactProvider = (props) => {
 
   // const network = "http://localhost:9001"
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
@@ -37,13 +33,14 @@ const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [pair, setPair] = useState("");
   const [ratio, setRatio] = useState(NaN);
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
-  const creationTime = () => Math.round((new Date).getTime()/1000)-10;
   const [supplied, setSupplied] = useState(false);
   const [slippage, setSlippage] = useState((savedSlippage ? savedSlippage : 0.50));
   const [liquidityProviderFee, setLiquidityProviderFee] = useState(0.003);
   const [cmd, setCmd] = useState(null);
   const [localRes, setLocalRes] = useState({});
   const [polling, setPolling] = useState(false);
+  const [totalSupply, setTotalSupply] = useState("")
+  const [pairList, setPairList] = useState("")
   const tokenPrice = {
     "KDA": 1,
     "ABC": 1.05
@@ -515,6 +512,7 @@ const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 
   const getTokenPrice = (token) => {
     return tokenPrice[token];
+  }
   const getAccountTokenList = async (account) => {
     let list = await tokens();
     list =
@@ -591,7 +589,7 @@ const creationTime = () => Math.round((new Date).getTime()/1000)-10;
         getCorrectBalance,
         liquidityProviderFee,
         localRes,
-        polling
+        polling,
         getPooledAmount,
         getTotalTokenSupply,
         totalSupply
