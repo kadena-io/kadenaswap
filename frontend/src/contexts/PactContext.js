@@ -590,6 +590,7 @@ export const PactProvider = (props) => {
   }
 
   const clearSendRes = () => {
+    setVerifiedAccount(account.account)
     setSendRes(null);
   }
 
