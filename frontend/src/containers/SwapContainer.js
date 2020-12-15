@@ -7,8 +7,11 @@ import InputToken from '../components/shared/InputToken';
 import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
+import reduceBalance from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
+import TxView from '../components/shared/TxView';
 import { PactContext } from '../contexts/PactContext';
+import { throttle, debounce } from "throttle-debounce";
 
 const Container = styled.div`
   display: flex;
@@ -33,30 +36,103 @@ const SwapContainer = () => {
   const [selectedToken, setSelectedToken] = useState(null);
   const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '', address: '' });
   const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '', address: '' });
+  const [inputSide, setInputSide] = useState("")
+  const [fromNote, setFromNote] = useState("")
+  const [toNote, setToNote] = useState("")
+  const [showTxModal, setShowTxModal] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const pact = useContext(PactContext);
+
+  useEffect(() => {
+    if (inputSide === 'from' && fromValues.amount !== "") {
+      setToNote("(estimated)")
+      setFromNote("")
+      setInputSide(null)
+      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+        if (fromValues.amount.length < 5) {
+          throttle(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+        } else {
+          debounce(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+        }
+      }
+    }
+    if (isNaN(pact.ratio) || fromValues.amount === "") {
+      setToValues((prev) => ({ ...prev, amount: '' }))
+    }
+  }, [fromValues.amount])
+
+  useEffect(() => {
+    if (inputSide === 'to' && toValues.amount !== "") {
+      setFromNote("(estimated)")
+      setToNote("")
+      setInputSide(null)
+      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+        if (toValues.amount.length < 5) {
+          throttle(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+        } else {
+          debounce(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+        }
+      }
+    }
+    if (isNaN(pact.ratio) || toValues.amount === "") {
+      setFromValues((prev) => ({ ...prev, amount: '' }))
+    }
+  }, [toValues.amount])
+
+  useEffect(() => {
+    console.log(pact.ratio)
+    if (!isNaN(pact.ratio)) {
+      if (fromValues.amount !== "" && toValues.amount === "") {
+        setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+      } if (fromValues.amount === "" && toValues.amount !== "") {
+        setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio })
+      } if (fromValues.amount !== "" && toValues.amount !== "")  {
+        setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+      }
+    }
+  }, [pact.ratio])
 
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
     if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
     return setSelectedToken(null);
-  }, [tokenSelectorType, fromValues, toValues]);
+  }, [tokenSelectorType]);
+
+  useEffect(() => {
+    const getReserves = async () => {
+      if (toValues.coin !== '' && fromValues.coin !== '') {
+        await pact.getPair(fromValues.address, toValues.address);
+        await pact.getReserves(fromValues.address, toValues.address)
+      }
+    }
+    getReserves();
+  }, [fromValues.coin, toValues.coin])
+
 
   const swapValues = () => {
     const from = { ...fromValues };
     const to = { ...toValues };
     setFromValues({ ...to });
     setToValues({ ...from });
+    if (toNote === "(estimated)") {
+      setFromNote("(estimated)");
+      setToNote("");
+    }
+    if (fromNote === "(estimated)") {
+      setToNote("(estimated)");
+      setFromNote("")
+    }
   };
 
   const onTokenClick = async ({ crypto }) => {
-    console.log(crypto)
     let balance;
     if (crypto.name === 'coin') {
       balance = pact.account.balance
     } else {
       let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
-      balance = acct.balance
+      console.log(acct)
+      balance = pact.getCorrectBalance(acct.balance)
     }
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
     if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
@@ -65,10 +141,11 @@ const SwapContainer = () => {
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
     if (!pact.privKey) return 'Enter your KDA account private key';
-    if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
+    if (isNaN(pact.ratio)) return 'Pair does not exist!'
+    if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
-    if (toValues.amount > toValues.balance) return `Insufficient ${toValues.coin} balance`
+    // if (toValues.amount > toValues.balance) return `Insufficient ${toValues.coin} balance`
     return 'SWAP';
   };
 
@@ -80,10 +157,16 @@ const SwapContainer = () => {
         onTokenClick={onTokenClick}
         onClose={() => setTokenSelectorType(null)}
       />
+      <TxView
+        show={showTxModal}
+        selectedToken={selectedToken}
+        onTokenClick={onTokenClick}
+        onClose={() => setShowTxModal(false)}
+      />
       <FormContainer title="swap">
         <Input
-          leftLabel="from"
-          rightLabel={`balance: ${fromValues.balance ?? '-'}`}
+          leftLabel={`from ${fromNote}`}
+          rightLabel={`balance: ${reduceBalance(fromValues.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             fromValues.coin ? (
@@ -99,14 +182,14 @@ const SwapContainer = () => {
           value={fromValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('from')}
           onChange={async (e, { value }) => {
-            await pact.getPair(fromValues.address, toValues.address);
+            setInputSide('from')
             setFromValues((prev) => ({ ...prev, amount: value }))
           }}
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
         <Input
-          leftLabel="to"
-          rightLabel={`balance: ${toValues.balance ?? '-'}`}
+          leftLabel={`to ${toNote}`}
+          rightLabel={`balance: ${reduceBalance(toValues.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             toValues.coin ? (
@@ -122,26 +205,50 @@ const SwapContainer = () => {
           value={toValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('to')}
           onChange={async (e, { value }) => {
-            await pact.getPair(fromValues.address, toValues.address);
+            setInputSide('to')
             setToValues((prev) => ({ ...prev, amount: value }))
           }}
         />
-        {fromValues.amount && fromValues.coin && toValues.amount && toValues.coin && (
+        {!isNaN(pact.ratio) && fromValues.amount && fromValues.coin && toValues.amount && toValues.coin && (
           <>
             <RowContainer>
               <Label>price</Label>
-              <span>0.0000956556 ETH per 0xMR</span>
+              <span>{`${reduceBalance(pact.ratio)} ${fromValues.coin} per ${toValues.coin}`}</span>
             </RowContainer>
+            <RowContainer style={{ marginTop: 5 }}>
+              <Label>max slippage</Label>
+              <span>{`${pact.slippage*100}%`}</span>
+            </RowContainer>
+            <RowContainer style={{ marginTop: 5 }}>
+              <Label>liquidity provider fee</Label>
+              <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
+            </RowContainer>
+            {/*
+              NEED TO FIGURE OUT PRE AND POST PRICES
+              RUN A LOCAL OF THE ACTUAL TRADE AND CHECK NEW PRICES
             <RowContainer style={{ margin: 0 }}>
               <Label>price impact</Label>
               <span>15.16%</span>
             </RowContainer>
+            */}
           </>
         )}
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
           disabled={getButtonLabel() !== "SWAP"}
-          onClick={() => console.log('SWAPPED')}
+          loading={loading}
+          onClick={async () => {
+            setLoading(true)
+            await pact.swapLocal(
+                { amount: fromValues.amount, address: fromValues.address },
+                { amount: toValues.amount, address: toValues.address },
+                (fromNote === "(estimated)" ? false : true)
+              )
+            setLoading(false)
+            setFromValues({ amount: '', balance: '', coin: '', address: '' });
+            setToValues({ amount: '', balance: '', coin: '', address: '' })
+            setShowTxModal(true)
+          }}
         >
           {getButtonLabel()}
         </Button>
