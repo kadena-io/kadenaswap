@@ -99,11 +99,33 @@ const Header = () => {
         ?
           <Item className="mobile-none" to="#">
             <Message color='yellow' size='mini'>
-              {`tx ${pact.localRes.reqKey} pending...`}
+              {`tx ${reduceToken(pact.localRes.reqKey)} pending...`}
             </Message>
           </Item>
         :
           <></>
+      )}
+      {(pact.sendRes
+        ?
+          <Item className="mobile-none" to="#">
+            <Message color={(pact.sendRes.result.status === 'success' ? 'green' : 'red')} size='mini'>
+              <span
+                onClick={async () => {
+                  await window.open(
+                    `https://explorer.chainweb.com/testnet/tx/${pact.sendRes.reqKey}`,
+                    "_blank",
+                    'noopener,noreferrer'
+                  );
+                  pact.clearSendRes();
+                }}
+              >
+                {`view tx ${(pact.sendRes.result.status === 'success' ? 'success' : 'failure')}`}
+              </span>
+            </Message>
+          </Item>
+        :
+          <></>
+
       )}
       {(pact.account.account
         ?

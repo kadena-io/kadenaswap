@@ -41,6 +41,7 @@ const SwapContainer = () => {
   const [toNote, setToNote] = useState("")
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [fetchingPair, setFetchingPair] = useState(false)
 
   const pact = useContext(PactContext);
 
@@ -102,8 +103,10 @@ const SwapContainer = () => {
   useEffect(() => {
     const getReserves = async () => {
       if (toValues.coin !== '' && fromValues.coin !== '') {
+        setFetchingPair(true)
         await pact.getPair(fromValues.address, toValues.address);
-        await pact.getReserves(fromValues.address, toValues.address)
+        await pact.getReserves(fromValues.address, toValues.address);
+        setFetchingPair(false)
       }
     }
     getReserves();
@@ -142,6 +145,7 @@ const SwapContainer = () => {
     if (!pact.account.account) return 'Connect your KDA account';
     if (!pact.privKey) return 'Enter your KDA account private key';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
+    if (fetchingPair) return "Fetching Pair..."
     if (isNaN(pact.ratio)) return 'Pair does not exist!'
     if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
