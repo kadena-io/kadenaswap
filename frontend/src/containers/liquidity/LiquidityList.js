@@ -11,6 +11,7 @@ import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import TokenPair from './TokenPair';
 import PactWallet from './PactWallet';
 import {PactContext} from '../../contexts/PactContext'
+import reduceBalance from '../../utils/reduceBalance';
 
 const Container = styled.div`
   display: flex;

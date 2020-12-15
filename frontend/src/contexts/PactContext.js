@@ -41,11 +41,7 @@ export const PactProvider = (props) => {
   const [polling, setPolling] = useState(false);
   const [totalSupply, setTotalSupply] = useState("")
   const [pairList, setPairList] = useState("")
-  const tokenPrice = {
-    "KDA": 1,
-    "ABC": 1.05
-  }
-
+  const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
@@ -54,6 +50,11 @@ export const PactProvider = (props) => {
   useEffect(() => {
     if (account.account) setVerifiedAccount(account.account)
   }, [])
+
+  useEffect( async () => {
+    let balances = await getPooledAmount("coin", "free.abc", account.account);
+    setPoolBalance(balances)
+  }, []);
 
   const getCorrectBalance = (balance) => {
     const balanceClean = (!isNaN(balance) ? balance : balance.decimal)
@@ -119,12 +120,10 @@ export const PactProvider = (props) => {
           keyPairs: Pact.crypto.genKeyPair(),
           meta: Pact.lang.mkMeta("", chainId ,0.01,100000000, 28800, creationTime()),
         }, network);
-        console.log(data, "GETTOTAL")
         if (data.result.status === "success"){
           console.log(data)
           setTotalSupply(data.result.data);
           console.log(data.result.data)
-          console.log("Account is set to ", account);
         } else {
           console.log("Account is not verified")
         }
@@ -133,7 +132,7 @@ export const PactProvider = (props) => {
     }
   }
 
-  const createTokenPair = async (account, token0, token1, amountDesired0, amountDesired1) => {
+  const createTokenPair = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
       let data = await Pact.fetch.send({
           pactCode: `(swap.exchange.create-pair
@@ -147,35 +146,34 @@ export const PactProvider = (props) => {
         }, network);
       Pact.fetch.listen({listen: data.requestKeys[0]}, network)
       .then(() => {
-        addLiquidity(account, token0, token1, amountDesired0, amountDesired1);
+        addLiquidity(token0, token1, amountDesired0, amountDesired1);
       })
     } catch (e) {
       console.log(e)
     }
   }
 
-  const addLiquidity = async (account, token0, token1, amountDesired0, amountDesired1) => {
+  const addLiquidity = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
       let pair = await getPairAccount(token0, token1);
-      console.log(pair)
       let data = await Pact.fetch.send({
           pactCode: `(swap.exchange.add-liquidity
               ${token0}
               ${token1}
               ${keepDecimal(amountDesired0)}
               ${keepDecimal(amountDesired1)}
-              ${keepDecimal(amountDesired0*(1-slippage))}
-              ${keepDecimal(amountDesired1*(1-slippage))}
-              ${JSON.stringify(account)}
-              ${JSON.stringify(account)}
+              ${keepDecimal(amountDesired0*(1-0.003))}
+              ${keepDecimal(amountDesired1*(1-0.003))}
+              ${JSON.stringify(account.account)}
+              ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
               (at 'block-time (chain-data))
             )`,
           keyPairs: {
             ...keyPair,
             clist: [
-              {name: `${token0}.TRANSFER`, args: [account, pair, Number(amountDesired0)]},
-              {name: `${token1}.TRANSFER`, args: [account, pair, Number(amountDesired1)]},
+              {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
+              {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
               {name: `coin.GAS`, args: []}
             ]
           },
@@ -191,31 +189,30 @@ export const PactProvider = (props) => {
     }
   }
 
-  const removeLiquidity = async (account, token0, token1, liquidity) => {
+  const removeLiquidity = async (token0, token1, liquidity) => {
     try {
       // let pairKey = await getPairKey(token0, token1);
       let pairKey = "coin:free.abc"
-      console.log("Pair key", pairKey)
+      liquidity = keepDecimal(liquidity);
       let pair = await getPairAccount(token0, token1);
       let data = await Pact.fetch.send({
           pactCode: `(swap.exchange.remove-liquidity
               ${token0}
               ${token1}
-              ${keepDecimal(liquidity)}
+              ${liquidity}
               0.0
               0.0
-              ${JSON.stringify(account)}
-              ${JSON.stringify(account)}
+              ${JSON.stringify(account.account)}
+              ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
               (at 'block-time (chain-data))
             )`,
-            networkId: "testnet04"
-,
+            networkId: "testnet04",
           keyPairs: {
             ...keyPair,
             clist: [
-              {name: `swap.tokens.TRANSFER`, args: [pairKey, account, pair, Number(liquidity)]},
-              {name: `swap.tokens.TRANSFER`, args: [pairKey, account, pair, Number(liquidity)]},
+              {name: `swap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
+              {name: `swap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
               {name: `coin.GAS`, args: []}
             ]
           },
@@ -231,7 +228,6 @@ export const PactProvider = (props) => {
   }
 
   const getPairAccount = async (token0, token1) => {
-    console.log("Called get pair account")
     try {
       let data = await Pact.fetch.local({
           pactCode: `(at 'account (swap.exchange.get-pair ${token0} ${token1}))`,
@@ -257,11 +253,10 @@ export const PactProvider = (props) => {
           keyPairs: Pact.crypto.genKeyPair(),
           meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
         }, network);
-        console.log(data)
         if (data.result.status === "success"){
           setPair(data.result.data);
-          return data.result.data;
           console.log("Pair is set to", data.result.data);
+          return data.result.data;
         } else {
           return null;
           console.log("Pair does not exist")
@@ -358,9 +353,7 @@ export const PactProvider = (props) => {
         console.log(data)
         let balance0= data.result.data[0].decimal?data.result.data[0].decimal :data.result.data[0] ;
         let balance1= data.result.data[1].decimal?data.result.data[1].decimal :data.result.data[1] ;
-        console.log("BALANCE", balance0, balance1)
         return [balance0, balance1]
-        console.log(data)
         if (data.result.status === "success"){
           console.log(data, " pooledamount")
         } else {
@@ -510,9 +503,6 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getTokenPrice = (token) => {
-    return tokenPrice[token];
-  }
   const getAccountTokenList = async (account) => {
     let list = await tokens();
     list =
@@ -540,11 +530,17 @@ export const PactProvider = (props) => {
   }
 
   const getRatio = (toToken, fromToken) => {
+    if (toToken===fromToken) return 1;
     return pairReserve["token1"]/pairReserve["token0"]
   }
 
   const getRatio1 = (toToken, fromToken) => {
+    if (toToken===fromToken) return 1;
     return pairReserve["token0"]/pairReserve["token1"]
+  }
+
+  const share = (amount) => {
+    return Number(amount)/(Number(pairReserve["token0"])+Number(amount));
   }
 
   const storePrivKey = async (pk) => {
@@ -592,7 +588,9 @@ export const PactProvider = (props) => {
         polling,
         getPooledAmount,
         getTotalTokenSupply,
-        totalSupply
+        totalSupply,
+        share,
+        poolBalance
       }}
     >
       {props.children}

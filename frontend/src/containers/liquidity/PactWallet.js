@@ -5,18 +5,16 @@ import Input from '../../components/shared/Input';
 import { PactContext } from '../../contexts/PactContext'
 import { Statistic, List, Divider } from 'semantic-ui-react'
 import cryptoCurrencies from '../../constants/cryptoCurrencies';
-const reduceBalance = (num) => {
-  if (num.decimal) {
-    num = num.decimal;
-  }
-  if (num.toString().length>5) return num.toString().slice(0,5);
-  else return num.toString();
-}
+import reduceBalance from '../../utils/reduceBalance';
+import TxView from '../../components/shared/TxView';
 
 function PactWallet(props) {
   const [open, setOpen] = React.useState(false)
   const pact = useContext(PactContext);
   const [fromInput, setInputValue] = useState({ account: '' });
+  const [loading, setLoading] = useState(false)
+  const [showTxModal, setShowTxModal] = useState(false)
+
   const {fromValues, toValues} = props;
   const openConfirmSupply= () => {
     pact.setSupplied(true);
@@ -39,8 +37,6 @@ function PactWallet(props) {
     else return status[2];
   }
 
-  const share = 0;
-
   const buttonDisabled = () => {
     if (fromValues.amount===0 && toValues.amount===0) return false;
     if (!pact.account.account) return false;
@@ -53,14 +49,12 @@ function PactWallet(props) {
   const supply = async () => {
     if (open) {
       if (props.liquidityView==="Create A Pair"){
-        let pair = await pact.getPair();
-        if (!pair){
-          console.log("Pair Already Exists");
-        } else {
-          pact.createTokenPair(pact.account.account, cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount).then(console.log)
-        }
+        setLoading(true)
+        await pact.createTokenPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount).then(console.log)
+        setLoading(false)
+        setShowTxModal(true)
       } else{
-        pact.addLiquidity(pact.account.account, cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
+        pact.addLiquidity(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
       }
     } else {openConfirmSupply();}
   }
@@ -80,6 +74,10 @@ function PactWallet(props) {
             {buttonStatus()}
           </Button>}
       >
+      <TxView
+        show={showTxModal}
+        onClose={() => setShowTxModal(false)}
+      />
         <Modal.Content image>
 
         <Modal.Description>
@@ -90,12 +88,13 @@ function PactWallet(props) {
           </Statistic>
           <Divider/>
           <List>
-            <List.Item>{`${fromValues.coin} Deposited: ${fromValues.amount}`}</List.Item>
-            <List.Item>{`${toValues.coin} Deposited: ${toValues.amount}`}</List.Item>
+            <List.Item>{`${fromValues.coin} Deposited: ${reduceBalance(fromValues.amount)}`}</List.Item>
+            <List.Item>{`${toValues.coin} Deposited: ${reduceBalance(toValues.amount)}`}</List.Item>
+            <br/>
             <List.Item>{`Rates:`}</List.Item>
-            <List.Item>{`1 ${fromValues.coin} = ${pact.getRatio(toValues.coin, fromValues.coin)} ${toValues.coin}`}</List.Item>
-            <List.Item>{`1 ${toValues.coin} = ${pact.getRatio(fromValues.coin, toValues.coin)} ${fromValues.coin}`}</List.Item>
-            <List.Item>Share of the Pool : {share}</List.Item>
+            <List.Item>{`1 ${fromValues.coin} = ${reduceBalance(1/pact.ratio)} ${toValues.coin}`}</List.Item>
+            <List.Item>{`1 ${toValues.coin} = ${reduceBalance(pact.ratio)} ${fromValues.coin}`}</List.Item>
+            <List.Item>Share of the Pool : {reduceBalance(pact.share(fromValues.amount)*100)}</List.Item>
           </List>
         </Modal.Description>
         </Modal.Content>

@@ -9,7 +9,7 @@ import { List, Message, Button} from 'semantic-ui-react'
 import { ReactComponent as KadenaIcon } from '../../assets/images/crypto/kadena-logo.svg';
 import { ReactComponent as ArrowDown } from '../../assets/images/shared/arrow-down.svg';
 import {PactContext} from '../../contexts/PactContext'
-
+import reduceBalance from '../../utils/reduceBalance';
 
 const Container = styled.div`
   display: flex;
@@ -17,23 +17,15 @@ const Container = styled.div`
   align-items: center;
 `;
 
-const reduceBalance = (num) => {
-  if (num.toString().length>4) return num.toString().slice(0,4);
-}
-
 const TokenPair = (props) => {
   let pact = useContext(PactContext);
   const [pairBalance, setPairBalance] = useState(pact.pairAccountBalance);
-  let pair = {to: "KDA", from: "ABC"}
-  let balances;
-  const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
+  let pair = {to: "ABC", from: "KDA"}
+
   useEffect( async () => {
      pact.getPairAccountBalance("coin", "free.abc", pact.account.account);
      pact.getTotalTokenSupply("coin", "free.abc");
-     balances = await pact.getPooledAmount("coin", "free.abc", pact.account.account);
-     setPoolBalance(balances)
   }, []);
-  console.log(pact.pairAccountBalance, pact.totalSupply, balances)
 
   return (
           pact.pairAccountBalance!==null ?
@@ -53,10 +45,10 @@ const TokenPair = (props) => {
               <List.Item>
                 {`Your pool tokens: ${reduceBalance(pact.pairAccountBalance)}`}
                 <List.Content>
-                Pooled {pair.from}: {reduceBalance(poolBalance[0])}
+                Pooled {pair.from}: {reduceBalance(pact.poolBalance[0])}
                 </List.Content>
                 <List.Content>
-                Pooled {pair.to}: {reduceBalance(poolBalance[1])}
+                Pooled {pair.to}: {reduceBalance(pact.poolBalance[1])}
                 </List.Content>
                 <List.Content>
                 {`Your pool share: ${reduceBalance(pact.pairAccountBalance/pact.totalSupply*100)}%`}
