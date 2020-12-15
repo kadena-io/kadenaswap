@@ -2,7 +2,7 @@ import React, { useState, createContext, useEffect } from 'react';
 import Pact from "pact-lang-api";
 
 const keepDecimal = decimal => {
-  decimal = parseFloat(decimal).toPrecision(15)
+  decimal = parseFloat(decimal).toPrecision(13)
   const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
   return num
 }
@@ -42,6 +42,7 @@ export const PactProvider = (props) => {
   const [totalSupply, setTotalSupply] = useState("")
   const [pairList, setPairList] = useState("")
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
+  const [sendRes, setSendRes] = useState(null);
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
@@ -495,7 +496,8 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, Number(token0.amount*(1+slippage))]},
+              {name: "coin.GAS", args: []},
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, parseFloat(keepDecimal(token0.amount*(1+slippage)))]},
             ]
           },
           envData: {
@@ -531,12 +533,15 @@ export const PactProvider = (props) => {
 
   const listen = async (reqKey) => {
     const res = await Pact.fetch.listen({listen: reqKey}, network);
-    console.log(res)
-    if (res.result.status === 'success') {
-      console.log('success send')
-    } else {
-      console.log('fail send')
-    }
+    console.log(res);
+    setSendRes(res);
+    // console.log(res)
+    // if (res.result.status === 'success') {
+    //   setSendRes(res)
+    //   console.log('success send')
+    // } else {
+    //   console.log('fail send')
+    // }
   }
 
   const getAccountTokenList = async (account) => {
@@ -584,6 +589,10 @@ export const PactProvider = (props) => {
     await localStorage.setItem('pk', pk);
   }
 
+  const clearSendRes = () => {
+    setSendRes(null);
+  }
+
   return (
     <PactContext.Provider
       value={{
@@ -628,7 +637,9 @@ export const PactProvider = (props) => {
         totalSupply,
         share,
         poolBalance,
-        pair
+        pair,
+        sendRes,
+        clearSendRes
       }}
     >
       {props.children}
