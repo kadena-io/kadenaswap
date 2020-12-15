@@ -50,11 +50,11 @@ const Label = styled.span`
 
 const RemoveLiquidityContainer = (props) => {
   const pact = useContext(PactContext);
+  const liquidityView = props.selectedView;
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
-  const [fromValues, setFromValues] = useState({ amount: 0, balance: pact.account.balance, coin: cryptoCurrencies.KDA.code });
-  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin:cryptoCurrencies.ABC.code });
-  const liquidityView = props.selectedView;
+  const [fromValues, setFromValues] = useState({ amount: 0, coin: cryptoCurrencies.KDA.code });
+  const [toValues, setToValues] = useState({ amount: 0,  coin:cryptoCurrencies.ABC.code });
   const [amount, setAmount] = useState(0)
 
   useEffect(() => {
@@ -81,8 +81,7 @@ const RemoveLiquidityContainer = (props) => {
       </Statistic>
       <Button color='black'
         onClick={async () => {
-          console.log(amount)
-            pact.removeLiquidity(pact.account.account, "coin", "abc", amount);
+            pact.removeLiquidity(pact.account.account, cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, amount);
         }
       }>
         Remove Liquidity

@@ -11,6 +11,13 @@ import TokenSelector from '../../components/shared/TokenSelector';
 import PactWallet from './PactWallet';
 import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
+const reduceBalance = (num) => {
+  if (num.decimal) {
+    num = num.decimal;
+  }
+  if (num.toString().length>5) return num.toString().slice(0,5);
+  else return num.toString();
+}
 
 const Container = styled.div`
   display: flex;
@@ -51,18 +58,19 @@ const LiquidityContainer = (props) => {
   const pact = useContext(PactContext);
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
-  const [fromValues, setFromValues] = useState({ amount: 0, balance: pact.account.balance, coin: cryptoCurrencies.KDA.code });
-  const [toValues, setToValues] = useState({ amount: 0, balance: pact.tokenAccount.balance, coin:cryptoCurrencies.ABC.code });
   const liquidityView = props.selectedView;
+  const [fromValues, setFromValues] = useState({ ...pact.account, coin: cryptoCurrencies.KDA.code });
+  const [toValues, setToValues] = useState({ ...pact.tokenAccount, coin:cryptoCurrencies.ABC.code });
 
   useEffect(() => {
-    pact.getTokenAccount(cryptoCurrencies.ABC.name, pact.account.account);
-    pact.setVerifiedAccount(pact.account.account);
-    pact.getReserves("coin", "abc")
+    pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
+    pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
+    pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
     if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
     return setSelectedToken(null);
   }, [tokenSelectorType, fromValues, toValues]);
+  console.log(pact.tokenToAccount, pact.tokenFromAccount, "liquidity container")
 
   const onTokenClick = ({ crypto }) => {
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, coin: crypto.code }));
@@ -71,23 +79,13 @@ const LiquidityContainer = (props) => {
 
   const setTokenAmount = (amount1, amount2) => {
     let ratio;
-    console.log(pact.pairReserve, "settoken")
-
-    // if (pact.pairReserve===""){
-    //
-    //   setFromValues((prev) => ({ ...prev, amount: amount1 }));;
-    // }
     if (amount1) {
-      // ratio = pact.getRatio(fromValues.coin, toValues.coin)
       setFromValues((prev) => ({ ...prev, amount: amount1 }));
-      // setToValues((prev) => ({ ...prev, amount: amount1/ratio }));
     } else if (amount2){
-      // ratio = pact.getRatio( toValues.coin, fromValues.coin)
       setToValues((prev) => ({ ...prev, amount: amount2}));
-      // setFromValues((prev) => ({ ...prev, amount: amount2/ratio}))
     }
-
   }
+
   return (
       <FormContainer title={liquidityView}>
         <TokenSelector
@@ -99,7 +97,7 @@ const LiquidityContainer = (props) => {
         <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
         <Input
           leftLabel="input"
-          rightLabel={`balance: ${pact.account.balance ?? '-'}`}
+          rightLabel={`balance: ${reduceBalance(pact.tokenFromAccount.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             fromValues.coin ? (
@@ -121,7 +119,7 @@ const LiquidityContainer = (props) => {
         <ButtonDivider icon={<PlusIcon />} buttonStyle={{ cursor: 'default' }} />
         <Input
           leftLabel="input"
-          rightLabel={`balance: ${pact.tokenAccount.balance ?? '-'}`}
+          rightLabel={`balance: ${reduceBalance(pact.tokenToAccount.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             toValues.coin ? (
@@ -143,15 +141,15 @@ const LiquidityContainer = (props) => {
             <Label>price and pool share</Label>
             <RowContainer style={{ marginBottom: 0 }}>
               <ColumnContainer>
-                <span>{pact.getRatio(toValues.coin,fromValues.coin)}</span>
+                <span>{reduceBalance(pact.getRatio(toValues.coin,fromValues.coin))}</span>
                 <span>{`${toValues.coin} per ${fromValues.coin}`}</span>
               </ColumnContainer>
               <ColumnContainer>
-                <span>{pact.getRatio(fromValues.coin,toValues.coin)}</span>
-                <span>{`${toValues.coin} per ${fromValues.coin}`}</span>
+                <span>{reduceBalance(pact.getRatio1(toValues.coin,fromValues.coin))}</span>
+                <span>{`${fromValues.coin} per ${toValues.coin}`}</span>
               </ColumnContainer>
               <ColumnContainer>
-                <span>1%</span>
+                <span>0%</span>
                 <span>Share of Pool</span>
               </ColumnContainer>
             </RowContainer>
