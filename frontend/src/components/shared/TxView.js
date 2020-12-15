@@ -97,6 +97,26 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
     )
   }
 
+  const localError = () => {
+    return (
+      <>
+        <Message color='red'>
+          <Label style={{ marginBottom: 4, color: 'purple' }}>Local Failed!</Label>
+          <RowContainer>
+            <span>{pact.localRes}</span>
+          </RowContainer>
+        </Message>
+        <Button
+          onClick={() => {
+            onClose()
+          }}
+        >
+          Retry
+        </Button>
+      </>
+    )
+  }
+
   return (
     <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
       {(show) =>
@@ -105,11 +125,16 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
           <Container style={props}>
             <Backdrop onClose={onClose} />
             <FormContainer title="transaction details" containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }} onClose={onClose}>
-              {(pact.localRes.result.status === 'success'
+              {(typeof pact.localRes === 'string'
                 ?
-                  successView()
+                  localError()
                 :
-                  failView()
+                  (pact.localRes.result.status === 'success'
+                  ?
+                    successView()
+                  :
+                    failView()
+                  )
                 )}
               <Divider />
             </FormContainer>

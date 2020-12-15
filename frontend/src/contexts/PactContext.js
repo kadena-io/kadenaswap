@@ -37,7 +37,7 @@ export const PactProvider = (props) => {
   const [slippage, setSlippage] = useState((savedSlippage ? savedSlippage : 0.50));
   const [liquidityProviderFee, setLiquidityProviderFee] = useState(0.003);
   const [cmd, setCmd] = useState(null);
-  const [localRes, setLocalRes] = useState({});
+  const [localRes, setLocalRes] = useState(null);
   const [polling, setPolling] = useState(false);
   const [totalSupply, setTotalSupply] = useState("")
   const [pairList, setPairList] = useState("")

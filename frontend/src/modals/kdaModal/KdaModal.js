@@ -37,6 +37,15 @@ export default function Account() {
             await pact.setVerifiedAccount(value);
           }}
         />
+        {(pact.account.account
+          ?
+            <>
+              <Header>{"Account Details"}</Header>
+              <span>{JSON.stringify(pact.account.guard)}</span>
+            </>
+          :
+            <Header style={{ color: 'red' }}>{"Account Does Not Exist"}</Header>
+        )}
         <Header>{"Your Private Key"}</Header>
         <Input
           value={pact.privKey}
