@@ -92,13 +92,13 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", chainId ,0.01,100000000, 28800, creationTime()),
         }, network);
         console.log(data, "gettoken")
-        setTokenAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
         if (data.result.status === "success"){
+          // setTokenAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
           console.log(tokenFromAccount, token, first)
           first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
           console.log(data.result.data)
           return data.result.data
-        } else {
+        } else if (data.result.status === "failure"){
           first ? setTokenFromAccount({ account: null, guard: null, balance: 0 }) : setTokenToAccount({ account: null, guard: null, balance: 0 })
           return { account: null, guard: null, balance: 0 }
           console.log("Account does not exist")
