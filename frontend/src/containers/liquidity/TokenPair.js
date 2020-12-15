@@ -23,8 +23,10 @@ const TokenPair = (props) => {
   let pair = {to: "ABC", from: "KDA"}
 
   useEffect( async () => {
-     pact.getPairAccountBalance("coin", "free.abc", pact.account.account);
-     pact.getTotalTokenSupply("coin", "free.abc");
+    pact.setVerifiedAccount(pact.account.account);
+    pact.getPairAccountBalance("coin", "free.abc", pact.account.account);
+    pact.getTotalTokenSupply("coin", "free.abc");
+    pact.getPooledAmount("coin", "free.abc", pact.account.account);
   }, []);
 
   return (

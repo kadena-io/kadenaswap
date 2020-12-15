@@ -51,10 +51,6 @@ export const PactProvider = (props) => {
     if (account.account) setVerifiedAccount(account.account)
   }, [])
 
-  useEffect( async () => {
-    let balances = await getPooledAmount("coin", "free.abc", account.account);
-    setPoolBalance(balances)
-  }, []);
 
   const getCorrectBalance = (balance) => {
     const balanceClean = (!isNaN(balance) ? balance : balance.decimal)
@@ -65,7 +61,6 @@ export const PactProvider = (props) => {
     await setSlippage(slippage)
     await localStorage.setItem('slippage', slippage);
   }
-
 
   const setVerifiedAccount = async (accountName) => {
     try {
@@ -152,6 +147,46 @@ export const PactProvider = (props) => {
       console.log(e)
     }
   }
+
+  const addLiquidityLocal = async (token0, token1, amountDesired0, amountDesired1) => {
+    try {
+      let pair = await getPairAccount(token0, token1);
+      let data = await Pact.fetch.local({
+          pactCode: `(swap.exchange.add-liquidity
+              ${token0}
+              ${token1}
+              ${keepDecimal(amountDesired0)}
+              ${keepDecimal(amountDesired1)}
+              ${keepDecimal(amountDesired0*(1-0.003))}
+              ${keepDecimal(amountDesired1*(1-0.003))}
+              ${JSON.stringify(account.account)}
+              ${JSON.stringify(account.account)}
+              (read-keyset 'user-ks)
+              (at 'block-time (chain-data))
+            )`,
+          keyPairs: {
+            ...keyPair,
+            clist: [
+              {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
+              {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
+              {name: `coin.GAS`, args: []}
+            ]
+          },
+          envData: {
+            "user-ks": [keyPair.publicKey]
+          },
+          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+          networkId: "testnet04"
+        }, network);
+        console.log(data);
+        setLocalRes(data);
+        console.log(localRes);
+    } catch (e) {
+      setLocalRes({});
+      console.log(e)
+    }
+  }
+
 
   const addLiquidity = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
@@ -353,7 +388,7 @@ export const PactProvider = (props) => {
         console.log(data)
         let balance0= data.result.data[0].decimal?data.result.data[0].decimal :data.result.data[0] ;
         let balance1= data.result.data[1].decimal?data.result.data[1].decimal :data.result.data[1] ;
-        return [balance0, balance1]
+        setPoolBalance([balance0, balance1]);
         if (data.result.status === "success"){
           console.log(data, " pooledamount")
         } else {
@@ -562,6 +597,7 @@ export const PactProvider = (props) => {
         supplied,
         setSupplied,
         addLiquidity,
+        addLiquidityLocal,
         removeLiquidity,
         createTokenPair,
         pairAccount,
@@ -590,7 +626,8 @@ export const PactProvider = (props) => {
         getTotalTokenSupply,
         totalSupply,
         share,
-        poolBalance
+        poolBalance,
+        pair
       }}
     >
       {props.children}

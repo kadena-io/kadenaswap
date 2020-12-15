@@ -96,9 +96,9 @@ const RemoveLiquidityContainer = (props) => {
       <StyledButton color='black'
         loading={loading}
         onClick={async () => {
-            // setLoading(true)
+            setLoading(true)
             await pact.removeLiquidity( cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, reduceBalance(pact.pairAccountBalance*amount/100));
-            // setLoading(false)
+            setLoading(false)
             // setShowTxModal(true)
         }
       }>

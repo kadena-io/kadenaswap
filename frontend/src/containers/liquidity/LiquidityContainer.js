@@ -58,15 +58,14 @@ const LiquidityContainer = (props) => {
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
-    pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
-    pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
+  useEffect(async () => {
+    await pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
+    await pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
+    await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
     if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
     return setSelectedToken(null);
   }, [tokenSelectorType, fromValues, toValues]);
-  console.log(pact.tokenToAccount, pact.tokenFromAccount, "liquidity container")
 
   const onTokenClick = ({ crypto }) => {
     if (tokenSelectorType === 'from') {
@@ -81,11 +80,11 @@ const LiquidityContainer = (props) => {
 
   const setTokenAmount = (amount1, amount2) => {
     if (amount1) {
-      setFromValues((prev) => ({ ...prev, amount: amount1 }));
-      setToValues((prev) => ({ ...prev, amount: amount1*pact.getRatio(toValues.coin, fromValues.coin) }));
+      setFromValues((prev) => ({ ...prev, amount: reduceBalance(amount1) }));
+      setToValues((prev) => ({ ...prev, amount: reduceBalance(amount1 * pact.getRatio(toValues.coin, fromValues.coin)) }));
     } else if (amount2){
-      setToValues((prev) => ({ ...prev, amount: amount2}));
-      setFromValues((prev) => ({ ...prev, amount: amount2*pact.getRatio1(toValues.coin, fromValues.coin) }));
+      setToValues((prev) => ({ ...prev, amount: reduceBalance(amount2)}));
+      setFromValues((prev) => ({ ...prev, amount: reduceBalance(amount2 * pact.getRatio1(toValues.coin, fromValues.coin)) }));
     }
   }
 

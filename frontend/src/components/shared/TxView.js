@@ -41,7 +41,6 @@ const Divider = styled.div`
 const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
 
   const pact = useContext(PactContext);
-
   const successView = () => {
     return (
       <>
@@ -91,7 +90,6 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
       </>
     )
   }
-
   return (
     <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
       {(show) =>
