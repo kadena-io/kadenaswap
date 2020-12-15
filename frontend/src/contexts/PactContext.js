@@ -469,6 +469,7 @@ export const PactProvider = (props) => {
   const swapLocal = async (token0, token1, isSwapIn) => {
     try {
       const ct = creationTime();
+      console.log(account.account)
       let pair = await getPairAccount(token0.address, token1.address);
       const inPactCode = `(swap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}

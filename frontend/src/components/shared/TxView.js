@@ -41,22 +41,28 @@ const Divider = styled.div`
 const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
 
   const pact = useContext(PactContext);
+
+  const showTicker = (ticker) => {
+    if (ticker === 'coin') return 'KDA'
+    else return ticker.toUpperCase()
+  }
+
   const successView = () => {
     return (
       <>
         <Message color='green'>
           <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
           <RowContainer>
-            <Label style={{ marginBottom: 4 }}>Send</Label>
-            <span>{`${pact.localRes.result.data[0].amount} ${pact.localRes.result.data[0].token.toUpperCase()}`}</span>
+            <Label style={{ marginBottom: 4, color: 'red' }}>Send</Label>
+            <span style={{ color: 'red' }}>{`${pact.localRes.result.data[0].amount} ${showTicker(pact.localRes.result.data[0].token)}`}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4 }}>Receive</Label>
-            <span>{`${pact.localRes.result.data[1].amount} ${pact.localRes.result.data[1].token.toUpperCase()}`}</span>
+            <span>{`${pact.localRes.result.data[1].amount} ${showTicker(pact.localRes.result.data[1].token)}`}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
-            <span style={{ color: 'black' }}>0 KDA</span>
+            <span style={{ color: 'black' }}>{`${pact.localRes.gas*0.00000000001} KDA`}</span>
           </RowContainer>
         </Message>
         <Button
@@ -90,6 +96,7 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
       </>
     )
   }
+
   return (
     <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
       {(show) =>
