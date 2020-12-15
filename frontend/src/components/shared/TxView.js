@@ -80,7 +80,7 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
   const failView = () => {
     return (
       <>
-        <Message color='red'>
+        <Message color='red' style={{wordBreak: "break-all"}}>
           <Label style={{ marginBottom: 4, color: 'purple' }}>Preview Failed!</Label>
           <RowContainer>
             <span>{pact.localRes.result.error.message}</span>
@@ -100,10 +100,12 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
   const localError = () => {
     return (
       <>
-        <Message color='red'>
+        <Message color='red' style={{wordBreak: "break-all"}}>
           <Label style={{ marginBottom: 4, color: 'purple' }}>Local Failed!</Label>
           <RowContainer>
-            <span>{pact.localRes}</span>
+            <span style={{wordBreak: "break-all"}}>
+              {pact.localRes}
+            </span>
           </RowContainer>
         </Message>
         <Button
