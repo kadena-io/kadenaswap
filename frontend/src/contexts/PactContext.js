@@ -149,7 +149,7 @@ export const PactProvider = (props) => {
             ]
           },
           envData: {
-            "user-ks": ["410ca3b2c87a6149ea4a96538c2d790270a95d3b241a609d63f365feb3593707"]
+            "user-ks": [keyPair.publicKey]
           },
           meta: Pact.lang.mkMeta(account, chainId ,0.0001,3000,creationTime(), 600),
           networkId: "testnet04"
