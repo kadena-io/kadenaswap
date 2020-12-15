@@ -10,13 +10,30 @@ import { ReactComponent as KadenaIcon } from '../../assets/images/crypto/kadena-
 import { ReactComponent as ArrowDown } from '../../assets/images/shared/arrow-down.svg';
 import {PactContext} from '../../contexts/PactContext'
 
+
+const Container = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const reduceBalance = (num) => {
+  if (num.toString().length>4) return num.toString().slice(0,4);
+}
+
 const TokenPair = (props) => {
   let pact = useContext(PactContext);
-  const [pairBalance, setPairBalance] = useState({ balance: null });
+  const [pairBalance, setPairBalance] = useState(pact.pairAccountBalance);
   let pair = {to: "KDA", from: "ABC"}
-  useEffect(() => {
-    pact.getPairAccountBalance("coin", "abc", pact.account.account);
-  });
+  let balances;
+  const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
+  useEffect( async () => {
+     pact.getPairAccountBalance("coin", "free.abc", pact.account.account);
+     pact.getTotalTokenSupply("coin", "free.abc");
+     balances = await pact.getPooledAmount("coin", "free.abc", pact.account.account);
+     setPoolBalance(balances)
+  }, []);
+  console.log(pact.pairAccountBalance, pact.totalSupply, balances)
 
   return (
           pact.pairAccountBalance!==null ?
@@ -32,26 +49,30 @@ const TokenPair = (props) => {
                   </List.Header>
                 </List.Content>
               </List.Item>
+              <br/>
               <List.Item>
-                Your pool tokens: {pact.pairAccountBalance}
+                {`Your pool tokens: ${reduceBalance(pact.pairAccountBalance)}`}
                 <List.Content>
-                Pooled {pair.from}: {}
+                Pooled {pair.from}: {reduceBalance(poolBalance[0])}
                 </List.Content>
                 <List.Content>
-                Pooled {pair.to}: {}
+                Pooled {pair.to}: {reduceBalance(poolBalance[1])}
                 </List.Content>
                 <List.Content>
-                Your pool share: {}
+                {`Your pool share: ${reduceBalance(pact.pairAccountBalance/pact.totalSupply*100)}%`}
                 </List.Content>
               </List.Item>
-              <Button
-                onClick={() => props.selectAddLiquidity()}>
-                Add
-              </Button>
-              <Button
-                onClick={() => props.selectRemoveLiquidity()}>
-                Remove
-              </Button>
+              <br/>
+              <Container>
+                <Button
+                  onClick={() => props.selectAddLiquidity()}>
+                  Add
+                </Button>
+                <Button
+                  onClick={() => props.selectRemoveLiquidity()}>
+                  Remove
+                </Button>
+              </Container>
             </Message>
 
         </List>
