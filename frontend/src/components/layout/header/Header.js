@@ -85,16 +85,9 @@ const Header = () => {
         <KDALogo style={{ cursor: 'pointer' }} onClick={() => history.push(ROUTE_INDEX)} />
         <Item to={ROUTE_SWAP}>swap</Item>
         <Item to={ROUTE_POOL}>pool</Item>
-        {/*
         <Item to={ROUTE_WRAP}>wrap</Item>
-        */}
       </LeftContainer>
       <RightContainer>
-      {/*
-        <Item className="mobile-none" to="#">
-          {reduceToken('sdafsdaf1221sdfasdfsadfcc32as')}
-        </Item>
-      */}
       {(pact.polling
         ?
           <Item className="mobile-none" to="#">
@@ -154,9 +147,9 @@ const Header = () => {
         */}
         <Item className="mobile-none" to="#">
           <Modal
-            trigger={<Message color='pink' size='mini'>KDA Wallet</Message>}
+            trigger={<Button>Wallet</Button>}
             content={<KdaModal/>}
-            actions={[{ key: 'done', content:'done', positive: true}]}
+            actions={[{ key: 'update', content:'update', positive: true}]}
           />
         </Item>
         <Item to="#">

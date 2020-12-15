@@ -169,6 +169,7 @@ const SwapContainer = () => {
       />
       <FormContainer title="swap">
         <Input
+          error={isNaN(fromValues.amount)}
           leftLabel={`from ${fromNote}`}
           rightLabel={`balance: ${reduceBalance(fromValues.balance) ?? '-'}`}
           placeholder="enter amount"
@@ -192,6 +193,7 @@ const SwapContainer = () => {
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
         <Input
+          error={isNaN(toValues.amount)}
           leftLabel={`to ${toNote}`}
           rightLabel={`balance: ${reduceBalance(toValues.balance) ?? '-'}`}
           placeholder="enter amount"

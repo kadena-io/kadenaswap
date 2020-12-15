@@ -12,7 +12,8 @@ export const PactContext = createContext();
 const savedAcct = localStorage.getItem('acct');
 const savedPrivKey = localStorage.getItem('pk');
 const savedNetwork = localStorage.getItem('network');
-const savedSlippage = localStorage.getItem('slippage')
+const savedSlippage = localStorage.getItem('slippage');
+const savedSigning = localStorage.getItem('signing');
 
 const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact";
 const chainId = "0";
@@ -20,7 +21,6 @@ const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 
 export const PactProvider = (props) => {
 
-  // const network = "http://localhost:9001"
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
   const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""));
@@ -43,6 +43,7 @@ export const PactProvider = (props) => {
   const [pairList, setPairList] = useState("")
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
+  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : {method: 'pk', key: null, password: null})
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
@@ -51,6 +52,11 @@ export const PactProvider = (props) => {
   useEffect(() => {
     if (account.account) setVerifiedAccount(account.account)
   }, [])
+
+  useEffect(() => {
+    const store = async () => localStorage.setItem('signing', JSON.stringify(signing));
+    store()
+  }, [signing])
 
 
   const getCorrectBalance = (balance) => {
@@ -589,6 +595,10 @@ export const PactProvider = (props) => {
     await localStorage.setItem('pk', pk);
   }
 
+  const setSigningMethod = async (meth) => {
+    await setSigning({ ...signing, method: meth })
+  }
+
   const clearSendRes = () => {
     setVerifiedAccount(account.account)
     setSendRes(null);
@@ -640,7 +650,9 @@ export const PactProvider = (props) => {
         poolBalance,
         pair,
         sendRes,
-        clearSendRes
+        clearSendRes,
+        signing,
+        setSigningMethod
       }}
     >
       {props.children}
