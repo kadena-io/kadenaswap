@@ -131,6 +131,7 @@ const SwapContainer = () => {
       balance = pact.account.balance
     } else {
       let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
+      console.log(acct)
       balance = pact.getCorrectBalance(acct.balance)
     }
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
@@ -216,7 +217,7 @@ const SwapContainer = () => {
             </RowContainer>
             <RowContainer style={{ marginTop: 5 }}>
               <Label>max slippage</Label>
-              <span>{`${pact.slippageTollerance*100}%`}</span>
+              <span>{`${pact.slippage*100}%`}</span>
             </RowContainer>
             <RowContainer style={{ marginTop: 5 }}>
               <Label>liquidity provider fee</Label>
