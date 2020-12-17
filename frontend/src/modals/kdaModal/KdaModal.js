@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { Header, Modal, Menu, Icon } from 'semantic-ui-react'
+import { Header, Modal, Menu, Icon, Message } from 'semantic-ui-react'
 import Input from '../../components/shared/Input';
 import Button from '../../components/shared/Button';
 import { PactContext } from '../../contexts/PactContext'
@@ -34,6 +34,13 @@ export default function Account() {
       console.log(e);
       return false
     }
+  }
+
+  const canSubmit = () => {
+    if (method === 'sign') return true
+    if (method === 'pk' && checkKey(pk)) return true
+    if (method === 'pk+pw' && pw === pwConf && checkKey(pk) && pw !== "") return true
+    return false
   }
 
   return (
@@ -105,7 +112,8 @@ export default function Account() {
             name='sign'
             active={method === 'sign'}
             onClick={() => setMethod('sign')}
-            disabled={!toggle}
+            // disabled={!toggle}
+            disabled={true}
           >
             <Icon name='signup' />
             Chainweaver Signing (safest)
@@ -119,6 +127,17 @@ export default function Account() {
             (method === 'pk'
               ?
                 <>
+                  <Message negative>
+                    <Header><Icon name='warning' style={{ margin: 10 }}/>{"NOTE"}</Header>
+                    <div style={{ margin: 10, marginBottom: 20 }}>
+                      <p>
+                        All your transactions will be automatically signed with these keys
+                      </p>
+                      <p>
+                        Your private key will be saved in browser storage making easily accessible to malicious actors
+                      </p>
+                    </div>
+                  </Message>
                   <Header>{"Your Private Key"}</Header>
                   <Input
                     value={pk}
@@ -130,6 +149,17 @@ export default function Account() {
                 (method === 'pk+pw'
                   ?
                     <>
+                      <Message color='yellow'>
+                        <Header><Icon name='warning' style={{ margin: 10 }}/>{"NOTE"}</Header>
+                        <div style={{ margin: 10, marginBottom: 20 }}>
+                          <p>
+                            You will be prompted to enter your password to submit transactions
+                          </p>
+                          <p>
+                            You can always reset your password by following this process again with your private key
+                          </p>
+                        </div>
+                      </Message>
                       <Header>{"Your Private Key"}</Header>
                       <Input
                         value={pk}
@@ -150,9 +180,33 @@ export default function Account() {
                         type='password'
                         error={pw !== pwConf}
                       />
+
                     </>
                   :
-                    <></>
+                    <>
+                      <Message positive>
+                        <Header><Icon name='warning' style={{ margin: 10 }}/>{"NOTE"}</Header>
+                        <div style={{ margin: 10, marginBottom: 20 }}>
+                          <p>
+                            Please make sure the KDA account provided is controlled by your Chainweaver wallet
+                          </p>
+                          <p>
+                            When submitting a transaction, Chainweaver will show you a preview within the wallet before signing
+                          </p>
+                          <p
+                            onClick={async () => {
+                              await window.open(
+                                `https://www.kadena.io/chainweaver`,
+                                "_blank",
+                                'noopener,noreferrer'
+                              );
+                            }}
+                          >
+                            Download Chainweaver <a>here</a>
+                          </p>
+                        </div>
+                      </Message>
+                    </>
                 )
             )
         )}
@@ -169,19 +223,20 @@ export default function Account() {
 
       </Modal.Content>
       <Modal.Actions>
+        <Button
+          onClick={() => {
+            setOpen(false)
+          }}
+        >
+          <Icon name='cancel' />
+          cancel
+        </Button>
         {(!toggle
           ?
             <></>
           :
             <>
-              <Button
-                onClick={() => {
-                  setOpen(false)
-                }}
-              >
-                <Icon name='cancel' />
-                cancel
-              </Button>
+
               <Button
                 onClick={async () => {
                   if (method === 'pk') await pact.storePrivKey(pk)
@@ -189,7 +244,7 @@ export default function Account() {
                   if (method === 'sign') await pact.signingWallet()
                   setOpen(false)
                 }}
-                // disabled={}
+                disabled={!canSubmit()}
               >
                 <Icon name='lock' />
                 update

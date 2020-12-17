@@ -25,24 +25,24 @@ const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 export const PactProvider = (props) => {
 
 
-
-  const test = async () => {
-    const k = await CryptoJS.RC4Drop.encrypt('hi', 'there');
-    console.log(k)
-    //NOT WORKING
-    JSON.stringify(k)
-    const s = await CryptoJS.RC4Drop.decrypt(k, 'there')
-
-    console.log(s)
-    console.log(typeof s.toString(CryptoJS.enc.Utf8))
-    console.log(typeof s)
-    if (s.sigBytes >= 0) {
-      console.log('w')
-    } else {
-      console.log('didnt')
-    }
-  }
-  test()
+  //
+  // const test = async () => {
+  //   const k = await CryptoJS.RC4Drop.encrypt('hi', 'there');
+  //   console.log(k)
+  //   //NOT WORKING
+  //   JSON.stringify(k)
+  //   const s = await CryptoJS.RC4Drop.decrypt(k, 'there')
+  //
+  //   console.log(s)
+  //   console.log(typeof s.toString(CryptoJS.enc.Utf8))
+  //   console.log(typeof s)
+  //   if (s.sigBytes >= 0) {
+  //     console.log('w')
+  //   } else {
+  //     console.log('didnt')
+  //   }
+  // }
+  // test()
 
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
@@ -498,6 +498,15 @@ export const PactProvider = (props) => {
 
   const swapLocal = async (token0, token1, isSwapIn) => {
     try {
+      let privKey = signing.key
+      if (signing.method === 'pk+pw') {
+        const pw = prompt("please enter your password")
+        privKey = await decryptKey(pw)
+      }
+      console.log(privKey)
+      if (privKey.length !== 64) {
+        return
+      }
       const ct = creationTime();
       console.log(account.account)
       let pair = await getPairAccount(token0.address, token1.address);
@@ -543,6 +552,7 @@ export const PactProvider = (props) => {
       return data;
     } catch (e) {
       setLocalRes({});
+      return -1
       console.log(e)
     }
   }
@@ -565,13 +575,6 @@ export const PactProvider = (props) => {
     const res = await Pact.fetch.listen({listen: reqKey}, network);
     console.log(res);
     setSendRes(res);
-    // console.log(res)
-    // if (res.result.status === 'success') {
-    //   setSendRes(res)
-    //   console.log('success send')
-    // } else {
-    //   console.log('fail send')
-    // }
   }
 
   const getAccountTokenList = async (account) => {

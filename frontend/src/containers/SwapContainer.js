@@ -251,11 +251,29 @@ const SwapContainer = () => {
                 { amount: toValues.amount, address: toValues.address },
                 (fromNote === "(estimated)" ? false : true)
               )
-            setShowTxModal(true)
-            if (res.result.status === "success") {
-              setFromValues({ amount: '', balance: '', coin: '', address: '' });
-              setToValues({ amount: '', balance: '', coin: '', address: '' })
+            console.log('res', res)
+            console.log(typeof res)
+            if (res === -1) {
+              setLoading(false)
+              alert('Incorrect password. If forgotten, you can reset it with your private key')
+              return
+            } else {
+              setShowTxModal(true)
+              if (res.result.status === 'success') {
+                setFromValues({ amount: '', balance: '', coin: '', address: '' });
+                setToValues({ amount: '', balance: '', coin: '', address: '' })
+              }
+              setLoading(false)
             }
+
+            //RESET VALUES IF TX FAILS
+            // console.log(res)
+            // if (res !== -1) {
+            //   if (res.result.status === "success") {
+            //     setFromValues({ amount: '', balance: '', coin: '', address: '' });
+            //     setToValues({ amount: '', balance: '', coin: '', address: '' })
+            //   }
+            // }
           }}
         >
           {getButtonLabel()}
