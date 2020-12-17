@@ -26,8 +26,11 @@ jobs:
 
       - name: Run repl tests
         run: |
+          mkdir bin
+          cd bin
           wget https://github.com/kadena-io/pact/releases/download/v3.7.0/pact-3.7.0-linux.zip
           unzip "pact*.zip"
           chmod +x pact
-          pact pact/exchange.repl > out.log
+          cd ..
+          bin/pact pact/exchange.repl > out.log
           cat out.log
