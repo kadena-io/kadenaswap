@@ -66,7 +66,7 @@ export const PactProvider = (props) => {
   const [pairList, setPairList] = useState("")
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
-  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'pk', key: null })
+  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'pk', key: "" })
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
