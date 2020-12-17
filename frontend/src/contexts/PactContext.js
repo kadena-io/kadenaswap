@@ -152,6 +152,8 @@ export const PactProvider = (props) => {
   const addLiquidityLocal = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
       let pair = await getPairAccount(token0, token1);
+      let amount0Decimal = keepDecimal(amountDesired0);
+      let amount1Decimal = keepDecimal(amountDesired1);
       let data = await Pact.fetch.local({
           pactCode: `(swap.exchange.add-liquidity
               ${token0}
@@ -208,8 +210,8 @@ export const PactProvider = (props) => {
           keyPairs: {
             ...keyPair,
             clist: [
-              {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
-              {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
+              {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired0))]},
+              {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired1))]},
               {name: `coin.GAS`, args: []}
             ]
           },
