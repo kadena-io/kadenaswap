@@ -143,7 +143,8 @@ const SwapContainer = () => {
 
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
-    if (!pact.privKey) return 'Enter your KDA account private key';
+    //TO BE MODIFIED WITH NEW WALLET METHOD
+    // if (!pact.privKey) return 'Enter your KDA account private key';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
     if (fetchingPair) return "Fetching Pair..."
     if (isNaN(pact.ratio)) return 'Pair does not exist!'
@@ -169,6 +170,7 @@ const SwapContainer = () => {
       />
       <FormContainer title="swap">
         <Input
+          error={isNaN(fromValues.amount)}
           leftLabel={`from ${fromNote}`}
           rightLabel={`balance: ${reduceBalance(fromValues.balance) ?? '-'}`}
           placeholder="enter amount"
@@ -192,6 +194,7 @@ const SwapContainer = () => {
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
         <Input
+          error={isNaN(toValues.amount)}
           leftLabel={`to ${toNote}`}
           rightLabel={`balance: ${reduceBalance(toValues.balance) ?? '-'}`}
           placeholder="enter amount"
@@ -243,15 +246,34 @@ const SwapContainer = () => {
           loading={loading}
           onClick={async () => {
             setLoading(true)
-            await pact.swapLocal(
+            const res = await pact.swapLocal(
                 { amount: fromValues.amount, address: fromValues.address },
                 { amount: toValues.amount, address: toValues.address },
                 (fromNote === "(estimated)" ? false : true)
               )
-            setLoading(false)
-            setFromValues({ amount: '', balance: '', coin: '', address: '' });
-            setToValues({ amount: '', balance: '', coin: '', address: '' })
-            setShowTxModal(true)
+            console.log('res', res)
+            console.log(typeof res)
+            if (res === -1) {
+              setLoading(false)
+              alert('Incorrect password. If forgotten, you can reset it with your private key')
+              return
+            } else {
+              setShowTxModal(true)
+              if (res.result.status === 'success') {
+                setFromValues({ amount: '', balance: '', coin: '', address: '' });
+                setToValues({ amount: '', balance: '', coin: '', address: '' })
+              }
+              setLoading(false)
+            }
+
+            //RESET VALUES IF TX FAILS
+            // console.log(res)
+            // if (res !== -1) {
+            //   if (res.result.status === "success") {
+            //     setFromValues({ amount: '', balance: '', coin: '', address: '' });
+            //     setToValues({ amount: '', balance: '', coin: '', address: '' })
+            //   }
+            // }
           }}
         >
           {getButtonLabel()}

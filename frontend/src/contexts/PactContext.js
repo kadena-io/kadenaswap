@@ -1,5 +1,7 @@
 import React, { useState, createContext, useEffect } from 'react';
 import Pact from "pact-lang-api";
+import AES from 'crypto-js/aes'
+import CryptoJS from 'crypto-js'
 
 const keepDecimal = decimal => {
   decimal = parseFloat(decimal).toPrecision(13)
@@ -7,12 +9,14 @@ const keepDecimal = decimal => {
   return num
 }
 
+
 export const PactContext = createContext();
 
 const savedAcct = localStorage.getItem('acct');
 const savedPrivKey = localStorage.getItem('pk');
 const savedNetwork = localStorage.getItem('network');
-const savedSlippage = localStorage.getItem('slippage')
+const savedSlippage = localStorage.getItem('slippage');
+const savedSigning = localStorage.getItem('signing');
 
 const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact";
 const chainId = "0";
@@ -20,7 +24,26 @@ const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 
 export const PactProvider = (props) => {
 
-  // const network = "http://localhost:9001"
+
+  //
+  // const test = async () => {
+  //   const k = await CryptoJS.RC4Drop.encrypt('hi', 'there');
+  //   console.log(k)
+  //   //NOT WORKING
+  //   JSON.stringify(k)
+  //   const s = await CryptoJS.RC4Drop.decrypt(k, 'there')
+  //
+  //   console.log(s)
+  //   console.log(typeof s.toString(CryptoJS.enc.Utf8))
+  //   console.log(typeof s)
+  //   if (s.sigBytes >= 0) {
+  //     console.log('w')
+  //   } else {
+  //     console.log('didnt')
+  //   }
+  // }
+  // test()
+
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
   const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""));
@@ -43,6 +66,7 @@ export const PactProvider = (props) => {
   const [pairList, setPairList] = useState("")
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
+  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'pk', key: null })
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
@@ -51,6 +75,11 @@ export const PactProvider = (props) => {
   useEffect(() => {
     if (account.account) setVerifiedAccount(account.account)
   }, [])
+
+  useEffect(() => {
+    const store = async () => localStorage.setItem('signing', JSON.stringify(signing));
+    store()
+  }, [signing])
 
 
   const getCorrectBalance = (balance) => {
@@ -471,6 +500,15 @@ export const PactProvider = (props) => {
 
   const swapLocal = async (token0, token1, isSwapIn) => {
     try {
+      let privKey = signing.key
+      if (signing.method === 'pk+pw') {
+        const pw = prompt("please enter your password")
+        privKey = await decryptKey(pw)
+      }
+      console.log(privKey)
+      if (privKey.length !== 64) {
+        return
+      }
       const ct = creationTime();
       console.log(account.account)
       let pair = await getPairAccount(token0.address, token1.address);
@@ -513,8 +551,10 @@ export const PactProvider = (props) => {
       let data = await Pact.fetch.local(cmd, network);
       setLocalRes(data);
       console.log(data);
+      return data;
     } catch (e) {
       setLocalRes({});
+      return -1
       console.log(e)
     }
   }
@@ -537,13 +577,6 @@ export const PactProvider = (props) => {
     const res = await Pact.fetch.listen({listen: reqKey}, network);
     console.log(res);
     setSendRes(res);
-    // console.log(res)
-    // if (res.result.status === 'success') {
-    //   setSendRes(res)
-    //   console.log('success send')
-    // } else {
-    //   console.log('fail send')
-    // }
   }
 
   const getAccountTokenList = async (account) => {
@@ -586,15 +619,40 @@ export const PactProvider = (props) => {
     return Number(amount)/(Number(pairReserve["token0"])+Number(amount));
   }
 
-  const storePrivKey = async (pk) => {
-    await setPrivKey(pk)
-    await localStorage.setItem('pk', pk);
-  }
-
   const clearSendRes = () => {
     setVerifiedAccount(account.account)
     setSendRes(null);
   }
+
+  const storePrivKey = async (pk) => {
+    setSigning({ method: 'pk', key: pk });
+    await setPrivKey(pk)
+    await localStorage.setItem('pk', pk);
+  }
+
+  const setSigningMethod = async (meth) => {
+    await setSigning({ ...signing, method: meth })
+  }
+
+  const signingWallet = () => {
+    setSigning({ method: 'sign', key: null })
+  }
+
+  const decryptKey = async (pw) => {
+    const singing = await localStorage.getItem('signing');
+    const encrypted = signing.key
+    const decryptedObj = CryptoJS.RC4Drop.decrypt(encrypted, pw)
+    if (decryptedObj.sigBytes < 0) return null
+    return decryptedObj.toString(CryptoJS.enc.Utf8)
+  }
+
+  const encryptKey = async (pk, pw) => {
+    console.log(pk, pw)
+    const encrypted = CryptoJS.RC4Drop.encrypt(pk, pw);
+    setSigning({ method: 'pk+pw', key: encrypted })
+  }
+
+
 
   return (
     <PactContext.Provider
@@ -642,7 +700,11 @@ export const PactProvider = (props) => {
         poolBalance,
         pair,
         sendRes,
-        clearSendRes
+        clearSendRes,
+        signing,
+        setSigningMethod,
+        encryptKey,
+        signingWallet
       }}
     >
       {props.children}
