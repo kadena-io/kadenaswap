@@ -146,10 +146,9 @@ const Header = () => {
         />
         */}
         <Item className="mobile-none" to="#">
-          <Modal
-            trigger={<Button>Wallet</Button>}
-            content={<KdaModal/>}
-            actions={[{ key: 'update', content:'update', positive: true}]}
+
+          <KdaModal
+            // trigger={<Button>Wallet</Button>}
           />
         </Item>
         <Item to="#">

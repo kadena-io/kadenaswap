@@ -5,9 +5,12 @@ import Button from '../../components/shared/Button';
 import { PactContext } from '../../contexts/PactContext'
 
 export default function Account() {
+
   const pact = useContext(PactContext);
+
   const [fromInput, setInputValue] = useState({ account: pact.account.account });
   const [toggle, setToggle] = useState(false)
+  const [method, setMethod] = useState(pact.signing.method)
   const [pk, setPk] = useState("")
   const [pw, setPw] = useState("")
   const [pwConf, setPwConf] = useState("")
@@ -20,16 +23,27 @@ export default function Account() {
   }
 
   const checkKey = (key) => {
-     if (key.length !== 64) {
-         return false
-     } else if (!is_hexadecimal(key)){
-         return false
-     }
-     return true;
+    try {
+      if (key.length !== 64) {
+          return false
+      } else if (!is_hexadecimal(key)){
+          return false
+      }
+      return true;
+    } catch (e) {
+      console.log(e);
+      return false
+    }
   }
 
   return (
-    <>
+    <Modal
+      trigger={<Button>Wallet</Button>}
+      onClose={() => setOpen(false)}
+      onOpen={() => setOpen(true)}
+      open={open}
+      closeIcon
+    >
     <Modal.Content image>
       <Modal.Description>
         <Header>
@@ -69,8 +83,8 @@ export default function Account() {
         <Menu color="purple" widths={3} >
           <Menu.Item
             name='pk'
-            active={pact.signing.method === 'pk'}
-            onClick={() => pact.setSigningMethod('pk')}
+            active={method === 'pk'}
+            onClick={() => setMethod('pk')}
             disabled={!toggle}
           >
             <Icon name='warning sign' />
@@ -79,8 +93,8 @@ export default function Account() {
 
           <Menu.Item
             name='pk+pw'
-            active={pact.signing.method === 'pk+pw'}
-            onClick={() => pact.setSigningMethod('pk+pw')}
+            active={method === 'pk+pw'}
+            onClick={() => setMethod('pk+pw')}
             disabled={!toggle}
           >
             <Icon name='lock' />
@@ -89,8 +103,8 @@ export default function Account() {
 
           <Menu.Item
             name='sign'
-            active={pact.signing.method === 'sign'}
-            onClick={() => pact.setSigningMethod('sign')}
+            active={method === 'sign'}
+            onClick={() => setMethod('sign')}
             disabled={!toggle}
           >
             <Icon name='signup' />
@@ -102,46 +116,47 @@ export default function Account() {
           ?
             <></>
           :
-            (pact.signing.method === 'pk'
+            (method === 'pk'
               ?
                 <>
-                <Header>{"Your Private Key"}</Header>
-                <Input
-                  value={pact.signing.key}
-                  onChange={(e, { value }) => pact.storePrivKey(value)}
-                  // error={!checkKey(pact.signing.key)}
-                />
+                  <Header>{"Your Private Key"}</Header>
+                  <Input
+                    value={pk}
+                    onChange={(e, { value }) => setPk(value)}
+                    error={(pk !== "" ? !checkKey(pk) : false)}
+                  />
                 </>
               :
-                (pact.signing.method === 'pk+pw'
+                (method === 'pk+pw'
                   ?
                     <>
-                    <Header>{"Your Private Key"}</Header>
-                    <Input
-                      value={pk}
-                      onChange={(e, { value }) => setPk(value)}
-                      error={!checkKey(pk)}
-                    />
-                    <Header>{"Your Password"}</Header>
-                    <Input
-                      value={pw}
-                      onChange={(e, { value }) => setPw(value)}
-                      type='password'
-                      error={pw !== pwConf}
-                    />
-                    <Header>{"Confirm Password"}</Header>
-                    <Input
-                      value={pwConf}
-                      onChange={(e, { value }) => setPwConf(value)}
-                      type='password'
-                      error={pw !== pwConf}
-                    />
+                      <Header>{"Your Private Key"}</Header>
+                      <Input
+                        value={pk}
+                        onChange={(e, { value }) => setPk(value)}
+                        error={(pk !== "" ? !checkKey(pk) : false)}
+                      />
+                      <Header>{"Your Password"}</Header>
+                      <Input
+                        value={pw}
+                        onChange={(e, { value }) => setPw(value)}
+                        type='password'
+                        error={pw !== pwConf}
+                      />
+                      <Header>{"Confirm Password"}</Header>
+                      <Input
+                        value={pwConf}
+                        onChange={(e, { value }) => setPwConf(value)}
+                        type='password'
+                        error={pw !== pwConf}
+                      />
                     </>
                   :
                     <></>
                 )
             )
         )}
+        {/*
         <Header>{"[TESTING] Your Private Key"}</Header>
         <Input
           value={pact.privKey}
@@ -149,21 +164,39 @@ export default function Account() {
           type='password'
           error={!checkKey(pact.privKey)}
         />
+        */}
       </Modal.Description>
+
       </Modal.Content>
-      {/*
       <Modal.Actions>
-        <Button
-          onClick={async () => {
-            try{
-              await pact.setVerifiedAccount(fromInput.account);
-            } catch (e){
-              console.log(e)
-            }
-          }}
-        >Connect</Button>
+        {(!toggle
+          ?
+            <></>
+          :
+            <>
+              <Button
+                onClick={() => {
+                  setOpen(false)
+                }}
+              >
+                <Icon name='cancel' />
+                cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (method === 'pk') await pact.storePrivKey(pk)
+                  if (method === 'pk+pw') await pact.encryptKey(pk, pw)
+                  if (method === 'sign') await pact.signingWallet()
+                  setOpen(false)
+                }}
+                // disabled={}
+              >
+                <Icon name='lock' />
+                update
+              </Button>
+            </>
+        )}
       </Modal.Actions>
-      */}
-    </>
+    </Modal>
   )
 }

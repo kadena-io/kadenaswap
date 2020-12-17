@@ -1,11 +1,14 @@
 import React, { useState, createContext, useEffect } from 'react';
 import Pact from "pact-lang-api";
+import AES from 'crypto-js/aes'
+import CryptoJS from 'crypto-js'
 
 const keepDecimal = decimal => {
   decimal = parseFloat(decimal).toPrecision(13)
   const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
   return num
 }
+
 
 export const PactContext = createContext();
 
@@ -20,6 +23,25 @@ const chainId = "0";
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 
 export const PactProvider = (props) => {
+
+
+
+  const test = async () => {
+    const k = await AES.encrypt('hi', 'there');
+    console.log(k)
+    JSON.stringify(k)
+    const s = await AES.decrypt(k, 'there')
+
+    console.log(s)
+    console.log(typeof s.toString(CryptoJS.enc.Utf8))
+    console.log(typeof s)
+    if (s.sigBytes >= 0) {
+      console.log('w')
+    } else {
+      console.log('didnt')
+    }
+  }
+  test()
 
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
@@ -43,7 +65,7 @@ export const PactProvider = (props) => {
   const [pairList, setPairList] = useState("")
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
-  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : {method: 'pk', key: null, password: null})
+  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'pk', key: null })
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
@@ -517,6 +539,7 @@ export const PactProvider = (props) => {
       let data = await Pact.fetch.local(cmd, network);
       setLocalRes(data);
       console.log(data);
+      return data;
     } catch (e) {
       setLocalRes({});
       console.log(e)
@@ -590,7 +613,13 @@ export const PactProvider = (props) => {
     return Number(amount)/(Number(pairReserve["token0"])+Number(amount));
   }
 
+  const clearSendRes = () => {
+    setVerifiedAccount(account.account)
+    setSendRes(null);
+  }
+
   const storePrivKey = async (pk) => {
+    setSigning({ method: 'pk', key: pk });
     await setPrivKey(pk)
     await localStorage.setItem('pk', pk);
   }
@@ -599,10 +628,25 @@ export const PactProvider = (props) => {
     await setSigning({ ...signing, method: meth })
   }
 
-  const clearSendRes = () => {
-    setVerifiedAccount(account.account)
-    setSendRes(null);
+  const signingWallet = () => {
+    setSigning({ method: 'sign', key: null })
   }
+
+  const decryptKey = async (pw) => {
+    const singing = await localStorage.getItem('signing');
+    const encrypted = signing.key
+    const decryptedObj = AES.decrypt(encrypted, pw)
+    if (decryptedObj.sigBytes < 0) return null
+    return decryptedObj.toString(CryptoJS.enc.Utf8)
+  }
+
+  const encryptKey = async (pk, pw) => {
+    console.log(pk, pw)
+    const encrypted = AES.encrypt(pk, pw);
+    setSigning({ method: 'pk+pw', key: encrypted })
+  }
+
+
 
   return (
     <PactContext.Provider
@@ -652,7 +696,9 @@ export const PactProvider = (props) => {
         sendRes,
         clearSendRes,
         signing,
-        setSigningMethod
+        setSigningMethod,
+        encryptKey,
+        signingWallet
       }}
     >
       {props.children}

@@ -143,6 +143,7 @@ const SwapContainer = () => {
 
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
+    //TO BE MODIFIED WITH NEW WALLET METHOD
     if (!pact.privKey) return 'Enter your KDA account private key';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
     if (fetchingPair) return "Fetching Pair..."
@@ -245,15 +246,16 @@ const SwapContainer = () => {
           loading={loading}
           onClick={async () => {
             setLoading(true)
-            await pact.swapLocal(
+            const res = await pact.swapLocal(
                 { amount: fromValues.amount, address: fromValues.address },
                 { amount: toValues.amount, address: toValues.address },
                 (fromNote === "(estimated)" ? false : true)
               )
-            setLoading(false)
-            setFromValues({ amount: '', balance: '', coin: '', address: '' });
-            setToValues({ amount: '', balance: '', coin: '', address: '' })
             setShowTxModal(true)
+            if (res.result.status === "success") {
+              setFromValues({ amount: '', balance: '', coin: '', address: '' });
+              setToValues({ amount: '', balance: '', coin: '', address: '' })
+            }
           }}
         >
           {getButtonLabel()}
