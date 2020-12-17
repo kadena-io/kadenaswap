@@ -27,10 +27,11 @@ export const PactProvider = (props) => {
 
 
   const test = async () => {
-    const k = await AES.encrypt('hi', 'there');
+    const k = await CryptoJS.RC4Drop.encrypt('hi', 'there');
     console.log(k)
+    //NOT WORKING
     JSON.stringify(k)
-    const s = await AES.decrypt(k, 'there')
+    const s = await CryptoJS.RC4Drop.decrypt(k, 'there')
 
     console.log(s)
     console.log(typeof s.toString(CryptoJS.enc.Utf8))
@@ -635,14 +636,14 @@ export const PactProvider = (props) => {
   const decryptKey = async (pw) => {
     const singing = await localStorage.getItem('signing');
     const encrypted = signing.key
-    const decryptedObj = AES.decrypt(encrypted, pw)
+    const decryptedObj = CryptoJS.RC4Drop.decrypt(encrypted, pw)
     if (decryptedObj.sigBytes < 0) return null
     return decryptedObj.toString(CryptoJS.enc.Utf8)
   }
 
   const encryptKey = async (pk, pw) => {
     console.log(pk, pw)
-    const encrypted = AES.encrypt(pk, pw);
+    const encrypted = CryptoJS.RC4Drop.encrypt(pk, pw);
     setSigning({ method: 'pk+pw', key: encrypted })
   }
 

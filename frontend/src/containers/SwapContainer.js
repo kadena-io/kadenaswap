@@ -144,7 +144,7 @@ const SwapContainer = () => {
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
     //TO BE MODIFIED WITH NEW WALLET METHOD
-    if (!pact.privKey) return 'Enter your KDA account private key';
+    // if (!pact.privKey) return 'Enter your KDA account private key';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
     if (fetchingPair) return "Fetching Pair..."
     if (isNaN(pact.ratio)) return 'Pair does not exist!'
