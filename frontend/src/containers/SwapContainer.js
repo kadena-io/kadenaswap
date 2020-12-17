@@ -141,10 +141,19 @@ const SwapContainer = () => {
     if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
   };
 
+  const hasWallet = () => {
+    if (pact.signing.method === 'sign') return true
+    if (pact.signing.method === 'pk') {
+      return pact.signing.key.length === 64
+    }
+    if (pact.signing.method === 'pk+pw') {
+      return typeof pact.signing.key === 'object'
+    }
+  }
+
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
-    //TO BE MODIFIED WITH NEW WALLET METHOD
-    // if (!pact.privKey) return 'Enter your KDA account private key';
+    if (!hasWallet()) return 'Set up your KDA account signing';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
     if (fetchingPair) return "Fetching Pair..."
     if (isNaN(pact.ratio)) return 'Pair does not exist!'
@@ -265,15 +274,6 @@ const SwapContainer = () => {
               }
               setLoading(false)
             }
-
-            //RESET VALUES IF TX FAILS
-            // console.log(res)
-            // if (res !== -1) {
-            //   if (res.result.status === "success") {
-            //     setFromValues({ amount: '', balance: '', coin: '', address: '' });
-            //     setToValues({ amount: '', balance: '', coin: '', address: '' })
-            //   }
-            // }
           }}
         >
           {getButtonLabel()}
