@@ -23,8 +23,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
-      - name: Run repl tests
+        
+      - name: Get pact binary
         run: |
           mkdir bin
           cd bin
@@ -32,7 +32,16 @@ jobs:
           unzip "pact*.zip"
           chmod +x pact
           cd ..
+
+      - name: pact/exchange.repl
+        run: |
           bin/pact -t pact/exchange.repl > out.log 2>&1
+          cat out.log
+          r=`tail -1 out.log | grep "Load successful"`
+          if [ -n "$r" ]; then exit 0; else echo "Pact run failed."; exit 1; fi
+      - name: pact/test/test.repl
+        run: |
+          bin/pact -t pact/test/test.repl > out.log 2>&1
           cat out.log
           r=`tail -1 out.log | grep "Load successful"`
           if [ -n "$r" ]; then exit 0; else echo "Pact run failed."; exit 1; fi
