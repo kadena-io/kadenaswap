@@ -143,23 +143,18 @@ const SwapContainer = () => {
 
   const hasWallet = () => {
     if (pact.signing.method === 'sign') return true
-    if (pact.signing.method === 'pk') {
-      return pact.signing.key.length === 64
-    }
-    if (pact.signing.method === 'pk+pw') {
-      return typeof pact.signing.key === 'object'
-    }
+    if (pact.signing.method === 'pk') return true
+    if (pact.signing.method === 'pk+pw') return true
   }
 
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA account';
-    if (!hasWallet()) return 'Set up your KDA account signing';
+    if (!hasWallet()) return 'Set up your KDA wallet';
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
     if (fetchingPair) return "Fetching Pair..."
     if (isNaN(pact.ratio)) return 'Pair does not exist!'
     if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
-    // if (toValues.amount > toValues.balance) return `Insufficient ${toValues.coin} balance`
     return 'SWAP';
   };
 
