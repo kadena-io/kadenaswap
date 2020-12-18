@@ -81,23 +81,14 @@ const LiquidityContainer = (props) => {
     }
   };
 
-  const setTokenAmount = (amount1, amount2) => {
-    if (amount1) {
-      setFromValues((prev) => ({ ...prev, amount: reduceBalance(amount1) }));
-      setToValues((prev) => ({ ...prev, amount: reduceBalance(amount1 * pact.getRatio(toValues.coin, fromValues.coin)) }));
-    } else if (amount2){
-      setToValues((prev) => ({ ...prev, amount: reduceBalance(amount2)}));
-      setFromValues((prev) => ({ ...prev, amount: reduceBalance(amount2 * pact.getRatio1(toValues.coin, fromValues.coin)) }));
-    }
-  }
   useEffect(() => {
     if (inputSide === 'from' && fromValues.amount !== "") {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (fromValues.amount.length < 5) {
-          throttle(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+          throttle(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toPrecision(13) }))
         } else {
-          debounce(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+          debounce(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toPrecision(13) }))
         }
       }
     }
@@ -111,9 +102,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (toValues.amount.length < 5) {
-          throttle(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+          throttle(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toPrecision(13) }))
         } else {
-          debounce(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+          debounce(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toPrecision(13) }))
         }
       }
     }
