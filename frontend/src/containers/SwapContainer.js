@@ -112,6 +112,15 @@ const SwapContainer = () => {
     getReserves();
   }, [fromValues.coin, toValues.coin])
 
+  useEffect(() => {
+    if (pact.walletSuccess) {
+      setLoading(false)
+      setFromValues({ amount: '', balance: '', coin: '', address: '' });
+      setToValues({ amount: '', balance: '', coin: '', address: '' })
+      pact.setWalletSuccess(false)
+    }
+  }, [pact.walletSuccess])
+
 
   const swapValues = () => {
     const from = { ...fromValues };
@@ -250,25 +259,35 @@ const SwapContainer = () => {
           loading={loading}
           onClick={async () => {
             setLoading(true)
-            const res = await pact.swapLocal(
+            if (pact.signing.method !== 'sign') {
+              const res = await pact.swapLocal(
+                  { amount: fromValues.amount, address: fromValues.address },
+                  { amount: toValues.amount, address: toValues.address },
+                  (fromNote === "(estimated)" ? false : true)
+                )
+              console.log('res', res)
+              console.log(typeof res)
+              if (res === -1) {
+                setLoading(false)
+                alert('Incorrect password. If forgotten, you can reset it with your private key')
+                return
+              } else {
+                setShowTxModal(true)
+                if (res.result.status === 'success') {
+                  setFromValues({ amount: '', balance: '', coin: '', address: '' });
+                  setToValues({ amount: '', balance: '', coin: '', address: '' })
+                }
+                setLoading(false)
+              }
+            } else {
+              pact.swapWallet(
                 { amount: fromValues.amount, address: fromValues.address },
                 { amount: toValues.amount, address: toValues.address },
                 (fromNote === "(estimated)" ? false : true)
               )
-            console.log('res', res)
-            console.log(typeof res)
-            if (res === -1) {
-              setLoading(false)
-              alert('Incorrect password. If forgotten, you can reset it with your private key')
-              return
-            } else {
-              setShowTxModal(true)
-              if (res.result.status === 'success') {
-                setFromValues({ amount: '', balance: '', coin: '', address: '' });
-                setToValues({ amount: '', balance: '', coin: '', address: '' })
-              }
-              setLoading(false)
+              // setLoading(false)
             }
+
           }}
         >
           {getButtonLabel()}

@@ -18,7 +18,7 @@ const Container = styled.div`
   align-items: center;
 `;
 
-const WrapContainer = () => {
+const WrapContainer = (props) => {
   const [activeItem, setActiveItem] = useState(0);
   const [showTokenSelector, setShowTokenSelector] = useState(false);
   const [selectedToken, setSelectedToken] = useState(null);
@@ -36,7 +36,10 @@ const WrapContainer = () => {
     <Container>
       <Modal
         basic
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          props.history.goBack()
+          setOpen(false)
+        }}
         onOpen={() => setOpen(true)}
         open={open}
         size='small'

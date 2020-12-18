@@ -67,6 +67,7 @@ export const PactProvider = (props) => {
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
   const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" })
+  const [walletSuccess, setWalletSuccess] = useState(false)
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
@@ -559,6 +560,54 @@ export const PactProvider = (props) => {
     }
   }
 
+  const swapWallet = async (token0, token1, isSwapIn) => {
+    try {
+      console.log(Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, parseFloat(keepDecimal(token0.amount*(1+slippage)))]))
+      const inPactCode = `(swap.exchange.swap-exact-in
+          ${keepDecimal(token0.amount)}
+          ${keepDecimal(token1.amount*(1-slippage))}
+          [${token0.address} ${token1.address}]
+          ${JSON.stringify(account.account)}
+          ${JSON.stringify(account.account)}
+          (read-keyset 'user-ks)
+          (at 'block-time (chain-data))
+        )`
+      const outPactCode = `(swap.exchange.swap-exact-out
+          ${keepDecimal(token1.amount)}
+          ${keepDecimal(token0.amount*(1+slippage))}
+          [${token0.address} ${token1.address}]
+          ${JSON.stringify(account.account)}
+          ${JSON.stringify(account.account)}
+          (read-keyset 'user-ks)
+          (at 'block-time (chain-data))
+        )`
+      const signCmd = {
+        pactCode: (isSwapIn ? inPactCode : outPactCode),
+        caps: [
+          Pact.lang.mkCap("Gas capability", "pay gas", "coin.GAS", []),
+          Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, parseFloat(keepDecimal(token0.amount*(1+slippage)))]),
+        ],
+        sender: account.account,
+        gasLimit: 3000,
+        chainId: chainId,
+        ttl: 600,
+        envData: { "user-ks": account.guard }
+      }
+      const cmd = await Pact.wallet.sign(signCmd);
+      setWalletSuccess(true)
+      const res = await Pact.wallet.sendSigned(cmd, network);
+      //this is a small hack to get the polling header widget to work
+      setLocalRes({ reqKey: res.requestKeys[0] })
+      setPolling(true)
+      await listen(res.requestKeys[0]);
+      setPolling(false)
+    } catch (e) {
+      alert("you cancelled the TX or you did not have the wallet app open")
+      console.log(e)
+    }
+
+  }
+
   const swapSend = async () => {
     setPolling(true)
     try {
@@ -704,7 +753,10 @@ export const PactProvider = (props) => {
         signing,
         setSigningMethod,
         encryptKey,
-        signingWallet
+        signingWallet,
+        swapWallet,
+        walletSuccess,
+        setWalletSuccess
       }}
     >
       {props.children}

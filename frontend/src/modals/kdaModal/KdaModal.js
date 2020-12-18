@@ -8,7 +8,7 @@ export default function Account() {
 
   const pact = useContext(PactContext);
 
-  const [fromInput, setInputValue] = useState((pact.account.account ? pact.account.account : ""))
+  const [fromInput, setInputValue] = useState({ account: pact.account.account });
   const [toggle, setToggle] = useState(false)
   const [method, setMethod] = useState(pact.signing.method)
   const [pk, setPk] = useState("")
@@ -16,6 +16,8 @@ export default function Account() {
   const [pwConf, setPwConf] = useState("")
   const [open, setOpen] = React.useState(false)
   const [temp, setTemp] = useState("")
+
+  console.log('acct', fromInput.account)
 
   const is_hexadecimal = (str) => {
      const regexp = /^[0-9a-fA-F]+$/;
@@ -44,10 +46,20 @@ export default function Account() {
     return false
   }
 
+  const resetValues = () => {
+    setToggle(false);
+    setPk("");
+    setPw("");
+    setPwConf("")
+  }
+
   return (
     <Modal
       trigger={<Button>Wallet</Button>}
-      onClose={() => setOpen(false)}
+      onClose={() => {
+        resetValues()
+        setOpen(false)
+      }}
       onOpen={() => setOpen(true)}
       open={open}
       closeIcon
@@ -115,8 +127,7 @@ export default function Account() {
             name='sign'
             active={method === 'sign'}
             onClick={() => setMethod('sign')}
-            // disabled={!toggle}
-            disabled={true}
+            disabled={!toggle}
           >
             <Icon name='signup' />
             Chainweaver Signing (safest)
@@ -228,6 +239,7 @@ export default function Account() {
       <Modal.Actions>
         <Button
           onClick={() => {
+            resetValues()
             setOpen(false)
           }}
         >
@@ -245,6 +257,7 @@ export default function Account() {
                   if (method === 'pk') await pact.storePrivKey(pk)
                   if (method === 'pk+pw') await pact.encryptKey(pk, pw)
                   if (method === 'sign') await pact.signingWallet()
+                  resetValues();
                   setOpen(false)
                 }}
                 disabled={!canSubmit()}
