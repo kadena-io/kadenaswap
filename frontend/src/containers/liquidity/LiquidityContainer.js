@@ -8,6 +8,7 @@ import ButtonDivider from '../../components/shared/ButtonDivider';
 import Button from '../../components/shared/Button';
 import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import TokenSelector from '../../components/shared/TokenSelector';
+import { throttle, debounce } from "throttle-debounce";
 import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
 import reduceBalance from '../../utils/reduceBalance';
@@ -53,6 +54,7 @@ const LiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const liquidityView = props.selectedView;
+  const [inputSide, setInputSide] = useState("")
   const [fromValues, setFromValues] = useState({ ...pact.account, coin: cryptoCurrencies.KDA.code });
   const [toValues, setToValues] = useState({ ...pact.tokenAccount, coin:cryptoCurrencies.ABC.code });
   const [showTxModal, setShowTxModal] = useState(false)
@@ -88,6 +90,37 @@ const LiquidityContainer = (props) => {
       setFromValues((prev) => ({ ...prev, amount: reduceBalance(amount2 * pact.getRatio1(toValues.coin, fromValues.coin)) }));
     }
   }
+  useEffect(() => {
+    if (inputSide === 'from' && fromValues.amount !== "") {
+      setInputSide(null)
+      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+        if (fromValues.amount.length < 5) {
+          throttle(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+        } else {
+          debounce(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+        }
+      }
+    }
+    if (isNaN(pact.ratio) || fromValues.amount === "") {
+      setToValues((prev) => ({ ...prev, amount: '' }))
+    }
+  }, [fromValues.amount])
+
+  useEffect(() => {
+    if (inputSide === 'to' && toValues.amount !== "") {
+      setInputSide(null)
+      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+        if (toValues.amount.length < 5) {
+          throttle(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+        } else {
+          debounce(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+        }
+      }
+    }
+    if (isNaN(pact.ratio) || toValues.amount === "") {
+      setFromValues((prev) => ({ ...prev, amount: '' }))
+    }
+  }, [toValues.amount])
 
   const buttonStatus = () => {
     let status = {
@@ -153,8 +186,9 @@ const LiquidityContainer = (props) => {
           numberOnly
           value={fromValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('from')}
-          onChange={(e, { value }) => {
-            setTokenAmount(value);
+          onChange={async (e, { value }) => {
+            setInputSide('from')
+            setFromValues((prev) => ({ ...prev, amount: value }))
           }}
         />
         <ButtonDivider icon={<PlusIcon />} buttonStyle={{ cursor: 'default' }} />
@@ -175,7 +209,10 @@ const LiquidityContainer = (props) => {
           numberOnly
           value={toValues.amount}
           onSelectButtonClick={() => setTokenSelectorType('to')}
-          onChange={(e, { value }) => setTokenAmount(null, value)}
+          onChange={async (e, { value }) => {
+            setInputSide('to')
+            setFromValues((prev) => ({ ...prev, amount: value }))
+          }}
         />
         {fromValues.coin && toValues.coin && (
           <>
@@ -190,7 +227,7 @@ const LiquidityContainer = (props) => {
                 <span>{`${fromValues.coin} per ${toValues.coin}`}</span>
               </ColumnContainer>
               <ColumnContainer>
-                <span>{reduceBalance(pact.share(fromValues.amount)*100)}%</span>
+                <span>{!pact.share(fromValues.amount) ? 0 : reduceBalance(pact.share(fromValues.amount)*100)}%</span>
                 <span>Share of Pool</span>
               </ColumnContainer>
             </RowContainer>

@@ -28,7 +28,7 @@ const TokenPair = (props) => {
     pact.getTotalTokenSupply("coin", "free.abc");
     pact.getPooledAmount("coin", "free.abc", pact.account.account);
   }, []);
-
+  console.log(pact.totalSupply)
   return (
           pact.pairAccountBalance!==null ?
           <List>
@@ -70,7 +70,7 @@ const TokenPair = (props) => {
             </Message>
 
         </List>
-        :<Message>No Liquidity Found</Message>
+        :<Message>Connect an account to view your liquidity</Message>
 
   );
 };

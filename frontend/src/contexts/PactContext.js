@@ -146,8 +146,8 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", chainId ,0.01,100000000, 28800, creationTime()),
         }, network);
         if (data.result.status === "success"){
-          console.log(data)
-          setTotalSupply(data.result.data);
+          if (data.result.data.decimal) setTotalSupply(data.result.data.decimal);
+          else setTotalSupply(data.result.data);
           console.log(data.result.data)
         } else {
           console.log("Account is not verified")

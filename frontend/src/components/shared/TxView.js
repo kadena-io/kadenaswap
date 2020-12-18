@@ -84,11 +84,19 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
           <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'red' }}>Remove</Label>
-            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount0"])}`} {showTicker(token0)}</span>
+            <span style={{ color: 'red' }}>{`${
+              pact.localRes.result.data.amount0.decimal
+                ? pact.localRes.result.data.amount0.decimal
+                : pact.localRes.result.data.amount0
+            }`} {showTicker(token0)}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'red' }}>Remove</Label>
-            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount1"])}`} {showTicker(token1)}</span>
+            <span style={{ color: 'red' }}>{`${
+              pact.localRes.result.data.amount1.decimal
+                ? pact.localRes.result.data.amount1.decimal
+                : pact.localRes.result.data.amount1
+            }`} {showTicker(token1)}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
@@ -114,15 +122,25 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
           <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'red' }}>Liquidity Balance</Label>
-            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["liquidity"])}`}</span>
+            <span style={{ color: 'red' }}>{`${  pact.localRes.result.data[0].amount.decimal
+                ? pact.localRes.result.data.liquidity.amount.decimal
+                :pact.localRes.result.data.liquidity.amount}`}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'red' }}>Add</Label>
-            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount0"])}`} {showTicker(token0)}</span>
+            <span style={{ color: 'red' }}>{`${
+              pact.localRes.result.data.amount0.decimal
+                ? pact.localRes.result.data.amount0.decimal
+                : pact.localRes.result.data.amount0
+            }`} {showTicker(token0)}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'red' }}>Add</Label>
-            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount1"])}`} {showTicker(token1)}</span>
+            <span style={{ color: 'red' }}>{
+              pact.localRes.result.data.amount1.decimal
+                ? pact.localRes.result.data.amount1.decimal
+                : pact.localRes.result.data.amount1
+            }} {showTicker(token1)}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
