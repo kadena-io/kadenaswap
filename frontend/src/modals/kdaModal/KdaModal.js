@@ -8,13 +8,14 @@ export default function Account() {
 
   const pact = useContext(PactContext);
 
-  const [fromInput, setInputValue] = useState({ account: pact.account.account });
+  const [fromInput, setInputValue] = useState((pact.account.account ? pact.account.account : ""))
   const [toggle, setToggle] = useState(false)
   const [method, setMethod] = useState(pact.signing.method)
   const [pk, setPk] = useState("")
   const [pw, setPw] = useState("")
   const [pwConf, setPwConf] = useState("")
   const [open, setOpen] = React.useState(false)
+  const [temp, setTemp] = useState("")
 
   const is_hexadecimal = (str) => {
      const regexp = /^[0-9a-fA-F]+$/;
@@ -70,10 +71,11 @@ export default function Account() {
           )}
         </Header>
         <Input
-          error={pact.account.account === null}
+          error={pact.account.account === null && temp !== ""}
           value={fromInput.account}
           onChange={async (e, { value }) => {
             setInputValue(value);
+            setTemp(value)
             await pact.setVerifiedAccount(value);
           }}
         />
@@ -84,7 +86,8 @@ export default function Account() {
               <span>{JSON.stringify(pact.account.guard)}</span>
             </>
           :
-            <Header style={{ color: 'red' }}>{"Account Does Not Exist"}</Header>
+            (temp === "" ? <></> : <Header style={{ color: 'red' }}>{"Account Does Not Exist"}</Header>)
+
         )}
         <Header>{"Signing Method"}</Header>
         <Menu color="purple" widths={3} >
