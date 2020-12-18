@@ -9,7 +9,6 @@ import ButtonDivider from '../../components/shared/ButtonDivider';
 import Button from '../../components/shared/Button';
 import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import TokenPair from './TokenPair';
-import PactWallet from './PactWallet';
 import {PactContext} from '../../contexts/PactContext'
 import reduceBalance from '../../utils/reduceBalance';
 

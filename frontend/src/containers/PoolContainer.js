@@ -8,7 +8,6 @@ import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
 import TokenSelector from '../components/shared/TokenSelector';
-import PactWallet from './liquidity/PactWallet';
 import LiquidityContainer from './liquidity/LiquidityContainer';
 import RemoveLiquidityContainer from './liquidity/RemoveLiquidityContainer';
 import LiquidityList from './liquidity/LiquidityList';

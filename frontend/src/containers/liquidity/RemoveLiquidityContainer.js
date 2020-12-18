@@ -7,7 +7,6 @@ import ButtonDivider from '../../components/shared/ButtonDivider';
 import {default as StyledButton} from '../../components/shared/Button';
 import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import TokenSelector from '../../components/shared/TokenSelector';
-import PactWallet from './PactWallet';
 import { Header, Input, Button, List, Statistic } from 'semantic-ui-react'
 import TxView from '../../components/shared/TxView';
 import { PactContext } from '../../contexts/PactContext'
@@ -61,49 +60,52 @@ const RemoveLiquidityContainer = (props) => {
 
   return (
       <FormContainer title={liquidityView}>
-      <TxView
-        show={showTxModal}
-        onClose={() => setShowTxModal(false)}
-      />
-      <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
-      <Header>Pool Tokens to Remove</Header>
-      <Input
-        value={amount}
-        onChange={(e) => {
-          if (Number(e.target.value)<=100 && Number(e.target.value)>=0){
-            setAmount(e.target.value)
+        <TxView
+          view="removeLiquidity"
+          show={showTxModal}
+          token0={fromValues.coin}
+          token1={toValues.coin}
+          onClose={() => setShowTxModal(false)}
+        />
+        <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
+        <Header>Pool Tokens to Remove</Header>
+        <Input
+          value={amount}
+          onChange={(e) => {
+            if (Number(e.target.value)<=100 && Number(e.target.value)>=0){
+              setAmount(e.target.value)
+            }
+          }}
+          label={{ basic: true, content: '%' }}
+          labelPosition='right'
+          placeholder='Enter Amount to Remove'
+         />
+         <Container>
+           <Button onClick={() => setAmount(25)} >25%</Button>
+           <Button onClick={() => setAmount(50)} >50%</Button>
+           <Button onClick={() => setAmount(75)} >75%</Button>
+           <Button onClick={() => setAmount(100)} >100%</Button>
+         </Container>
+        <Statistic>
+          <Statistic.Value></Statistic.Value>
+          <Statistic.Label>{`${fromValues.coin} / ${toValues.coin} Pool Tokens`}</Statistic.Label>
+        </Statistic>
+        <List>
+          <List.Item>{`${fromValues.coin} / ${toValues.coin}: ${reduceBalance(pact.pairAccountBalance*amount/100)}`}</List.Item>
+          <List.Item>{`Pooled ${fromValues.coin}: ${reduceBalance(pact.poolBalance[0]*amount/100)}`}</List.Item>
+          <List.Item>{`Pooled ${toValues.coin}: ${reduceBalance(pact.poolBalance[1]*amount/100)}`}</List.Item>
+        </List>
+        <StyledButton color='black'
+          loading={loading}
+          onClick={async () => {
+              setLoading(true)
+              await pact.removeLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, reduceBalance(pact.pairAccountBalance*amount/100));
+              setLoading(false)
+              setShowTxModal(true)
           }
-        }}
-        label={{ basic: true, content: '%' }}
-        labelPosition='right'
-        placeholder='Enter Amount to Remove'
-       />
-       <Container>
-         <Button onClick={() => setAmount(25)} >25%</Button>
-         <Button onClick={() => setAmount(50)} >50%</Button>
-         <Button onClick={() => setAmount(75)} >75%</Button>
-         <Button onClick={() => setAmount(100)} >100%</Button>
-       </Container>
-      <Statistic>
-        <Statistic.Value></Statistic.Value>
-        <Statistic.Label>{`${fromValues.coin} / ${toValues.coin} Pool Tokens`}</Statistic.Label>
-      </Statistic>
-      <List>
-        <List.Item>{`${fromValues.coin} / ${toValues.coin}: ${reduceBalance(pact.pairAccountBalance*amount/100)}`}</List.Item>
-        <List.Item>{`Pooled ${fromValues.coin}: ${reduceBalance(pact.poolBalance[0]*amount/100)}`}</List.Item>
-        <List.Item>{`Pooled ${toValues.coin}: ${reduceBalance(pact.poolBalance[1]*amount/100)}`}</List.Item>
-      </List>
-      <StyledButton color='black'
-        loading={loading}
-        onClick={async () => {
-            setLoading(true)
-            await pact.removeLiquidity( cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, reduceBalance(pact.pairAccountBalance*amount/100));
-            setLoading(false)
-            // setShowTxModal(true)
-        }
-      }>
-        Remove Liquidity
-      </StyledButton>
+        }>
+          Remove Liquidity
+        </StyledButton>
       </FormContainer>
   );
 };

@@ -38,7 +38,7 @@ const Divider = styled.div`
 `;
 
 
-const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
+const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1}) => {
 
   const pact = useContext(PactContext);
 
@@ -59,6 +59,70 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
           <RowContainer>
             <Label style={{ marginBottom: 4 }}>Receive</Label>
             <span>{`${pact.localRes.result.data[1].amount} ${showTicker(pact.localRes.result.data[1].token)}`}</span>
+          </RowContainer>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
+            <span style={{ color: 'black' }}>{`${pact.localRes.gas*0.00000000001} KDA`}</span>
+          </RowContainer>
+        </Message>
+        <Button
+          onClick={async () => {
+            pact.swapSend();
+            onClose()
+          }}
+        >
+          Send Transaction
+        </Button>
+      </>
+    )
+  }
+
+  const successRemoveView = () => {
+    return (
+      <>
+        <Message color='green'>
+          <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'red' }}>Remove</Label>
+            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount0"])}`} {showTicker(token0)}</span>
+          </RowContainer>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'red' }}>Remove</Label>
+            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount1"])}`} {showTicker(token1)}</span>
+          </RowContainer>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
+            <span style={{ color: 'black' }}>{`${pact.localRes.gas*0.00000000001} KDA`}</span>
+          </RowContainer>
+        </Message>
+        <Button
+          onClick={async () => {
+            pact.swapSend();
+            onClose()
+          }}
+        >
+          Send Transaction
+        </Button>
+      </>
+    )
+  }
+
+  const successAddView = () => {
+    return (
+      <>
+        <Message color='green'>
+          <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'red' }}>Liquidity Balance</Label>
+            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["liquidity"])}`}</span>
+          </RowContainer>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'red' }}>Add</Label>
+            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount0"])}`} {showTicker(token0)}</span>
+          </RowContainer>
+          <RowContainer>
+            <Label style={{ marginBottom: 4, color: 'red' }}>Add</Label>
+            <span style={{ color: 'red' }}>{`${JSON.stringify(pact.localRes.result.data["amount1"])}`} {showTicker(token1)}</span>
           </RowContainer>
           <RowContainer>
             <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
@@ -133,7 +197,11 @@ const TxView = ({ show, selectedToken, onTokenClick, onClose }) => {
                 :
                   (pact.localRes.result.status === 'success'
                   ?
-                    successView()
+                    !view
+                    ? successView()
+                    : view==="addLiquidity"
+                      ? successAddView()
+                      : successRemoveView()
                   :
                     failView()
                   )

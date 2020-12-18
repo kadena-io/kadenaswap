@@ -8,10 +8,10 @@ import ButtonDivider from '../../components/shared/ButtonDivider';
 import Button from '../../components/shared/Button';
 import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import TokenSelector from '../../components/shared/TokenSelector';
-import PactWallet from './PactWallet';
 import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
 import reduceBalance from '../../utils/reduceBalance';
+import TxView from '../../components/shared/TxView';
 
 const Container = styled.div`
   display: flex;
@@ -62,6 +62,7 @@ const LiquidityContainer = (props) => {
     await pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
     await pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
     await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
+    await pact.getPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
     if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
     return setSelectedToken(null);
@@ -88,8 +89,46 @@ const LiquidityContainer = (props) => {
     }
   }
 
+  const buttonStatus = () => {
+    let status = {
+      0: {msg: "Connect Wallet", status: false},
+      1: {msg: "Enter An Amount", status: true},
+      2: {msg: "Supply", status: true},
+      3: {msg: (token) => `Insufficient ${token} Balance`, status: false},
+      4: {msg:"Pair Already Exists", status: false},
+      5: {msg: "Select different tokens", status: false}
+    }
+    if (!fromValues.amount && !toValues.amount) return status[1];
+    else if (props.liquidityView==="Create A Pair" && pact.pair) return status[4];
+    else if (!pact.account.account || (fromValues.amount > pact.tokenFromAccount.balance)) return {...status[3], msg: status[3].msg(fromValues.coin)};
+    else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
+    else if (fromValues.coin === toValues.coin) return status[5];
+    else return status[2];
+  }
+
+  const supply = async () => {
+      if (props.liquidityView==="Create A Pair"){
+        // setLoading(true)
+        await pact.createTokenPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount).then(console.log)
+        // setLoading(false)
+        // setShowTxModal(true)
+      } else{
+        setLoading(true)
+        await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
+        setLoading(false)
+        setShowTxModal(true)
+      }
+  }
+
   return (
       <FormContainer title={liquidityView}>
+        <TxView
+          view="addLiquidity"
+          show={showTxModal}
+          token0={fromValues.coin}
+          token1={toValues.coin}
+          onClose={() => setShowTxModal(false)}
+        />
         <TokenSelector
           show={tokenSelectorType !== null}
           selectedToken={selectedToken}
@@ -157,11 +196,13 @@ const LiquidityContainer = (props) => {
             </RowContainer>
           </>
         )}
-        <PactWallet
-          toValues={toValues}
-          fromValues={fromValues}
-          liquidityView = {liquidityView}
-        />
+        <Button
+          disabled={!buttonStatus().status}
+          buttonStyle={{ marginTop: 24, marginRight: 0 }}
+          loading={loading}
+          onClick={supply}>
+          {buttonStatus().msg}
+        </Button>
       </FormContainer>
   );
 };

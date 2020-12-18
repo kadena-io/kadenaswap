@@ -171,7 +171,7 @@ export const PactProvider = (props) => {
         }, network);
       Pact.fetch.listen({listen: data.requestKeys[0]}, network)
       .then(() => {
-        addLiquidity(token0, token1, amountDesired0, amountDesired1);
+        // addLiquidity(token0, token1, amountDesired0, amountDesired1);
       })
     } catch (e) {
       console.log(e)
@@ -183,7 +183,7 @@ export const PactProvider = (props) => {
       let pair = await getPairAccount(token0, token1);
       let amount0Decimal = keepDecimal(amountDesired0);
       let amount1Decimal = keepDecimal(amountDesired1);
-      let data = await Pact.fetch.local({
+      let cmd = {
           pactCode: `(swap.exchange.add-liquidity
               ${token0}
               ${token1}
@@ -209,7 +209,9 @@ export const PactProvider = (props) => {
           },
           meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
           networkId: "testnet04"
-        }, network);
+        };
+      let data = await Pact.fetch.local(cmd, network);
+        setCmd(cmd);
         console.log(data);
         setLocalRes(data);
         console.log(localRes);
@@ -220,49 +222,58 @@ export const PactProvider = (props) => {
   }
 
 
-  const addLiquidity = async (token0, token1, amountDesired0, amountDesired1) => {
-    try {
-      let pair = await getPairAccount(token0, token1);
-      let data = await Pact.fetch.send({
-          pactCode: `(swap.exchange.add-liquidity
-              ${token0}
-              ${token1}
-              ${keepDecimal(amountDesired0)}
-              ${keepDecimal(amountDesired1)}
-              ${keepDecimal(amountDesired0*(1-0.003))}
-              ${keepDecimal(amountDesired1*(1-0.003))}
-              ${JSON.stringify(account.account)}
-              ${JSON.stringify(account.account)}
-              (read-keyset 'user-ks)
-              (at 'block-time (chain-data))
-            )`,
-          keyPairs: {
-            ...keyPair,
-            clist: [
-              {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired0))]},
-              {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired1))]},
-              {name: `coin.GAS`, args: []}
-            ]
-          },
-          envData: {
-            "user-ks": [keyPair.publicKey]
-          },
-          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
-          networkId: "testnet04"
-        }, network);
-        console.log(data);
-    } catch (e) {
-      console.log(e)
-    }
-  }
+  // const addLiquidity = async (token0, token1, amountDesired0, amountDesired1) => {
+  //   try {
+  //     let pair = await getPairAccount(token0, token1);
+  //     let data = await Pact.fetch.send({
+  //         pactCode: `(swap.exchange.add-liquidity
+  //             ${token0}
+  //             ${token1}
+  //             ${keepDecimal(amountDesired0)}
+  //             ${keepDecimal(amountDesired1)}
+  //             ${keepDecimal(amountDesired0*(1-0.003))}
+  //             ${keepDecimal(amountDesired1*(1-0.003))}
+  //             ${JSON.stringify(account.account)}
+  //             ${JSON.stringify(account.account)}
+  //             (read-keyset 'user-ks)
+  //             (at 'block-time (chain-data))
+  //           )`,
+  //         keyPairs: {
+  //           ...keyPair,
+  //           clist: [
+  //             {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired0))]},
+  //             {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired1))]},
+  //             {name: `coin.GAS`, args: []}
+  //           ]
+  //         },
+  //         envData: {
+  //           "user-ks": [keyPair.publicKey]
+  //         },
+  //         meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+  //         networkId: "testnet04"
+  //       }, network);
+  //       console.log(data);
+  //   } catch (e) {
+  //     console.log(e)
+  //   }
+  // }
 
-  const removeLiquidity = async (token0, token1, liquidity) => {
+  // const removeLiquidity = async (token0, token1, liquidity) => {
+  //   try {
+  //     let data = await Pact.fetch.send(cmd, network);
+  //     console.log(data);
+  //   } catch (e) {
+  //     console.log(e)
+  //   }
+  // }
+
+  const removeLiquidityLocal = async (token0, token1, liquidity) => {
     try {
       // let pairKey = await getPairKey(token0, token1);
       let pairKey = "coin:free.abc"
       liquidity = keepDecimal(liquidity);
       let pair = await getPairAccount(token0, token1);
-      let data = await Pact.fetch.send({
+      let cmd = {
           pactCode: `(swap.exchange.remove-liquidity
               ${token0}
               ${token1}
@@ -287,8 +298,11 @@ export const PactProvider = (props) => {
             "user-ks": [keyPair.publicKey]
           },
           meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
-        }, network);
+        };
+        setCmd(cmd);
+        let data = await Pact.fetch.local(cmd, network);
         console.log(data);
+        setLocalRes(data);
     } catch (e) {
       console.log(e)
     }
@@ -667,9 +681,10 @@ export const PactProvider = (props) => {
         getRatio1,
         supplied,
         setSupplied,
-        addLiquidity,
+        // addLiquidity,
         addLiquidityLocal,
-        removeLiquidity,
+        // removeLiquidity,
+        removeLiquidityLocal,
         createTokenPair,
         pairAccount,
         pairAccountBalance,
