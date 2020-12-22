@@ -20,26 +20,28 @@ const Container = styled.div`
 const TokenPair = (props) => {
   let pact = useContext(PactContext);
   const [pairBalance, setPairBalance] = useState(pact.pairAccountBalance);
-  let pair = {to: "ABC", from: "KDA"}
+  let {name, token0, token1} = props.pair;
 
   useEffect( async () => {
     pact.setVerifiedAccount(pact.account.account);
-    pact.getPairAccountBalance("coin", "free.abc", pact.account.account);
-    pact.getTotalTokenSupply("coin", "free.abc");
-    pact.getPooledAmount("coin", "free.abc", pact.account.account);
+    pact.getPairAccountBalance(token0.name, token1.name, pact.account.account);
+    pact.getTotalTokenSupply(token0.name, token1.name);
+    pact.getPooledAmount(name, token0.name, token1.name, pact.account.account);
   }, []);
+
   console.log(pact.totalSupply)
+  
   return (
           pact.pairAccountBalance!==null ?
           <List>
              <Message
-             key={pair.from +pair.to}
+             key={token0.code +token1.code}
              >
                <List.Item>
                 <List.Content>
                   <List.Header>
                   <KadenaIcon/>
-                  {`${pair.from} / ${pair.to}`}
+                  {` ${token0.code} / ${token1.code}`}
                   </List.Header>
                 </List.Content>
               </List.Item>
@@ -47,10 +49,10 @@ const TokenPair = (props) => {
               <List.Item>
                 {`Your pool tokens: ${reduceBalance(pact.pairAccountBalance)}`}
                 <List.Content>
-                Pooled {pair.from}: {reduceBalance(pact.poolBalance[0])}
+                Pooled {token0.code}: {reduceBalance(pact.poolBalance[0])}
                 </List.Content>
                 <List.Content>
-                Pooled {pair.to}: {reduceBalance(pact.poolBalance[1])}
+                Pooled {token1.code}: {reduceBalance(pact.poolBalance[1])}
                 </List.Content>
                 <List.Content>
                 {`Your pool share: ${reduceBalance(pact.pairAccountBalance/pact.totalSupply*100)}%`}

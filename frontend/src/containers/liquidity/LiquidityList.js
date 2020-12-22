@@ -8,6 +8,7 @@ import InputToken from '../../components/shared/InputToken';
 import ButtonDivider from '../../components/shared/ButtonDivider';
 import Button from '../../components/shared/Button';
 import cryptoCurrencies from '../../constants/cryptoCurrencies';
+import pairTokens from '../../constants/pairTokens';
 import TokenPair from './TokenPair';
 import {PactContext} from '../../contexts/PactContext'
 import reduceBalance from '../../utils/reduceBalance';
@@ -80,12 +81,16 @@ const LiquidityList = (props) => {
            Add Liquidity
         </Button>
       </RightContainer>
-      <TokenPair
-        account={pact.account.balance}
-        pairList= {[{"from": "KDA", "to": "ABC"}]}
-        selectAddLiquidity = {props.selectAddLiquidity}
-        selectRemoveLiquidity = {props.selectRemoveLiquidity}
-      />
+      {pairTokens.map(pair => {
+        return (
+          <TokenPair
+            account={pact.account.balance}
+            pair = {pair}
+            selectAddLiquidity = {props.selectAddLiquidity}
+            selectRemoveLiquidity = {props.selectRemoveLiquidity}
+          />
+        )
+      })}
     </FormContainer>
   );
 };

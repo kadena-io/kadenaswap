@@ -13,6 +13,7 @@ import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
 import reduceBalance from '../../utils/reduceBalance';
 import TxView from '../../components/shared/TxView';
+import KdaModal from '../../modals/kdaModal/KdaModal';
 
 const Container = styled.div`
   display: flex;
@@ -59,6 +60,7 @@ const LiquidityContainer = (props) => {
   const [toValues, setToValues] = useState({ ...pact.tokenAccount, coin:cryptoCurrencies.ABC.code });
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [wallet, setWallet] = useState(false)
 
   useEffect(async () => {
     await pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
@@ -115,8 +117,8 @@ const LiquidityContainer = (props) => {
 
   const buttonStatus = () => {
     let status = {
-      0: {msg: "Connect Wallet", status: false},
-      1: {msg: "Enter An Amount", status: true},
+      0: {msg: "Connect Wallet", status: true},
+      1: {msg: "Enter An Amount", status: false},
       2: {msg: "Supply", status: true},
       3: {msg: (token) => `Insufficient ${token} Balance`, status: false},
       4: {msg:"Pair Already Exists", status: false},
@@ -130,18 +132,23 @@ const LiquidityContainer = (props) => {
     else return status[2];
   }
 
+
   const supply = async () => {
       if (props.liquidityView==="Create A Pair"){
-        // setLoading(true)
+        setLoading(true)
         await pact.createTokenPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount).then(console.log)
-        // setLoading(false)
-        // setShowTxModal(true)
-      } else{
+        setLoading(false)
+        setShowTxModal(true)
+      } else {
         setLoading(true)
         await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
         setLoading(false)
         setShowTxModal(true)
       }
+  }
+
+  const register = () => {
+    setWallet(true);
   }
 
   return (
@@ -224,14 +231,22 @@ const LiquidityContainer = (props) => {
             </RowContainer>
           </>
         )}
-        <Button
-          disabled={!buttonStatus().status}
-          buttonStyle={{ marginTop: 24, marginRight: 0 }}
-          loading={loading}
-          onClick={supply}>
-          {buttonStatus().msg}
-        </Button>
-      </FormContainer>
+        {pact.registered
+          ?
+            <Button
+              disabled={!buttonStatus().status}
+              buttonStyle={{ marginTop: 24, marginRight: 0}}
+              loading={loading}
+              onClick={supply}>
+              {buttonStatus().msg}
+            </Button>
+          :
+            <KdaModal
+              buttonStyle={{ marginTop: 24, marginRight: 0}}
+              buttonName="Connect Wallet"
+            />
+        }
+    </FormContainer>
   );
 };
 

@@ -68,6 +68,11 @@ export const PactProvider = (props) => {
   const [sendRes, setSendRes] = useState(null);
   const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" })
   const [walletSuccess, setWalletSuccess] = useState(false)
+  const [registered, setRegistered] = useState(false);
+
+  useEffect(() => {
+    if (account.account) setRegistered(true);
+  }, [registered]);
 
   useEffect(() => {
     pairReserve ? setRatio(pairReserve['token0']/pairReserve['token1']) : setRatio(NaN)
@@ -333,7 +338,7 @@ export const PactProvider = (props) => {
       let data = await Pact.fetch.local({
           pactCode: `(swap.exchange.get-pair ${token0} ${token1})`,
           keyPairs: Pact.crypto.genKeyPair(),
-          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
           setPair(data.result.data);
@@ -414,8 +419,8 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getPooledAmount = async (token0, token1, account) => {
-    let pairKey = "coin:free.abc"
+  const getPooledAmount = async (pairKey, token0, token1, account) => {
+    console.log(pairKey, token0, token1, account)
     let pair = await getPairAccount(token0, token1);
     try {
       let data = await Pact.fetch.local({
@@ -771,7 +776,9 @@ export const PactProvider = (props) => {
         signingWallet,
         swapWallet,
         walletSuccess,
-        setWalletSuccess
+        setWalletSuccess,
+        registered,
+        setRegistered
       }}
     >
       {props.children}

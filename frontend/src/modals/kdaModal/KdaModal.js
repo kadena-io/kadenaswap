@@ -4,7 +4,7 @@ import Input from '../../components/shared/Input';
 import Button from '../../components/shared/Button';
 import { PactContext } from '../../contexts/PactContext'
 
-export default function Account() {
+export default function Account(props) {
 
   const pact = useContext(PactContext);
 
@@ -55,8 +55,14 @@ export default function Account() {
 
   return (
     <Modal
-      trigger={<Button>Wallet</Button>}
+      trigger={
+        <Button
+          buttonStyle={props.buttonStyle}
+        >
+          {props.buttonName? props.buttonName : "Wallet"}
+        </Button>}
       onClose={() => {
+        pact.setRegistered(true);
         resetValues()
         setOpen(false)
       }}
@@ -251,7 +257,6 @@ export default function Account() {
             <></>
           :
             <>
-
               <Button
                 onClick={async () => {
                   if (method === 'pk') await pact.storePrivKey(pk)
