@@ -1,10 +1,10 @@
 
-(namespace 'swap)
+(namespace (read-msg 'ns))
 
 (module fungible-util GOVERNANCE
 
   (defcap GOVERNANCE ()
-    (enforce (keyset-ref-guard 'swap-ns-admin)))
+    (enforce-guard (keyset-ref-guard 'swap-ns-admin)))
 
   (defun enforce-valid-amount
     ( precision:integer

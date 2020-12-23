@@ -7,10 +7,25 @@
 (begin-tx)
 (define-namespace 'test (sig-keyset) (sig-keyset))
 (define-namespace 'swap (sig-keyset) (sig-keyset))
+(define-keyset 'swap-ns-user (sig-keyset))
+(define-keyset 'swap-ns-admin (sig-keyset))
+
+(env-data { 'ns: "swap" })
 (load "../fungible-util.pact")
+(env-data { 'ns: "test", 'upgrade: false })
 (load "ABC.pact")
 (load "XYZ.pact")
 (commit-tx)
+
+;; test upgradeability
+(begin-tx)
+
+(define-namespace 'swap-ns-user (sig-keyset) (sig-keyset))
+(define-namespace 'swap-ns-admin (sig-keyset) (sig-keyset))
+(env-data { 'ns: "test", 'upgrade: true })
+(load "ABC.pact")
+(load "XYZ.pact")
+(rollback-tx)
 
 
 (begin-tx)

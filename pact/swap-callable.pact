@@ -1,4 +1,4 @@
-(namespace 'swap)
+(namespace (read-msg 'ns))
 
 (interface swap-callable-v1
   " API for receiving a callback after a swap leg transfer \
