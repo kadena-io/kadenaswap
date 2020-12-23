@@ -5,6 +5,7 @@ import { ReactComponent as KadenaIcon } from '../assets/images/crypto/kadena-log
 export default [
   {
     name: "coin:abc",
+    pairAccount: "",
     token0:  { name: 'coin', code: 'KDA', icon: <KadenaIcon /> },
     token1: { name: 'free.abc', code: 'ABC', icon: <KadenaIcon />}
   }
