@@ -54,7 +54,8 @@ export const PactProvider = (props) => {
   const [walletSuccess, setWalletSuccess] = useState(false)
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState(2800)
-  const [toastId, setToastId] = useState(null);
+  // const [toastId, setToastId] = useState(null);
+  const toastId = React.useRef(null)
 
   useEffect(() => {
     if (account.account) setRegistered(true);
@@ -572,15 +573,15 @@ export const PactProvider = (props) => {
     try {
       console.log(cmd)
       const data = await Pact.fetch.send(cmd, network)
-      notificationContext.showNotification({
+      toastId.current = notificationContext.showNotification({
               title: 'Transaction Pending',
               message: data.requestKeys[0],
               type: STATUSES.INFO,
-              autoClose: 72000,
+              autoClose: 92000,
               hideProgressBar: false,
-              onOpen: (value) => {
-                setToastId(value.toastProps.toastId);
-              }
+              // onOpen: (value) => {
+              //   setToastId(value.toastProps.toastId);
+              // }
             }
       )
       console.log(data)
@@ -609,10 +610,9 @@ export const PactProvider = (props) => {
                   'noopener,noreferrer'
                 );
               },
-              // onOpen: async (value) => {
-              //   console.log(value.toastProps.toastId)
-              //   await toast.dismiss(toastId)
-              // }
+              onOpen: async (value) => {
+                await toast.dismiss(toastId.current)
+              }
             }
       )
     } else {
@@ -628,9 +628,9 @@ export const PactProvider = (props) => {
                   'noopener,noreferrer'
                 );
               },
-              // onOpen: async () => {
-              //   await toast.dismiss(toastId)
-              // }
+              onOpen: async (value) => {
+                await toast.dismiss(toastId.current)
+              }
             }
       )
     }
