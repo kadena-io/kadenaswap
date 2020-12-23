@@ -62,8 +62,8 @@ const StatsContainer = ({ data }) => {
 
   const pact = React.useContext(PactContext);
 
-  useEffect(() => {
-    
+  React.useEffect(() => {
+
   }, [])
 
   return (
