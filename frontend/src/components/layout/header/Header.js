@@ -7,12 +7,18 @@ import reduceToken from '../../../utils/reduceToken';
 import reduceBalance from '../../../utils/reduceBalance';
 import { PactContext } from '../../../contexts/PactContext';
 import KdaModal from '../../../modals/kdaModal/KdaModal';
-import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../../../router/routes';
+import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP, ROUTE_STATS } from '../../../router/routes';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
 import { ReactComponent as CogIcon } from '../../../assets/images/header/cog.svg';
 import { ReactComponent as HamburgerIcon } from '../../../assets/images/header/hamburger.svg';
+import { ReactComponent as AboutIcon } from '../../../assets/images/header/about.svg';
+import { ReactComponent as CodeIcon } from '../../../assets/images/header/code.svg';
+import { ReactComponent as DiscordIcon } from '../../../assets/images/header/discord.svg';
 import Input from '../../shared/Input';
+import SlippagePopupContent from './SlippagePopupContent';
+import AccountInfo from '../header/AccountInfo';
+import theme from '../../../styles/theme';
 
 const Container = styled.div`
   position: fixed;
@@ -72,10 +78,35 @@ const Item = styled(NavLink)`
   }
 `;
 
+const HamburgerListContainer = styled.div`
+  border-radius: 4px;
+`;
+
+const HamburgerItem = styled(NavLink)`
+  display: flex;
+  align-items: center;
+  font-family: neue-regular;
+  font-size: 16px;
+  color: ${({ theme: { colors } }) => colors.primary};
+  &:hover {
+    color: #000000;
+    & svg {
+      margin-right: 10px;
+      & path {
+        fill: #000000;
+      }
+    }
+  }
+  & svg {
+    margin-right: 10px;
+  }
+`;
+
 const Header = () => {
 
   const [showEthModal, setShowEthModal] = useState(false);
   const [showPactModal, setShowPactModal] = useState(false);
+  const [openKdaModal, setOpenKdaModal] = useState(false);
   const history = useHistory();
   const pact = useContext(PactContext);
 
@@ -86,8 +117,10 @@ const Header = () => {
         <Item to={ROUTE_SWAP}>swap</Item>
         <Item to={ROUTE_POOL}>pool</Item>
         <Item to={ROUTE_WRAP}>wrap</Item>
+        <Item to={ROUTE_STATS}>stats</Item>
       </LeftContainer>
       <RightContainer>
+      {/*
       {(pact.polling
         ?
           <Item className="mobile-none" to="#">
@@ -137,6 +170,7 @@ const Header = () => {
         :
         <></>
       )}
+      */}
 
         {/*
         <Modal
@@ -147,31 +181,80 @@ const Header = () => {
         */}
         <Item className="mobile-none" to="#">
 
-          <KdaModal
-            // trigger={<Button>Wallet</Button>}
-          />
         </Item>
+        {pact?.account.account ? (
+          <AccountInfo
+            onClick={() => setOpenKdaModal(true)}
+            account={pact?.account.account ? `${reduceToken(pact?.account.account)}` : 'KDA'}
+            balance={pact?.account.account ? `${reduceBalance(pact?.account.balance)} KDA` : ''}
+          ></AccountInfo>
+        ) : (
+          <></>
+        )}
+        {!pact?.account.account && (
+          <>
+            <Item className="mobile-none" to="#">
+              <Button
+                background="white"
+                color={theme.colors.pink}
+                buttonStyle={{ padding: '10px 16px' }}
+                fontSize={14}
+                onClick={() => setOpenKdaModal(true)}
+              >
+                Connect Wallet
+              </Button>
+            </Item>
+          </>
+        )}
+        {pact?.account.account && (
+          <Item to="#" onClick={pact.logout}>
+            <PowerIcon></PowerIcon>
+          </Item>
+        )}
         <Item to="#">
-          <Popup
-           trigger={<CogIcon />}
-           on='click'
-           offset={[0, 10]}
-           position='bottom center'
-          >
-            <Label style={{ margin: 30 }}>Slippage (%)</Label>
-            <Input
-              error={pact.account.account === null}
-              value={(isNaN(pact.slippage) ? ' ' : `${pact.slippage*100}`)}
-              onChange={async (e, { value }) => {
-                pact.storeSlippage(value/100);
-              }}
-            />
+          <Popup trigger={<CogIcon />} on="click" offset={[10, 10]} position="bottom right" style={{ padding: 13 }}>
+            <SlippagePopupContent />
           </Popup>
         </Item>
         <Item to="#">
-          <HamburgerIcon />
+          <Popup trigger={<HamburgerIcon />} on="click" offset={[10, 10]} position="bottom right" style={{ padding: 13 }}>
+            <HamburgerListContainer>
+              <HamburgerItem to="/"
+                onClick={() => window.open(
+                  `https://kadena.io`,
+                  "_blank",
+                  'noopener,noreferrer'
+                )}
+              >
+                <AboutIcon />
+                About
+              </HamburgerItem>
+              <HamburgerItem to="/"
+                style={{ paddingTop: 9, paddingBottom: 9 }}
+                onClick={() => window.open(
+                  `https://github.com/kadena-io/kadenaswap`,
+                  "_blank",
+                  'noopener,noreferrer'
+                )}
+                >
+                <CodeIcon />
+                Code
+              </HamburgerItem>
+              <HamburgerItem to="/"
+                onClick={() => window.open(
+                  `https://discord.io/kadena`,
+                  "_blank",
+                  'noopener,noreferrer'
+                )}
+              >
+                <DiscordIcon />
+                Discord
+              </HamburgerItem>
+            </HamburgerListContainer>
+          </Popup>
         </Item>
       </RightContainer>
+      <KdaModal open={openKdaModal} onClose={() => setOpenKdaModal(false)} />
     </Container>
   );
 };

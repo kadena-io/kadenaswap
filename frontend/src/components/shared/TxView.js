@@ -7,6 +7,8 @@ import Search from './Search';
 import Backdrop from './Backdrop';
 import Button from './Button'
 import cryptoCurrencies from '../../constants/cryptoCurrencies';
+import { ReactComponent as SuccessfulIcon } from '../../assets/images/shared/successful-circle.svg';
+import { ReactComponent as ErrorIcon } from '../../assets/images/shared/error-circle.svg';
 import { PactContext } from '../../contexts/PactContext';
 
 const Container = styled.div`
@@ -20,9 +22,9 @@ const Container = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: 13px;
   font-family: neue-bold;
-  text-transform: capitalize;
+  font-size: 13px;
+  color: ${({ theme: { colors } }) => colors.primary};
 `;
 
 const RowContainer = styled.div`
@@ -37,6 +39,44 @@ const Divider = styled.div`
   width: 100%;
 `;
 
+const Content = styled.div`
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+`;
+
+const Title = styled.div`
+  font-family: neue-bold;
+  font-size: 24px;
+  padding: 16px;
+  color: ${({ theme: { colors } }) => colors.primary};
+`;
+
+const SubTitle = styled.div`
+  font-family: neue-bold;
+  font-size: 16px;
+  color: ${({ theme: { colors } }) => colors.primary};
+`;
+
+const TransactionsDetails = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0px;
+`;
+
+const SpaceBetweenRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const Value = styled.span`
+  font-family: neue-regular;
+  font-size: 13px;
+  color: ${({ theme: { colors } }) => colors.primary};
+`;
+
 
 const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1}) => {
 
@@ -47,25 +87,35 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
     else return ticker.toUpperCase()
   }
 
+
   const successView = () => {
     return (
-      <>
-        <Message color='green'>
-          <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'red' }}>Send</Label>
-            <span style={{ color: 'red' }}>{`${pact.localRes.result.data[0].amount} ${showTicker(pact.localRes.result.data[0].token)}`}</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4 }}>Receive</Label>
-            <span>{`${pact.localRes.result.data[1].amount} ${showTicker(pact.localRes.result.data[1].token)}`}</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
-            <span style={{ color: 'black' }}>{`${pact.localRes.gas*0.00000000001} KDA`}</span>
-          </RowContainer>
-        </Message>
+      <Content>
+        <SuccessfulIcon />
+        <Title>Preview Successful!</Title>
+        <SubTitle>Transaction Details</SubTitle>
+        <TransactionsDetails>
+          <SpaceBetweenRow>
+            <Label>Send</Label>
+            <Value>
+              {`${pact.localRes.result.data[0].amount} ${showTicker(pact.localRes.result.data[0].token)}`}
+            </Value>
+          </SpaceBetweenRow>
+          <SpaceBetweenRow style={{ padding: '16px 0px' }}>
+            <Label>Receive</Label>
+            <Value>
+              {`${pact.localRes.result.data[1].amount} ${showTicker(pact.localRes.result.data[1].token)}`}
+            </Value>
+          </SpaceBetweenRow>
+          <SpaceBetweenRow>
+            <Label>Gas Cost</Label>
+            <Value>
+              {`${pact.localRes.gas*0.00000000001} KDA`}
+            </Value>
+          </SpaceBetweenRow>
+        </TransactionsDetails>
         <Button
+          buttonStyle={{ width: '100%' }}
           onClick={async () => {
             pact.swapSend();
             onClose()
@@ -73,37 +123,46 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         >
           Send Transaction
         </Button>
-      </>
+      </Content>
     )
   }
 
   const successRemoveView = () => {
     return (
-      <>
-        <Message color='green'>
-          <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'red' }}>Remove</Label>
-            <span style={{ color: 'red' }}>{`${
-              pact.localRes.result.data.amount0.decimal
-                ? pact.localRes.result.data.amount0.decimal
-                : pact.localRes.result.data.amount0
-            }`} {showTicker(token0)}</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'red' }}>Remove</Label>
-            <span style={{ color: 'red' }}>{`${
-              pact.localRes.result.data.amount1.decimal
-                ? pact.localRes.result.data.amount1.decimal
-                : pact.localRes.result.data.amount1
-            }`} {showTicker(token1)}</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
-            <span style={{ color: 'black' }}>{`${pact.localRes.gas*0.00000000001} KDA`}</span>
-          </RowContainer>
-        </Message>
+      <Content>
+        <SuccessfulIcon />
+        <Title>Preview Successful!</Title>
+        <SubTitle>Transaction Details</SubTitle>
+        <TransactionsDetails>
+          <SpaceBetweenRow>
+            <Label>Remove</Label>
+            <Value>
+              {`${
+                pact.localRes.result.data.amount0.decimal
+                  ? pact.localRes.result.data.amount0.decimal
+                  : pact.localRes.result.data.amount0
+              }`} {showTicker(token0)}
+            </Value>
+          </SpaceBetweenRow>
+          <SpaceBetweenRow style={{ padding: '16px 0px' }}>
+            <Label>Remove</Label>
+            <Value>
+              {`${
+                pact.localRes.result.data.amount1.decimal
+                  ? pact.localRes.result.data.amount1.decimal
+                  : pact.localRes.result.data.amount1
+              }`} {showTicker(token1)}
+            </Value>
+          </SpaceBetweenRow>
+          <SpaceBetweenRow>
+            <Label>Gas Cost</Label>
+            <Value>
+              {`${pact.localRes.gas*0.00000000001} KDA`}
+            </Value>
+          </SpaceBetweenRow>
+        </TransactionsDetails>
         <Button
+          buttonStyle={{ width: '100%' }}
           onClick={async () => {
             pact.swapSend();
             onClose()
@@ -111,43 +170,46 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         >
           Send Transaction
         </Button>
-      </>
-    )
+      </Content>
+    );
   }
 
   const successAddView = () => {
     return (
-      <>
-        <Message color='green'>
-          <Label style={{ marginBottom: 4, color: 'purple'}}>Preview Successful!</Label>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'red' }}>Liquidity Balance</Label>
-            <span style={{ color: 'red' }}>{`${  pact.localRes.result.data[0].amount.decimal
-                ? pact.localRes.result.data.liquidity.amount.decimal
-                :pact.localRes.result.data.liquidity.amount}`}</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'red' }}>Add</Label>
-            <span style={{ color: 'red' }}>{`${
-              pact.localRes.result.data.amount0.decimal
-                ? pact.localRes.result.data.amount0.decimal
-                : pact.localRes.result.data.amount0
-            }`} {showTicker(token0)}</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'red' }}>Add</Label>
-            <span style={{ color: 'red' }}>{
-              pact.localRes.result.data.amount1.decimal
-                ? pact.localRes.result.data.amount1.decimal
-                : pact.localRes.result.data.amount1
-            }} {showTicker(token1)}</span>
-          </RowContainer>
-          <RowContainer>
-            <Label style={{ marginBottom: 4, color: 'black' }}>Gas Cost</Label>
-            <span style={{ color: 'black' }}>{`${pact.localRes.gas*0.00000000001} KDA`}</span>
-          </RowContainer>
-        </Message>
+      <Content>
+        <SuccessfulIcon />
+        <Title>Preview Successful!</Title>
+        <SubTitle>Transaction Details</SubTitle>
+        <TransactionsDetails>
+          <SpaceBetweenRow>
+            <Label>Add</Label>
+            <Value>
+              {`${
+                pact.localRes.result.data.amount0.decimal
+                  ? pact.localRes.result.data.amount0.decimal
+                  : pact.localRes.result.data.amount0
+              }`} {showTicker(token0)}
+            </Value>
+          </SpaceBetweenRow>
+          <SpaceBetweenRow style={{ padding: '16px 0px' }}>
+            <Label>Add</Label>
+            <Value>
+              {`${
+                pact.localRes.result.data.amount1.decimal
+                  ? pact.localRes.result.data.amount1.decimal
+                  : pact.localRes.result.data.amount1
+              }`} {showTicker(token1)}
+            </Value>
+          </SpaceBetweenRow>
+          <SpaceBetweenRow>
+            <Label>Gas Cost</Label>
+            <Value>
+              {`${pact.localRes.gas*0.00000000001} KDA`}
+            </Value>
+          </SpaceBetweenRow>
+        </TransactionsDetails>
         <Button
+          buttonStyle={{ width: '100%' }}
           onClick={async () => {
             pact.swapSend();
             onClose()
@@ -155,19 +217,26 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         >
           Send Transaction
         </Button>
-      </>
+      </Content>
     )
   }
 
+
   const failView = () => {
     return (
-      <>
-        <Message color='red' style={{wordBreak: "break-all"}}>
-          <Label style={{ marginBottom: 4, color: 'purple' }}>Preview Failed!</Label>
-          <RowContainer>
-            <span>{pact.localRes.result.error.message}</span>
-          </RowContainer>
-        </Message>
+      <Content>
+        <ErrorIcon />
+        <Title>Preview Failed!</Title>
+        <SubTitle>Error Message</SubTitle>
+        <TransactionsDetails>
+          <Message color='red' style={{wordBreak: "break-all"}}>
+            <RowContainer>
+              <span style={{wordBreak: "break-all"}}>
+                {pact.localRes.result.error.message}
+              </span>
+            </RowContainer>
+          </Message>
+        </TransactionsDetails>
         <Button
           onClick={() => {
             onClose()
@@ -175,21 +244,25 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         >
           Retry
         </Button>
-      </>
+      </Content>
     )
   }
 
   const localError = () => {
     return (
-      <>
-        <Message color='red' style={{wordBreak: "break-all"}}>
-          <Label style={{ marginBottom: 4, color: 'purple' }}>Local Failed!</Label>
-          <RowContainer>
-            <span style={{wordBreak: "break-all"}}>
-              {pact.localRes}
-            </span>
-          </RowContainer>
-        </Message>
+      <Content>
+        <ErrorIcon />
+        <Title>Transaction Error!</Title>
+        <SubTitle>Error Message</SubTitle>
+        <TransactionsDetails>
+          <Message color='red' style={{wordBreak: "break-all"}}>
+            <RowContainer>
+              <span style={{wordBreak: "break-all"}}>
+                {pact.localRes}
+              </span>
+            </RowContainer>
+          </Message>
+        </TransactionsDetails>
         <Button
           onClick={() => {
             onClose()
@@ -197,7 +270,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         >
           Retry
         </Button>
-      </>
+      </Content>
     )
   }
 
@@ -224,7 +297,6 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
                     failView()
                   )
                 )}
-              <Divider />
             </FormContainer>
           </Container>
         ))

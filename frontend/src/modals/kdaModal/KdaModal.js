@@ -1,278 +1,265 @@
 import React, { useContext, useState } from 'react';
-import { Header, Modal, Menu, Icon, Message } from 'semantic-ui-react'
+import { Header, Modal, Menu, Icon, Message } from 'semantic-ui-react';
 import Input from '../../components/shared/Input';
 import Button from '../../components/shared/Button';
-import { PactContext } from '../../contexts/PactContext'
+import { PactContext } from '../../contexts/PactContext';
+import theme from '../../styles/theme';
+import Checkbox from '../../components/shared/Checkbox';
+import { ReactComponent as LockIcon } from '../../assets/images/shared/lock.svg';
+import { ReactComponent as UnlockIcon } from '../../assets/images/shared/unlock.svg';
 
 export default function Account(props) {
-
   const pact = useContext(PactContext);
+  const [acct, setAcct] = useState((pact.account.account ? pact.account.account : ""))
+  const [locked, setLocked] = useState((pact.account.account && pact.hasWallet() ? true : false));
+  const [method, setMethod] = useState(pact.signing.method);
+  const [pk, setPk] = useState('');
+  const [pw, setPw] = useState('');
+  const [pwConf, setPwConf] = useState('');
+  const [temp, setTemp] = useState('');
 
-  const [fromInput, setInputValue] = useState({ account: pact.account.account });
-  const [toggle, setToggle] = useState(false)
-  const [method, setMethod] = useState(pact.signing.method)
-  const [pk, setPk] = useState("")
-  const [pw, setPw] = useState("")
-  const [pwConf, setPwConf] = useState("")
-  const [open, setOpen] = React.useState(false)
-  const [temp, setTemp] = useState("")
-
-  console.log('acct', fromInput.account)
 
   const is_hexadecimal = (str) => {
-     const regexp = /^[0-9a-fA-F]+$/;
-     if (regexp.test(str)) return true;
-     else return false;
-  }
+    const regexp = /^[0-9a-fA-F]+$/;
+    if (regexp.test(str)) return true;
+    else return false;
+  };
 
   const checkKey = (key) => {
     try {
       if (key.length !== 64) {
-          return false
-      } else if (!is_hexadecimal(key)){
-          return false
+        return false;
+      } else if (!is_hexadecimal(key)) {
+        return false;
       }
       return true;
     } catch (e) {
       console.log(e);
-      return false
+      return false;
     }
-  }
+  };
 
   const canSubmit = () => {
-    if (method === 'sign') return true
-    if (method === 'pk' && checkKey(pk)) return true
-    if (method === 'pk+pw' && pw === pwConf && checkKey(pk) && pw !== "") return true
-    return false
-  }
+    if (method === 'sign') return true;
+    if (method === 'pk' && checkKey(pk)) return true;
+    if (method === 'pk+pw' && pw === pwConf && checkKey(pk) && pw !== '') return true;
+    return false;
+  };
 
   const resetValues = () => {
-    setToggle(false);
-    setPk("");
-    setPw("");
-    setPwConf("")
-  }
+    setLocked(false);
+    setPk('');
+    setPw('');
+    setPwConf('');
+    setLocked(true);
+  };
 
   return (
     <Modal
-      trigger={
-        <Button
-          buttonStyle={props.buttonStyle}
-        >
-          {props.buttonName? props.buttonName : "Wallet"}
-        </Button>}
       onClose={() => {
         pact.setRegistered(true);
-        resetValues()
-        setOpen(false)
+        resetValues();
+        props.onClose();
       }}
-      onOpen={() => setOpen(true)}
-      open={open}
-      closeIcon
+      open={props.open}
     >
-    <Modal.Content image>
-      <Modal.Description>
-        <Header>
-          <span style={{ marginRight: 20 }} >
-            {"Your KDA Account"}
-          </span>
-          {(toggle
-            ?
-              <></>
-            :
-                <Button
-                  onClick={() => setToggle((toggle ? false : true))}
-                >
-                  <Icon name='unlock alternate' />
-                  unlock
-                </Button>
-          )}
-        </Header>
-        <Input
-          error={pact.account.account === null && temp !== ""}
-          value={fromInput.account}
-          onChange={async (e, { value }) => {
-            setInputValue(value);
-            setTemp(value)
-            await pact.setVerifiedAccount(value);
-          }}
-        />
-        {(pact.account.account
-          ?
+      <Modal.Content image>
+        <Modal.Description>
+          <Header style={{ marginBottom: 24 }}>
+            <span style={{ fontSize: 24, fontFamily: 'neue-bold', color: '#3a4750' }}>Your KDA Account</span>
+          </Header>
+          <Input
+            leftLabel="account"
+            placeholder="Enter Account"
+            error={pact.account.account === null && temp !== ''}
+            containerStyle={{ marginBottom: 22 }}
+            value={acct}
+            onChange={async (e, { value }) => {
+              setAcct(value);
+              setTemp(value);
+              await pact.setVerifiedAccount(value);
+            }}
+          />
+          {pact.account.account ? (
             <>
-              <Header>{"Account Details"}</Header>
-              <span>{JSON.stringify(pact.account.guard)}</span>
+              <Header>
+                <span style={{ fontSize: 24, fontFamily: 'neue-bold', color: theme.colors.primary }}>Account Details</span>
+              </Header>
+              <Message color='purple'>
+                <Message.Header style={{ display: 'flex', justifyContent: 'center', margin: 10 }}>
+                  <span>{JSON.stringify(pact.account.guard, null, '\t')}</span>
+                </Message.Header>
+              </Message>
             </>
-          :
-            (temp === "" ? <></> : <Header style={{ color: 'red' }}>{"Account Does Not Exist"}</Header>)
-
-        )}
-        <Header>{"Signing Method"}</Header>
-        <Menu color="purple" widths={3} >
-          <Menu.Item
-            name='pk'
-            active={method === 'pk'}
-            onClick={() => setMethod('pk')}
-            disabled={!toggle}
-          >
-            <Icon name='warning sign' />
-            Plain Private Key (unsafe)
-          </Menu.Item>
-
-          <Menu.Item
-            name='pk+pw'
-            active={method === 'pk+pw'}
-            onClick={() => setMethod('pk+pw')}
-            disabled={!toggle}
-          >
-            <Icon name='lock' />
-            Private Key + Password (safe)
-          </Menu.Item>
-
-          <Menu.Item
-            name='sign'
-            active={method === 'sign'}
-            onClick={() => setMethod('sign')}
-            disabled={!toggle}
-          >
-            <Icon name='signup' />
-            Chainweaver Signing (safest)
-          </Menu.Item>
-
-        </Menu>
-        {(!toggle
-          ?
+          ) : temp === '' ? (
             <></>
-          :
-            (method === 'pk'
-              ?
-                <>
-                  <Message negative>
-                    <Header><Icon name='warning' style={{ margin: 10 }}/>{"NOTE"}</Header>
-                    <div style={{ margin: 10, marginBottom: 20 }}>
-                      <p>
-                        All your transactions will be automatically signed with these keys
-                      </p>
-                      <p>
-                        Your private key will be saved in browser storage making easily accessible to malicious actors
-                      </p>
-                    </div>
-                  </Message>
-                  <Header>{"Your Private Key"}</Header>
-                  <Input
-                    value={pk}
-                    onChange={(e, { value }) => setPk(value)}
-                    error={(pk !== "" ? !checkKey(pk) : false)}
-                  />
-                </>
-              :
-                (method === 'pk+pw'
-                  ?
-                    <>
-                      <Message color='yellow'>
-                        <Header><Icon name='warning' style={{ margin: 10 }}/>{"NOTE"}</Header>
-                        <div style={{ margin: 10, marginBottom: 20 }}>
-                          <p>
-                            You will be prompted to enter your password to submit transactions
-                          </p>
-                          <p>
-                            You can always reset your password by following this process again with your private key
-                          </p>
-                        </div>
-                      </Message>
-                      <Header>{"Your Private Key"}</Header>
-                      <Input
-                        value={pk}
-                        onChange={(e, { value }) => setPk(value)}
-                        error={(pk !== "" ? !checkKey(pk) : false)}
-                      />
-                      <Header>{"Your Password"}</Header>
-                      <Input
-                        value={pw}
-                        onChange={(e, { value }) => setPw(value)}
-                        type='password'
-                        error={pw !== pwConf}
-                      />
-                      <Header>{"Confirm Password"}</Header>
-                      <Input
-                        value={pwConf}
-                        onChange={(e, { value }) => setPwConf(value)}
-                        type='password'
-                        error={pw !== pwConf}
-                      />
+          ) : (
+            <Header>
+              <span style={{ color: "red", fontSize: 24, fontFamily: 'neue-bold' }}>Account Does Not Exist</span>
+            </Header>
+          )}
+          <div style={{ opacity: pact?.account?.account ? 1 : 0.3, marginTop: 30, marginBottom: 30 }}>
+          <Header>
+            <span style={{ fontSize: 24, fontFamily: 'neue-bold', color: '#3a4750', marginRight: 16 }}>Signing Method</span>
+            {locked ?
+              <span>
+              <Button
+                background="white"
+                color="#9C0394"
+                buttonStyle={{ border: '1px solid #9C0394' }}
+                fontSize={16}
+                onClick={() => {
+                  setLocked(false)
+                }}
+              >
+                Reset
+              </Button>
+              </span>
+              : <></>
+            }
+          </Header>
+          <Menu color="purple" widths={3}>
+            <Menu.Item
+              name="pk"
+              active={method === 'pk'}
+              onClick={() => setMethod('pk')}
+              disabled={locked}
+            >
+              <Icon name="warning sign" />
+              Plain Private Key (unsafe)
+            </Menu.Item>
 
-                    </>
-                  :
-                    <>
-                      <Message positive>
-                        <Header><Icon name='warning' style={{ margin: 10 }}/>{"NOTE"}</Header>
-                        <div style={{ margin: 10, marginBottom: 20 }}>
-                          <p>
-                            Please make sure the KDA account provided is controlled by your Chainweaver wallet
-                          </p>
-                          <p>
-                            When submitting a transaction, Chainweaver will show you a preview within the wallet before signing
-                          </p>
-                          <p
-                            onClick={async () => {
-                              await window.open(
-                                `https://www.kadena.io/chainweaver`,
-                                "_blank",
-                                'noopener,noreferrer'
-                              );
-                            }}
-                          >
-                            Download Chainweaver <a>here</a>
-                          </p>
-                        </div>
-                      </Message>
-                    </>
-                )
-            )
-        )}
-        {/*
-        <Header>{"[TESTING] Your Private Key"}</Header>
-        <Input
-          value={pact.privKey}
-          onChange={(e, { value }) => pact.storePrivKey(value)}
-          type='password'
-          error={!checkKey(pact.privKey)}
-        />
-        */}
-      </Modal.Description>
+            <Menu.Item
+              name="pk+pw"
+              active={method === 'pk+pw'}
+              onClick={() => setMethod('pk+pw')}
+              disabled={locked}
+            >
+              <Icon name="lock" />
+              Private Key + Password (safe)
+            </Menu.Item>
 
+            <Menu.Item
+              name="sign"
+              active={method === 'sign'}
+              onClick={() => setMethod('sign')}
+              disabled={locked}
+            >
+              <Icon name="signup" />
+              Chainweaver Signing (safest)
+            </Menu.Item>
+          </Menu>
+          </div>
+          {locked
+            ?
+            <div>
+            </div>
+            :
+            <>
+            {method === 'pk' && (
+              <>
+                <div style={{ display: 'flex', flexFlow: 'column', alignItems: 'center' }}>
+                  <span style={{ color: '#BE3144', fontFamily: 'neue-bold', fontSize: 16, marginBottom: 10 }}><Icon name='warning sign' /> Note</span>
+                  <span style={{ color: '#BE3144', fontSize: 13, marginBottom: 10 }}>
+                    All your transactions will be automatically signed with these keys
+                  </span>
+                  <span style={{ color: '#BE3144', fontSize: 13, marginBottom: 10 }}>
+                    Your private key will be saved in browser storage making easily accessible to malicious actors
+                  </span>
+                </div>
+                <Input
+                  leftLabel="private key"
+                  placeholder="Insert your Private Key"
+                  value={pk}
+                  onChange={(e, { value }) => setPk(value)}
+                  error={pk !== '' ? !checkKey(pk) : false}
+                />
+              </>
+            )}
+            {method === 'pk+pw' && (
+              <>
+                <div style={{ display: 'flex', flexFlow: 'column', alignItems: 'center' }}>
+                  <span style={{ color: '#FF9509', fontFamily: 'neue-bold', fontSize: 16, marginBottom: 10 }}><Icon name='warning sign' /> Note</span>
+                  <span style={{ color: '#FF9509', fontSize: 13, marginBottom: 10 }}>
+                    You will be prompted to enter your password to submit transactions
+                  </span>
+                  <span style={{ color: '#FF9509', fontSize: 13, marginBottom: 10 }}>
+                    You can always reset your password by following this process again with your private key
+                  </span>
+                </div>
+                <Input
+                  leftLabel="your private key"
+                  value={pk}
+                  placeholder="Insert Your Private Key"
+                  containerStyle={{ marginBottom: 16 }}
+                  onChange={(e, { value }) => setPk(value)}
+                  error={pk !== '' ? !checkKey(pk) : false}
+                />
+                <Input
+                  leftLabel="your password"
+                  value={pw}
+                  placeholder="Insert Your Password"
+                  containerStyle={{ marginBottom: 16 }}
+                  onChange={(e, { value }) => setPw(value)}
+                  type="password"
+                  error={pw !== pwConf}
+                />
+                <Input
+                  leftLabel="confirm password"
+                  value={pwConf}
+                  placeholder="Confirm Your Password"
+                  containerStyle={{ marginBottom: 16 }}
+                  onChange={(e, { value }) => setPwConf(value)}
+                  type="password"
+                  error={pw !== pwConf}
+                />
+              </>
+            )}
+            {method === 'sign' && (
+              <div style={{ display: 'flex', flexFlow: 'column', alignItems: 'center' }}>
+                <span style={{ color: '#1B781B', fontFamily: 'neue-bold', fontSize: 16, marginBottom: 10 }}><Icon name='warning sign' /> Note</span>
+                <span style={{ color: '#1B781B', fontSize: 13, marginBottom: 10 }}>
+                  Please make sure the KDA account provided is controlled by your Chainweaver wallet
+                </span>
+                <span style={{ color: '#1B781B', fontSize: 13, marginBottom: 10 }}>
+                  When submitting a transaction, Chainweaver will show you a preview within the wallet before signing
+                </span>
+                <span style={{ color: '#1B781B', fontSize: 13, marginBottom: 10 }}>
+                  Download Chainweaver <a style={{ color: '#1B781B', textDecoration: 'underline' }}>here</a>
+                </span>
+              </div>
+            )}
+            </>
+          }
+        </Modal.Description>
       </Modal.Content>
       <Modal.Actions>
         <Button
+          background="white"
+          color="#9C0394"
+          buttonStyle={{ border: '1px solid #9C0394', padding: '10px 50px' }}
+          fontSize={16}
           onClick={() => {
-            resetValues()
-            setOpen(false)
+            resetValues();
+            props.onClose();
           }}
         >
-          <Icon name='cancel' />
-          cancel
+          Cancel
         </Button>
-        {(!toggle
-          ?
-            <></>
-          :
-            <>
-              <Button
-                onClick={async () => {
-                  if (method === 'pk') await pact.storePrivKey(pk)
-                  if (method === 'pk+pw') await pact.encryptKey(pk, pw)
-                  if (method === 'sign') await pact.signingWallet()
-                  resetValues();
-                  setOpen(false)
-                }}
-                disabled={!canSubmit()}
-              >
-                <Icon name='lock' />
-                update
-              </Button>
-            </>
-        )}
+        <Button
+          onClick={async () => {
+            if (method === 'pk') await pact.storePrivKey(pk);
+            if (method === 'pk+pw') await pact.encryptKey(pk, pw);
+            if (method === 'sign') await pact.signingWallet();
+            resetValues();
+            props.onClose();
+          }}
+          buttonStyle={{ padding: '10px 50px' }}
+          disabled={!canSubmit()}
+        >
+          Update
+        </Button>
       </Modal.Actions>
     </Modal>
-  )
+  );
 }
