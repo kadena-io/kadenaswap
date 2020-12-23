@@ -109,7 +109,7 @@
     "Bob"
     "Bob"
     (read-keyset 'bob)
-    (at 'block-time (chain-data))))
+    ))
 
 (expect "add-liquidity events"
   [ { "name": "coin.TRANSFER"
@@ -159,6 +159,80 @@
 
 (rollback-tx)
 
+
+(begin-tx)
+(use swap.exchange)
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 20.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 80.0)
+    ]
+  }])
+
+(expect-failure
+  "add-liquidity precision enforcement, user-supplied, A"
+  (add-liquidity
+    coin
+    test.abc
+    8.9999999999999
+    33.00
+    10.0
+    40.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    ))
+
+(expect-failure
+  "add-liquidity precision enforcement, user-supplied, B"
+  (add-liquidity
+    coin
+    test.abc
+    9.0
+    33.33333333333333333
+    10.0
+    40.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    ))
+
+  (expect
+    "add-liquidity precision handling, setup compute"
+    {"liquidity": 17.133687939614
+    ,"supply": 17.233687939614
+    ,"amount0": 9.0
+    ,"amount1": 33.0 }
+    (add-liquidity
+      coin
+      test.abc
+      9.0
+      33.00
+      10.0
+      40.0
+      "Bob"
+      "Bob"
+      (read-keyset 'bob)
+      ))
+
+  (expect "add-liquidity precision handling, computed"
+    { "liquidity": 16.711454971745
+    , "supply": 33.945142911359
+    , "amount0": 8.727272727272
+    , "amount1": 32.0 }
+    (add-liquidity
+      coin
+      test.abc
+      9.0 ;; computes 8.727272...
+      32.0
+      1.0
+      1.0
+      "Bob"
+      "Bob"
+      (read-keyset 'bob)
+      ))
 ;;
 ;; fixture
 ;;
@@ -181,7 +255,7 @@
       (add-liquidity coin test.abc
         amount0 amount1 amount0 amount1
         "Bob" "Bob" (read-keyset "bob")
-        (at 'block-time (chain-data))))
+        ))
     (env-events true)
   )
 
@@ -196,7 +270,7 @@
       (add-liquidity coin test.xyz
         amount0 amount1 amount0 amount1
         "Bob" "Bob" (read-keyset "bob")
-        (at 'block-time (chain-data))))
+        ))
     (env-events true)
   )
 
@@ -230,7 +304,7 @@
     "Bob"
     "Bob"
     (read-keyset 'bob)
-    (at 'block-time (chain-data))))
+    ))
 
 (expect "remove-liquidity events" ;; TODO reverse
   [ { "name": "swap.tokens.TRANSFER"
@@ -292,7 +366,7 @@
     "Bob"
     "Bob"
     (read-keyset 'bob)
-    (at 'block-time (chain-data))))
+    ))
 
 (rollback-tx)
 
@@ -308,7 +382,40 @@
     "Bob"
     "Bob"
     (read-keyset 'bob)
-    (at 'block-time (chain-data))))
+    ))
+
+(rollback-tx)
+
+(begin-tx)
+(use swap.exchange)
+(fixture.setup-abc 30.0 30.0)
+(expect-failure "remove-liquidity enforce user precision"
+  "precision violation" ;; from swap.tokens
+  (remove-liquidity test.abc coin
+    29.999999999999999999
+    29.9
+    30.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    ))
+
+(rollback-tx)
+
+(begin-tx)
+(use swap.exchange)
+(fixture.setup-abc 9.0 33.0)
+(expect "remove-liquidity handle computed precision"
+  { "amount0": 0.220503975941  ;; would be 0.22050397594156010548...
+  , "amount1": 0.80851457845238 }
+  (remove-liquidity test.abc coin
+    0.422232967869
+    0.01
+    0.01
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    ))
 ;;
 ;; swaps
 ;;
@@ -466,8 +573,8 @@
     { "token": "test.abc", "amount": 6.30082157151885 }
   ]
   (swap-exact-in 8.0 6.3 [coin test.abc]
-    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
-(expect "swap gas" 1672 (env-gas))
+    "Alice" "Alice" (read-keyset 'alice) ))
+(expect "swap gas" 1663 (env-gas))
 (env-gasmodel 'fixed 0)
 
 (expect "kda debited for alice"
@@ -525,7 +632,7 @@
     { "token": "test.xyz", "amount": 15.43287143388036}
   ]
   (swap-exact-in 8.0 15.4 [test.abc coin test.xyz]
-    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+    "Alice" "Alice" (read-keyset 'alice) ))
 
 (expect "abc debited for alice"
   19992.0 (test.abc.get-balance "Alice"))
@@ -627,7 +734,7 @@
     { "token": "test.abc", "amount": 0.001 }
   ]
   (swap-exact-out 0.001 0.002 [coin test.abc]
-    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+    "Alice" "Alice" (read-keyset 'alice) ))
 (expect "kda debited for alice"
   9999.998996989969 (coin.get-balance "Alice"))
 (expect "abc credited for alice"
@@ -659,7 +766,7 @@
    { "token": "test.xyz", "amount": 15.0 }
   ]
   (swap.exchange.swap-exact-out 15.0 100.0 [test.abc coin test.xyz]
-    "Alice" "Alice" (read-keyset 'alice) (at 'block-time (chain-data))))
+    "Alice" "Alice" (read-keyset 'alice) ))
 
 
 (expect "abc debited for alice"
