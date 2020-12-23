@@ -30,9 +30,8 @@ const TokenPair = (props) => {
   }, []);
 
   console.log(pact.totalSupply)
-  
+
   return (
-          pact.pairAccountBalance!==null ?
           <List>
              <Message
              key={token0.code +token1.code}
@@ -70,10 +69,7 @@ const TokenPair = (props) => {
                 </Button>
               </Container>
             </Message>
-
         </List>
-        :<Message>Connect an account to view your liquidity</Message>
-
   );
 };
 

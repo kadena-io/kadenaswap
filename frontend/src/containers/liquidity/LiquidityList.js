@@ -81,16 +81,20 @@ const LiquidityList = (props) => {
            Add Liquidity
         </Button>
       </RightContainer>
-      {pairTokens.map(pair => {
-        return (
-          <TokenPair
-            account={pact.account.balance}
-            pair = {pair}
-            selectAddLiquidity = {props.selectAddLiquidity}
-            selectRemoveLiquidity = {props.selectRemoveLiquidity}
-          />
-        )
-      })}
+
+      {pact.account.account!==null
+        ? pairTokens.map(pair => {
+            return (
+              <TokenPair
+                account={pact.account.balance}
+                pair = {pair}
+                selectAddLiquidity = {props.selectAddLiquidity}
+                selectRemoveLiquidity = {props.selectRemoveLiquidity}
+              />
+            )
+          })
+        : <Message>Connect an account to view your liquidity</Message>
+      }
     </FormContainer>
   );
 };
