@@ -577,7 +577,7 @@ export const PactProvider = (props) => {
               title: 'Transaction Pending',
               message: data.requestKeys[0],
               type: STATUSES.INFO,
-              autoClose: 72000,
+              autoClose: 92000,
               hideProgressBar: false,
               // onOpen: (value) => {
               //   setToastId(value.toastProps.toastId);
