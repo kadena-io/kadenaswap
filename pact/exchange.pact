@@ -5,7 +5,7 @@
 (module exchange GOVERNANCE
 
   (defcap GOVERNANCE () (enforce (keyset-ref-guard 'swap-ns-admin)))
-  
+
   (defcap CREATE_PAIR
     ( token0:module{fungible-v2}
       token1:module{fungible-v2}
@@ -92,11 +92,6 @@
       (> (length a) 0))
   )
 
-  (defun enforce-deadline (deadline:time)
-    (enforce (>= deadline (at 'block-time (chain-data)))
-      "expired")
-  )
-
   (defun update-reserves
     ( p:object{pair}
       pair-key:string
@@ -122,9 +117,9 @@
       sender:string
       to:string
       to-guard:guard
-      deadline:time
     )
-    (enforce-deadline deadline)
+    (tokenA::enforce-unit amountADesired)
+    (tokenB::enforce-unit amountBDesired)
     (let*
       ( (p (get-pair tokenA tokenB))
         (reserveA (reserve-for p tokenA))
@@ -143,8 +138,8 @@
                   (enforce (>= amountAOptimal amountAMin)
                     "add-liquidity: insufficient A amount")
                   [amountAOptimal amountBDesired])))))
-        (amountA (at 0 amounts))
-        (amountB (at 1 amounts))
+        (amountA (truncate tokenA (at 0 amounts)))
+        (amountB (truncate tokenB (at 1 amounts)))
         (pair-account (at 'account p))
       )
       ;; transfer
@@ -213,10 +208,7 @@
       sender:string
       to:string
       to-guard:guard
-      deadline:time )
-
-    (enforce-deadline deadline)
-
+    )
     (let* ( (p (get-pair tokenA tokenB))
             (pair-account (at 'account p))
             (pair-key (get-pair-key tokenA tokenB))
@@ -279,9 +271,7 @@
       sender:string
       to:string
       to-guard:guard
-      deadline:time
     )
-    (enforce-deadline deadline)
     (enforce (>= (length path) 2) "swap-exact-in: invalid path")
     ;; fold over tail of path with dummy first value to compute outputs
     ;; assembles allocs in reverse
@@ -344,9 +334,7 @@
       sender:string
       to:string
       to-guard:guard
-      deadline:time
     )
-    (enforce-deadline deadline)
     (enforce (>= (length path) 2) "swap-exact-out: invalid path")
     ;; fold over tail of reverse path with dummy first value to compute inputs
     ;; assembles allocs in forward order
