@@ -1,7 +1,9 @@
-import React, { useState, createContext, useEffect } from 'react';
+import React, { useState, createContext, useEffect, useContext } from 'react';
 import Pact from "pact-lang-api";
 import AES from 'crypto-js/aes'
 import CryptoJS from 'crypto-js'
+import { NotificationContext, STATUSES } from './NotificationContext';
+import { toast } from 'react-toastify';
 
 const keepDecimal = decimal => {
   decimal = parseFloat(decimal).toPrecision(13)
@@ -24,25 +26,7 @@ const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 
 export const PactProvider = (props) => {
 
-
-  //
-  // const test = async () => {
-  //   const k = await CryptoJS.RC4Drop.encrypt('hi', 'there');
-  //   console.log(k)
-  //   //NOT WORKING
-  //   JSON.stringify(k)
-  //   const s = await CryptoJS.RC4Drop.decrypt(k, 'there')
-  //
-  //   console.log(s)
-  //   console.log(typeof s.toString(CryptoJS.enc.Utf8))
-  //   console.log(typeof s)
-  //   if (s.sigBytes >= 0) {
-  //     console.log('w')
-  //   } else {
-  //     console.log('didnt')
-  //   }
-  // }
-  // test()
+  const notificationContext = useContext(NotificationContext);
 
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
@@ -69,6 +53,9 @@ export const PactProvider = (props) => {
   const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" })
   const [walletSuccess, setWalletSuccess] = useState(false)
   const [registered, setRegistered] = useState(false);
+  const [ttl, setTtl] = useState(2800)
+  // const [toastId, setToastId] = useState(null);
+  const toastId = React.useRef(null)
 
   useEffect(() => {
     if (account.account) setRegistered(true);
@@ -226,52 +213,6 @@ export const PactProvider = (props) => {
       console.log(e)
     }
   }
-
-
-  // const addLiquidity = async (token0, token1, amountDesired0, amountDesired1) => {
-  //   try {
-  //     let pair = await getPairAccount(token0, token1);
-  //     let data = await Pact.fetch.send({
-  //         pactCode: `(swap.exchange.add-liquidity
-  //             ${token0}
-  //             ${token1}
-  //             ${keepDecimal(amountDesired0)}
-  //             ${keepDecimal(amountDesired1)}
-  //             ${keepDecimal(amountDesired0*(1-0.003))}
-  //             ${keepDecimal(amountDesired1*(1-0.003))}
-  //             ${JSON.stringify(account.account)}
-  //             ${JSON.stringify(account.account)}
-  //             (read-keyset 'user-ks)
-  //             (at 'block-time (chain-data))
-  //           )`,
-  //         keyPairs: {
-  //           ...keyPair,
-  //           clist: [
-  //             {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired0))]},
-  //             {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(keepDecimal(amountDesired1))]},
-  //             {name: `coin.GAS`, args: []}
-  //           ]
-  //         },
-  //         envData: {
-  //           "user-ks": [keyPair.publicKey]
-  //         },
-  //         meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
-  //         networkId: "testnet04"
-  //       }, network);
-  //       console.log(data);
-  //   } catch (e) {
-  //     console.log(e)
-  //   }
-  // }
-
-  // const removeLiquidity = async (token0, token1, liquidity) => {
-  //   try {
-  //     let data = await Pact.fetch.send(cmd, network);
-  //     console.log(data);
-  //   } catch (e) {
-  //     console.log(e)
-  //   }
-  // }
 
   const removeLiquidityLocal = async (token0, token1, liquidity) => {
     try {
@@ -632,6 +573,17 @@ export const PactProvider = (props) => {
     try {
       console.log(cmd)
       const data = await Pact.fetch.send(cmd, network)
+      toastId.current = notificationContext.showNotification({
+              title: 'Transaction Pending',
+              message: data.requestKeys[0],
+              type: STATUSES.INFO,
+              autoClose: 92000,
+              hideProgressBar: false,
+              // onOpen: (value) => {
+              //   setToastId(value.toastProps.toastId);
+              // }
+            }
+      )
       console.log(data)
       await listen(data.requestKeys[0]);
       setPolling(false)
@@ -645,6 +597,43 @@ export const PactProvider = (props) => {
     const res = await Pact.fetch.listen({listen: reqKey}, network);
     console.log(res);
     setSendRes(res);
+    if (res.result.status === 'success') {
+      notificationContext.showNotification({
+              title: 'Transaction Success!',
+              message: 'Check it out in the block explorer',
+              type: STATUSES.SUCCESS,
+              onClose: async () => {
+                await toast.dismiss(toastId)
+                await window.open(
+                  `https://explorer.chainweb.com/testnet/tx/${res.reqKey}`,
+                  "_blank",
+                  'noopener,noreferrer'
+                );
+              },
+              onOpen: async (value) => {
+                await toast.dismiss(toastId.current)
+              }
+            }
+      )
+    } else {
+      notificationContext.showNotification({
+              title: 'Transaction Failure!',
+              message: 'Check it out in the block explorer',
+              type: STATUSES.ERROR,
+              onClose: async () => {
+                await toast.dismiss(toastId)
+                await window.open(
+                  `https://explorer.chainweb.com/testnet/tx/${res.reqKey}`,
+                  "_blank",
+                  'noopener,noreferrer'
+                );
+              },
+              onOpen: async (value) => {
+                await toast.dismiss(toastId.current)
+              }
+            }
+      )
+    }
   }
 
   const getAccountTokenList = async (account) => {
@@ -720,7 +709,18 @@ export const PactProvider = (props) => {
     setSigning({ method: 'pk+pw', key: encrypted })
   }
 
+  const logout = () => {
+    localStorage.removeItem('acct', null);
+    localStorage.removeItem('signing', null);
+    window.location.reload();
+  };
 
+  const hasWallet = () => {
+    if (signing.method === 'sign') return true
+    if (signing.method === 'pk') return true
+    if (signing.method === 'pk+pw') return true
+    return false
+  }
 
   return (
     <PactContext.Provider
@@ -778,7 +778,11 @@ export const PactProvider = (props) => {
         walletSuccess,
         setWalletSuccess,
         registered,
-        setRegistered
+        setRegistered,
+        logout,
+        hasWallet,
+        ttl,
+        setTtl,
       }}
     >
       {props.children}
