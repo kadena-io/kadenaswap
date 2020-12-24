@@ -4,7 +4,6 @@ signers:
   - public: 368820f80c324bbc7c2b0610688a7da43e39f91d118732671cd9c7500ff43cca
 data:
   ns: "kswap"
-  upgrade: false
   swap-ns-user:
     keys:
       - dfb16b13e4032a6878fd98506b22cb0d6e5932c541e656b7ee5d69d72e6eb76e
