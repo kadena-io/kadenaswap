@@ -1,6 +1,6 @@
 (enforce-pact-version "3.7")
 
-(namespace 'swap)
+(namespace (read-msg 'ns))
 
 (module tokens GOVERNANCE
 
@@ -29,7 +29,8 @@
 
   (defconst ISSUER_KEY "I")
 
-  (defcap GOVERNANCE () (enforce (keyset-ref-guard 'swap-ns-admin)))
+  (defcap GOVERNANCE ()
+    (enforce-guard (keyset-ref-guard 'swap-ns-admin)))
 
   (defcap DEBIT (token:string sender:string)
     (enforce-guard
@@ -273,6 +274,8 @@
 
 )
 
-(create-table ledger)
-(create-table issuers)
-(create-table supplies)
+(if (read-msg 'upgrade)
+  ["upgrade complete"]
+  [ (create-table ledger)
+    (create-table issuers)
+    (create-table supplies) ])

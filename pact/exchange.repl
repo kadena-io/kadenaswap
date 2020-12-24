@@ -11,6 +11,8 @@
 (env-data
   { 'swap-ns-user: []
   , 'swap-ns-admin: []
+  , 'ns: "swap"
+  , 'upgrade: false
   })
 (env-keys ["operate"])
 
@@ -22,9 +24,22 @@
 
 
 (define-namespace 'test (sig-keyset) (sig-keyset))
+(env-data { 'ns: "test", 'upgrade: false })
 (load "test/ABC.pact")
 (load "test/XYZ.pact")
 (commit-tx)
+
+;; test upgradeability
+(begin-tx)
+(env-data
+  { 'swap-ns-user: []
+  , 'swap-ns-admin: []
+  , 'ns: "swap"
+  , 'upgrade: true })
+(load "ns.pact")
+(load "fungible-util.pact")
+(load "tokens.pact")
+(load "exchange.pact")
 
 (begin-tx)
 (load "test/tokens-test-fungible.pact")

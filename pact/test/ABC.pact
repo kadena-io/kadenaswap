@@ -1,4 +1,4 @@
-(namespace 'test)
+(namespace (read-msg 'ns))
 (module abc GOVERNANCE
 
   (implements fungible-v2)
@@ -11,7 +11,8 @@
   (deftable ledger:{entry})
 
   (defcap GOVERNANCE ()
-    (enforce (keyset-ref-guard 'swap-ns-admin)))
+    (enforce-guard
+      (keyset-ref-guard 'swap-ns-admin)))
 
   (defcap DEBIT (sender:string)
     (enforce-guard (at 'guard (read ledger sender))))
@@ -155,4 +156,7 @@
 
 )
 
-(create-table ledger)
+(if (read-msg 'upgrade)
+  ["upgrade"]
+  [(create-table ledger)]
+)

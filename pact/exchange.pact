@@ -1,10 +1,11 @@
 (enforce-pact-version "3.7")
 
-(namespace 'swap)
+(namespace (read-msg 'ns))
 
 (module exchange GOVERNANCE
 
-  (defcap GOVERNANCE () (enforce (keyset-ref-guard 'swap-ns-admin)))
+  (defcap GOVERNANCE ()
+    (enforce-guard (keyset-ref-guard 'swap-ns-admin)))
 
   (defcap CREATE_PAIR
     ( token0:module{fungible-v2}
@@ -607,7 +608,9 @@
 
 
 )
-
-(create-table pairs)
-
-(init)
+(if (read-msg 'upgrade)
+  ["upgrade"]
+  [ (create-table pairs)
+    (init)
+  ]
+)

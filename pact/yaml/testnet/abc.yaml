@@ -1,14 +1,14 @@
-codeFile: ../../exchange.pact
+codeFile: ../../test/ABC.pact
 signers:
   - public: ef711514b5a248ac16ffd5cc94511dfccbd89005e9737343dfbb3743c8a63ca6
 data:
   ns: "kswap"
   upgrade: false
 networkId: testnet04
-nonce: install-swap-exchange
+nonce: "0"
 publicMeta:
   chainId: "0"
   sender: "ef711514b5a248ac16ffd5cc94511dfccbd89005e9737343dfbb3743c8a63ca6"
-  gasLimit: 5000
+  gasLimit: 150000
   gasPrice: 0.0000000001
   ttl: 150000
