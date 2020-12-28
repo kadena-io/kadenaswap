@@ -135,7 +135,7 @@ export const PactProvider = (props) => {
   const getTotalTokenSupply = async (token0, token1) => {
     try {
       let data = await Pact.fetch.local({
-          pactCode: `(swap.tokens.total-supply (swap.exchange.get-pair-key ${token0} ${token1}))`,
+          pactCode: `(kswap.tokens.total-supply (kswap.exchange.get-pair-key ${token0} ${token1}))`,
           keyPairs: Pact.crypto.genKeyPair(),
           meta: Pact.lang.mkMeta("", chainId ,0.01,100000000, 28800, creationTime()),
         }, network);
@@ -154,12 +154,12 @@ export const PactProvider = (props) => {
   const createTokenPairLocal = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
       let data = await Pact.fetch.local({
-          pactCode: `(swap.exchange.create-pair
+          pactCode: `(kswap.exchange.create-pair
               ${token0}
               ${token1}
               ""
             )`,
-          meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(),28800),
+          meta: Pact.lang.mkMeta("", chainId ,0.0001,5000,creationTime(),28800),
           networkId: "testnet04"
       }, network);
       let pair =  data.result.data.account
@@ -168,12 +168,12 @@ export const PactProvider = (props) => {
         let amount1Decimal = keepDecimal(amountDesired1);
         let cmd = {
             pactCode: `
-            (swap.exchange.create-pair
+            (kswap.exchange.create-pair
                 ${token0}
                 ${token1}
                 ""
-              )
-            (swap.exchange.add-liquidity
+            )
+            (kswap.exchange.add-liquidity
                 ${token0}
                 ${token1}
                 ${keepDecimal(amountDesired0)}
@@ -183,7 +183,7 @@ export const PactProvider = (props) => {
                 ${JSON.stringify(account.account)}
                 ${JSON.stringify(account.account)}
                 (read-keyset 'user-ks)
-                (at 'block-time (chain-data))
+                )
               )`,
             keyPairs: {
               ...keyPair,
@@ -196,7 +196,7 @@ export const PactProvider = (props) => {
             envData: {
               "user-ks": [keyPair.publicKey]
             },
-            meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+            meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,5000,creationTime(), 600),
             networkId: "testnet04"
           };
         data = await Pact.fetch.local(cmd, network);
@@ -209,7 +209,6 @@ export const PactProvider = (props) => {
         console.log(e)
       }
     } catch (e) {
-      // setLocalRes({});
       console.log(e)
     }
   }
@@ -220,7 +219,7 @@ export const PactProvider = (props) => {
       let amount0Decimal = keepDecimal(amountDesired0);
       let amount1Decimal = keepDecimal(amountDesired1);
       let cmd = {
-          pactCode: `(swap.exchange.add-liquidity
+          pactCode: `(kswap.exchange.add-liquidity
               ${token0}
               ${token1}
               ${keepDecimal(amountDesired0)}
@@ -230,7 +229,7 @@ export const PactProvider = (props) => {
               ${JSON.stringify(account.account)}
               ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
-              (at 'block-time (chain-data))
+              )
             )`,
           keyPairs: {
             ...keyPair,
@@ -260,11 +259,10 @@ export const PactProvider = (props) => {
   const removeLiquidityLocal = async (token0, token1, liquidity) => {
     try {
       let pairKey = await getPairKey(token0, token1);
-      console.log(pairKey)
       liquidity = keepDecimal(liquidity);
       let pair = await getPairAccount(token0, token1);
       let cmd = {
-          pactCode: `(swap.exchange.remove-liquidity
+          pactCode: `(kswap.exchange.remove-liquidity
               ${token0}
               ${token1}
               ${liquidity}
@@ -273,14 +271,14 @@ export const PactProvider = (props) => {
               ${JSON.stringify(account.account)}
               ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
-              (at 'block-time (chain-data))
+              )
             )`,
             networkId: "testnet04",
           keyPairs: {
             ...keyPair,
             clist: [
-              {name: `swap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
-              {name: `swap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
+              {name: `kswap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
+              {name: `kswap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
               {name: `coin.GAS`, args: []}
             ]
           },
@@ -301,7 +299,7 @@ export const PactProvider = (props) => {
   const getPairAccount = async (token0, token1) => {
     try {
       let data = await Pact.fetch.local({
-          pactCode: `(at 'account (swap.exchange.get-pair ${token0} ${token1}))`,
+          pactCode: `(at 'account (kswap.exchange.get-pair ${token0} ${token1}))`,
           meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
@@ -320,7 +318,7 @@ export const PactProvider = (props) => {
   const getPair = async (token0, token1) => {
     try {
       let data = await Pact.fetch.local({
-          pactCode: `(swap.exchange.get-pair ${token0} ${token1})`,
+          pactCode: `(kswap.exchange.get-pair ${token0} ${token1})`,
           keyPairs: Pact.crypto.genKeyPair(),
           meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
         }, network);
@@ -343,7 +341,7 @@ export const PactProvider = (props) => {
   const getPairKey = async (token0, token1) => {
     try {
       let data = await Pact.fetch.local({
-          pactCode: `(swap.exchange.get-pair-key ${token0} ${token1})`,
+          pactCode: `(kswap.exchange.get-pair-key ${token0} ${token1})`,
           meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
@@ -362,7 +360,7 @@ export const PactProvider = (props) => {
   const getPairAccountBalance = async (token0, token1, account) => {
     try {
       let data = await Pact.fetch.local({
-          pactCode: `(swap.tokens.get-balance (swap.exchange.get-pair-key ${token0} ${token1}) ${JSON.stringify(account)})`,
+          pactCode: `(kswap.tokens.get-balance (kswap.exchange.get-pair-key ${token0} ${token1}) ${JSON.stringify(account)})`,
           meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
@@ -380,7 +378,7 @@ export const PactProvider = (props) => {
 
   // const getPairListAccountBalance = async (list, account) => {
   //   let code = list.reduce((accum, cum) => {
-  //     return cum+`(swap.tokens.get-balance (swap.exchange.get-pair-key ${accum.token0.name} ${accum.token1.name}) ${JSON.stringify(account)})`
+  //     return cum+`(kswap.tokens.get-balance (kswap.exchange.get-pair-key ${accum.token0.name} ${accum.token1.name}) ${JSON.stringify(account)})`
   //   }, "")
   //   try {
   //     let data = await Pact.fetch.local({
@@ -405,7 +403,7 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `
-          (use swap.exchange)
+          (use kswap.exchange)
           (let*
             (
               (p (get-pair ${token0} ${token1}))
@@ -432,14 +430,14 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `
-          (use swap.exchange)
+          (use kswap.exchange)
           (let*
             (
               (p (get-pair ${token0} ${token1}))
               (reserveA (reserve-for p ${token0}))
               (reserveB (reserve-for p ${token1}))
-              (totalBal (swap.tokens.total-supply (swap.exchange.get-pair-key ${token0} ${token1})))
-              (acctBal (swap.tokens.get-balance (swap.exchange.get-pair-key ${token0} ${token1}) ${JSON.stringify(account)}))
+              (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${token0} ${token1})))
+              (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${token0} ${token1}) ${JSON.stringify(account)}))
             )[(* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
            `,
            meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
@@ -462,7 +460,7 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `
-          (swap.tokens.get-tokens)
+          (kswap.tokens.get-tokens)
            `,
            meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
         }, network);
@@ -482,23 +480,23 @@ export const PactProvider = (props) => {
     try {
       let pair = await getPairAccount(token0.address, token1.address);
 
-      const inPactCode = `(swap.exchange.swap-exact-in
+      const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
           ${keepDecimal(token1.amount*(1-slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          (at 'block-time (chain-data))
+          )
         )`
-      const outPactCode = `(swap.exchange.swap-exact-out
+      const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
           ${keepDecimal(token0.amount*(1+slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          (at 'block-time (chain-data))
+          )
         )`
       const cmd = {
           pactCode: (isSwapIn ? inPactCode : outPactCode),
@@ -539,23 +537,23 @@ export const PactProvider = (props) => {
       const ct = creationTime();
       console.log(account.account)
       let pair = await getPairAccount(token0.address, token1.address);
-      const inPactCode = `(swap.exchange.swap-exact-in
+      const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
           ${keepDecimal(token1.amount*(1-slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          (at 'block-time (chain-data))
+          )
         )`
-      const outPactCode = `(swap.exchange.swap-exact-out
+      const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
           ${keepDecimal(token0.amount*(1+slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          (at 'block-time (chain-data))
+          )
         )`
       const cmd = {
           pactCode: (isSwapIn ? inPactCode : outPactCode),
@@ -589,23 +587,23 @@ export const PactProvider = (props) => {
   const swapWallet = async (token0, token1, isSwapIn) => {
     try {
       console.log(Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, parseFloat(keepDecimal(token0.amount*(1+slippage)))]))
-      const inPactCode = `(swap.exchange.swap-exact-in
+      const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
           ${keepDecimal(token1.amount*(1-slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          (at 'block-time (chain-data))
+          )
         )`
-      const outPactCode = `(swap.exchange.swap-exact-out
+      const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
           ${keepDecimal(token0.amount*(1+slippage))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          (at 'block-time (chain-data))
+          )
         )`
       const signCmd = {
         pactCode: (isSwapIn ? inPactCode : outPactCode),
@@ -707,7 +705,7 @@ export const PactProvider = (props) => {
     list =
     list
     .map(pair =>  {
-      return `(swap.tokens.get-balance ${JSON.stringify(pair)} ${JSON.stringify(account)})`;
+      return `(kswap.tokens.get-balance ${JSON.stringify(pair)} ${JSON.stringify(account)})`;
     })
 
     try {

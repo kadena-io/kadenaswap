@@ -170,9 +170,8 @@ const LiquidityContainer = (props) => {
 
   const supply = async () => {
       if (selectedView==="Create A Pair"){
-        console.log("supply ")
         setLoading(true)
-        let address = await pact.createTokenPairLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount)
+        await pact.createTokenPairLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount)
         setLoading(false)
         setShowReview(false)
         setShowTxModal(true)
@@ -263,6 +262,7 @@ const LiquidityContainer = (props) => {
           show={showTxModal}
           token0={fromValues.coin}
           token1={toValues.coin}
+          createTokenPair={() => pact.createTokenPairLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount)}
           onClose={() => setShowTxModal(false)}
         />
         <ReviewTx

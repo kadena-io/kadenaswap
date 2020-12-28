@@ -78,7 +78,7 @@ const Value = styled.span`
 `;
 
 
-const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1}) => {
+const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1, createTokenPair}) => {
 
   const pact = useContext(PactContext);
 
@@ -211,8 +211,14 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         <Button
           buttonStyle={{ width: '100%' }}
           onClick={async () => {
-            pact.swapSend();
-            onClose()
+            if (view === "Add Liquidity") {
+              pact.swapsend();
+              onClose();
+            } else {
+              await createTokenPair();
+              await pact.swapSend();
+              onClose();
+            }
           }}
         >
           Send Transaction
@@ -289,9 +295,9 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
                   ?
                     !view
                     ? successView()
-                    : view==="Add Liquidity"
-                      ? successAddView()
-                      :successRemoveView()
+                    : view==="Remove Liquidity"
+                      ? successRemoveView()
+                      : successAddView()
                   :
                     failView()
                   )
