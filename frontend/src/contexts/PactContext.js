@@ -4,13 +4,13 @@ import AES from 'crypto-js/aes'
 import CryptoJS from 'crypto-js'
 import { NotificationContext, STATUSES } from './NotificationContext';
 import { toast } from 'react-toastify';
+import pairTokens from '../constants/pairTokens'
 
 const keepDecimal = decimal => {
   decimal = parseFloat(decimal).toPrecision(13)
   const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
   return num
 }
-
 
 export const PactContext = createContext();
 
@@ -21,6 +21,7 @@ const savedSlippage = localStorage.getItem('slippage');
 const savedSigning = localStorage.getItem('signing');
 
 const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact";
+
 const chainId = "0";
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 
@@ -47,7 +48,7 @@ export const PactProvider = (props) => {
   const [localRes, setLocalRes] = useState(null);
   const [polling, setPolling] = useState(false);
   const [totalSupply, setTotalSupply] = useState("")
-  const [pairList, setPairList] = useState("")
+  const [pairList, setPairList] = useState(pairTokens)
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
   const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" })
@@ -150,23 +151,65 @@ export const PactProvider = (props) => {
     }
   }
 
-  const createTokenPair = async (token0, token1, amountDesired0, amountDesired1) => {
+  const createTokenPairLocal = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
-      let data = await Pact.fetch.send({
+      let data = await Pact.fetch.local({
           pactCode: `(swap.exchange.create-pair
               ${token0}
               ${token1}
               ""
             )`,
-          keyPairs: keyPair,
-          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(),28800),
+          meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(),28800),
           networkId: "testnet04"
-        }, network);
-      Pact.fetch.listen({listen: data.requestKeys[0]}, network)
-      .then(() => {
-        // addLiquidity(token0, token1, amountDesired0, amountDesired1);
-      })
+      }, network);
+      let pair =  data.result.data.account
+      try {
+        let amount0Decimal = keepDecimal(amountDesired0);
+        let amount1Decimal = keepDecimal(amountDesired1);
+        let cmd = {
+            pactCode: `
+            (swap.exchange.create-pair
+                ${token0}
+                ${token1}
+                ""
+              )
+            (swap.exchange.add-liquidity
+                ${token0}
+                ${token1}
+                ${keepDecimal(amountDesired0)}
+                ${keepDecimal(amountDesired1)}
+                ${keepDecimal(amountDesired0*(1-0.003))}
+                ${keepDecimal(amountDesired1*(1-0.003))}
+                ${JSON.stringify(account.account)}
+                ${JSON.stringify(account.account)}
+                (read-keyset 'user-ks)
+                (at 'block-time (chain-data))
+              )`,
+            keyPairs: {
+              ...keyPair,
+              clist: [
+                {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
+                {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
+                {name: `coin.GAS`, args: []}
+              ]
+            },
+            envData: {
+              "user-ks": [keyPair.publicKey]
+            },
+            meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+            networkId: "testnet04"
+          };
+        data = await Pact.fetch.local(cmd, network);
+        setCmd(cmd);
+        console.log(data);
+        setLocalRes(data);
+        console.log(localRes);
+      } catch (e) {
+        setLocalRes({});
+        console.log(e)
+      }
     } catch (e) {
+      // setLocalRes({});
       console.log(e)
     }
   }
@@ -204,10 +247,10 @@ export const PactProvider = (props) => {
           networkId: "testnet04"
         };
       let data = await Pact.fetch.local(cmd, network);
-        setCmd(cmd);
-        console.log(data);
-        setLocalRes(data);
-        console.log(localRes);
+      setCmd(cmd);
+      console.log(data);
+      setLocalRes(data);
+      console.log(localRes);
     } catch (e) {
       setLocalRes({});
       console.log(e)
@@ -216,8 +259,8 @@ export const PactProvider = (props) => {
 
   const removeLiquidityLocal = async (token0, token1, liquidity) => {
     try {
-      // let pairKey = await getPairKey(token0, token1);
-      let pairKey = "coin:free.abc"
+      let pairKey = await getPairKey(token0, token1);
+      console.log(pairKey)
       liquidity = keepDecimal(liquidity);
       let pair = await getPairAccount(token0, token1);
       let cmd = {
@@ -334,6 +377,29 @@ export const PactProvider = (props) => {
       console.log(e)
     }
   }
+
+  // const getPairListAccountBalance = async (list, account) => {
+  //   let code = list.reduce((accum, cum) => {
+  //     return cum+`(swap.tokens.get-balance (swap.exchange.get-pair-key ${accum.token0.name} ${accum.token1.name}) ${JSON.stringify(account)})`
+  //   }, "")
+  //   try {
+  //     let data = await Pact.fetch.local({
+  //         pactCode: code,
+  //         meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+  //       }, network);
+  //       if (data.result.status === "success"){
+  //         console.log("Success", data.result.data);
+  //         setPairAccountBalance(data.result.data);
+  //       } else {
+  //         console.log("Fail", data)
+  //         // setPairAccountBalance(null);
+  //         console.log("Pair Account is not verified")
+  //       }
+  //   } catch (e) {
+  //     console.log(e)
+  //   }
+  // }
+
 
   const getReserves = async (token0, token1) => {
     try {
@@ -739,7 +805,7 @@ export const PactProvider = (props) => {
         addLiquidityLocal,
         // removeLiquidity,
         removeLiquidityLocal,
-        createTokenPair,
+        createTokenPairLocal,
         pairAccount,
         pairAccountBalance,
         getPairAccount,

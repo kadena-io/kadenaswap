@@ -221,7 +221,6 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
     )
   }
 
-
   const failView = () => {
     return (
       <Content>
@@ -290,9 +289,9 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
                   ?
                     !view
                     ? successView()
-                    : view==="addLiquidity"
+                    : view==="Add Liquidity"
                       ? successAddView()
-                      : successRemoveView()
+                      :successRemoveView()
                   :
                     failView()
                   )
