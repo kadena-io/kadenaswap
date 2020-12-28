@@ -12,7 +12,6 @@ import { ReactComponent as KadenaLogo } from '../../assets/images/crypto/kadena-
 function ReviewTx(props) {
   const pact = useContext(PactContext);
   const {fromValues, toValues, buttonStatus, liquidityView, loading, supply, open, setOpen} = props;
-
   return (
       <Modal
         onClose={() => setOpen(false)}

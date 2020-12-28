@@ -103,6 +103,7 @@ const LiquidityList = (props) => {
           ? pact.pairList.map(pair => {
               return (
                 <TokenPair
+                  key={pair.name}
                   pair={pair}
                   selectAddLiquidity = {props.selectAddLiquidity}
                   selectRemoveLiquidity = {props.selectRemoveLiquidity}

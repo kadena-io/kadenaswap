@@ -24,9 +24,7 @@ const TokenPair = (props) => {
   return (
     balance ?
           <List>
-             <Message
-             key={token0.code +token1.code}
-             >
+             <Message>
                <List.Item>
                 <List.Content>
                   <List.Header>
