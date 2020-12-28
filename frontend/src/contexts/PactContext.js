@@ -377,20 +377,19 @@ export const PactProvider = (props) => {
   }
 
   const getPairListAccountBalance = async (list, account) => {
-    console.log("called")
     setPairList([]);
     list.forEach(async pair => {
       try {
         let data = await Pact.fetch.local({
             pactCode: `
-            (use swap.exchange)
+            (use kswap.exchange)
             (let*
               (
                 (p (get-pair ${pair.token0.name} ${pair.token1.name}))
                 (reserveA (reserve-for p ${pair.token0.name}))
                 (reserveB (reserve-for p ${pair.token1.name}))
-                (totalBal (swap.tokens.total-supply (swap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name})))
-                (acctBal (swap.tokens.get-balance (swap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name}) ${JSON.stringify(account)}))
+                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name})))
+                (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name}) ${JSON.stringify(account)}))
               )[acctBal totalBal reserveA reserveB (* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
              `,
             meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),

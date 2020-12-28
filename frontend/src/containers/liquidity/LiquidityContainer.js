@@ -147,23 +147,22 @@ const LiquidityContainer = (props) => {
       if (pairExist) {
         setSelectedView("Add Liquidity")
       }
-      if (fromValues.coin && toValues.coin && fromValues.amount && toValues.amount){
-        return status[4];
+      if (fromValues.coin && toValues.coin){
+        if (!fromValues.amount && !toValues.amount) return status[1];
+        else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
+        else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
+        else if (fromValues.coin === toValues.coin) return status[6];
+        else return status[4]
       }
-      else if (!fromValues.amount && !toValues.amount) return status[1];
-      else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
-      else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
-      else if (fromValues.coin === toValues.coin) return status[6];
-      else return status[4]
     }
     else if (!fromValues.amount && !toValues.amount) return status[1];
     else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
     else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
     else if (fromValues.coin === toValues.coin) return status[6];
     else {
-      // if (isNaN(pact.ratio)) {
-      //   return {...status[2], status: false};
-      // } else
+      if (isNaN(pact.ratio)) {
+        return {...status[2], status: false};
+      } else
       return status[2];
     }
   }
