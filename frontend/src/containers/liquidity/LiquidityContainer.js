@@ -142,6 +142,7 @@ const LiquidityContainer = (props) => {
       5: {msg:"Pair Already Exists", status: false},
       6: {msg: "Select different tokens", status: false}
     }
+    if (!pact.account.account) return status[0];
     if (selectedView==="Create A Pair") {
      if (pairExist) {
        setSelectedView("Add Liquidity")
