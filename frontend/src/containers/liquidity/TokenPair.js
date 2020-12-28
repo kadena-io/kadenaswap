@@ -32,6 +32,7 @@ const TokenPair = (props) => {
   console.log(pact.totalSupply)
 
   return (
+    pact.pairAccountBalance?
           <List>
              <Message
              key={token0.code +token1.code}
@@ -70,6 +71,7 @@ const TokenPair = (props) => {
               </Container>
             </Message>
         </List>
+        : ""
   );
 };
 

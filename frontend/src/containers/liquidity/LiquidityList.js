@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import styled from 'styled-components/macro';
-import { Message } from 'semantic-ui-react'
+import { Message, Divider } from 'semantic-ui-react'
 import { ReactComponent as PlusIcon } from '../../assets/images/shared/plus.svg';
 import FormContainer from '../../components/shared/FormContainer';
 import Input from '../../components/shared/Input';
@@ -69,33 +69,45 @@ const Label = styled.span`
 const LiquidityList = (props) => {
   const pact = useContext(PactContext);
   return (
-    <FormContainer title="Your Liquidity">
-      <RightContainer>
-        <Button
-           buttonStyle={{ marginLeft: 24 }}
-           onClick={() => props.selectCreatePair()}>
-           Create a pair
-        </Button>
-        <Button
-           onClick={() => props.selectAddLiquidity()}>
-           Add Liquidity
-        </Button>
-      </RightContainer>
-
-      {pact.account.account!==null
-        ? pairTokens.map(pair => {
-            return (
-              <TokenPair
-                account={pact.account.balance}
-                pair = {pair}
-                selectAddLiquidity = {props.selectAddLiquidity}
-                selectRemoveLiquidity = {props.selectRemoveLiquidity}
-              />
-            )
-          })
-        : <Message>Connect an account to view your liquidity</Message>
-      }
-    </FormContainer>
+    <ColumnContainer>
+      <Message style={{ marginTop: -100, marginBottom: 40, textAlign: "center"}}>
+        <Message.Header>Liquidity provider rewards</Message.Header>
+        <br/>
+        <Message.Content>
+          Liquidity providers earn a 0.3% fee on all trades proportional to their share of the pool.
+        </Message.Content>
+        <Message.Content>
+          Fees are added to the pool, accrue in real time and can be claimed by withdrawing your liquidity.
+        </Message.Content>
+      </Message>
+      <FormContainer title="Your Liquidity">
+        <RightContainer>
+          <Button
+             buttonStyle={{ marginLeft: 24 }}
+             onClick={() => props.selectCreatePair()}>
+             Create a pair
+          </Button>
+          <Button
+             onClick={() => props.selectAddLiquidity()}>
+             Add Liquidity
+          </Button>
+        </RightContainer>
+        <Divider/>
+        {pact.account.account!==null
+          ? pairTokens.map(pair => {
+              return (
+                <TokenPair
+                  account={pact.account.balance}
+                  pair = {pair}
+                  selectAddLiquidity = {props.selectAddLiquidity}
+                  selectRemoveLiquidity = {props.selectRemoveLiquidity}
+                />
+              )
+            })
+          : <Message>Connect an account to view your liquidity</Message>
+        }
+      </FormContainer>
+    </ColumnContainer>
   );
 };
 

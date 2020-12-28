@@ -49,9 +49,9 @@ const Label = styled.span`
 `;
 
 const PoolContainer = () => {
-
   const [selectedView, setSelectedView] = useState(false);
   const pact = useContext(PactContext);
+
   return (
     <Container>
       {
@@ -65,6 +65,7 @@ const PoolContainer = () => {
         <LiquidityContainer
             closeLiquidity = {() => setSelectedView(false)}
             selectedView = { selectedView }
+            setSelectedView = { setSelectedView }
             />
         : <LiquidityList
             selectCreatePair = {() => setSelectedView("Create A Pair")}

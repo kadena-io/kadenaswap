@@ -5,6 +5,6 @@ import { ReactComponent as KadenaIcon } from '../assets/images/crypto/kadena-log
 export default {
   KDA: { name: 'coin', code: 'KDA', icon: <KadenaIcon /> },
   ABC: { name: 'free.abc', code: 'ABC', icon: <KadenaIcon /> },
-  // XYZ: { name: 'free.xyz', code: 'XYZ', icon: <KadenaIcon /> },
+  XYZ: { name: 'kswap.xyz', code: 'XYZ', icon: <KadenaIcon /> },
   // ETH: { name: 'ethereum', code: 'ETH', icon: <EthereumIcon /> },
 };

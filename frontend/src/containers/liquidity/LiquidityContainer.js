@@ -13,7 +13,7 @@ import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
 import reduceBalance from '../../utils/reduceBalance';
 import TxView from '../../components/shared/TxView';
-import KdaModal from '../../modals/kdaModal/KdaModal';
+import ReviewTx from './ReviewTx';
 
 const Container = styled.div`
   display: flex;
@@ -52,25 +52,38 @@ const Label = styled.span`
 
 const LiquidityContainer = (props) => {
   const pact = useContext(PactContext);
+  const {selectedView, setSelectedView} = props;
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
-  const liquidityView = props.selectedView;
   const [inputSide, setInputSide] = useState("")
-  const [fromValues, setFromValues] = useState({ ...pact.account, coin: cryptoCurrencies.KDA.code });
-  const [toValues, setToValues] = useState({ ...pact.tokenAccount, coin:cryptoCurrencies.ABC.code });
+  const [fromValues, setFromValues] = useState({coin: null, account: null, guard: null, balance: null});
+  const [toValues, setToValues] = useState({coin: null, account: null, guard: null, balance: null});
+  const [pairExist, setPairExist] = useState(false)
   const [showTxModal, setShowTxModal] = useState(false)
+  const [showReview, setShowReview] = React.useState(false)
   const [loading, setLoading] = useState(false)
-  const [wallet, setWallet] = useState(false)
 
   useEffect(async () => {
-    await pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
-    await pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
-    await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
-    await pact.getPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
-    if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
-    if (tokenSelectorType === 'to') return setSelectedToken(toValues.coin);
-    return setSelectedToken(null);
-  }, [tokenSelectorType, fromValues, toValues]);
+    if (tokenSelectorType === 'from') setSelectedToken(fromValues.coin);
+    if (tokenSelectorType === 'to') setSelectedToken(toValues.coin);
+    else setSelectedToken(null);
+  }, [tokenSelectorType]);
+
+  useEffect(async () => {
+    if (fromValues.coin){
+      await pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
+    }
+    if (toValues.coin){
+      await pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
+    }
+    if (fromValues.coin && toValues.coin) {
+      await pact.getPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
+      await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
+      if (pact.pair) {
+        setPairExist(true)
+      }
+    }
+  }, [fromValues, toValues,pairExist]);
 
   const onTokenClick = ({ crypto }) => {
     if (tokenSelectorType === 'from') {
@@ -95,7 +108,9 @@ const LiquidityContainer = (props) => {
       }
     }
     if (isNaN(pact.ratio) || fromValues.amount === "") {
-      setToValues((prev) => ({ ...prev, amount: '' }))
+      if (selectedView === "Add Liquidity"){
+        setToValues((prev) => ({ ...prev, amount: '' }))
+      }
     }
   }, [fromValues.amount])
 
@@ -111,55 +126,66 @@ const LiquidityContainer = (props) => {
       }
     }
     if (isNaN(pact.ratio) || toValues.amount === "") {
-      setFromValues((prev) => ({ ...prev, amount: '' }))
+      if (selectedView === "Add Liquidity"){
+        setFromValues((prev) => ({ ...prev, amount: '' }))
+      }
     }
   }, [toValues.amount])
 
   const buttonStatus = () => {
     let status = {
-      0: {msg: "Connect Wallet", status: true},
+      0: {msg: "Connect your KDA wallet", status: false},
       1: {msg: "Enter An Amount", status: false},
       2: {msg: "Supply", status: true},
       3: {msg: (token) => `Insufficient ${token} Balance`, status: false},
-      4: {msg:"Pair Already Exists", status: false},
-      5: {msg: "Select different tokens", status: false}
+      4: {msg:"Create A Pair", status: true},
+      5: {msg:"Pair Already Exists", status: false},
+      6: {msg: "Select different tokens", status: false}
     }
-    if (!fromValues.amount && !toValues.amount) return status[1];
-    else if (props.liquidityView==="Create A Pair" && pact.pair) return status[4];
-    else if (!pact.account.account || (fromValues.amount > pact.tokenFromAccount.balance)) return {...status[3], msg: status[3].msg(fromValues.coin)};
+    if (!pact.account.account) return status[0];
+    if (selectedView==="Create A Pair") {
+      if (pairExist) {
+        setSelectedView("Add Liquidity")
+      }
+      if (fromValues.coin && toValues.coin && fromValues.amount && toValues.amount){
+        return status[4];
+      }
+      else if (!fromValues.amount && !toValues.amount) return status[1];
+      else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
+      else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
+      else if (fromValues.coin === toValues.coin) return status[6];
+      else return status[4]
+    }
+    else if (!fromValues.amount && !toValues.amount) return status[1];
+    else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
     else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
-    else if (fromValues.coin === toValues.coin) return status[5];
-    else return status[2];
+    else if (fromValues.coin === toValues.coin) return status[6];
+    else {
+      // if (isNaN(pact.ratio)) {
+      //   return {...status[2], status: false};
+      // } else
+      return status[2];
+    }
   }
 
-
   const supply = async () => {
-      if (props.liquidityView==="Create A Pair"){
+      if (selectedView==="Create A Pair"){
         setLoading(true)
-        await pact.createTokenPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount).then(console.log)
+        await pact.createTokenPairLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount)
         setLoading(false)
+        setShowReview(false)
         setShowTxModal(true)
       } else {
         setLoading(true)
         await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
         setLoading(false)
+        setShowReview(false)
         setShowTxModal(true)
       }
   }
 
-  const register = () => {
-    setWallet(true);
-  }
-
   return (
-      <FormContainer title={liquidityView}>
-        <TxView
-          view="addLiquidity"
-          show={showTxModal}
-          token0={fromValues.coin}
-          token1={toValues.coin}
-          onClose={() => setShowTxModal(false)}
-        />
+      <FormContainer title={selectedView}>
         <TokenSelector
           show={tokenSelectorType !== null}
           selectedToken={selectedToken}
@@ -209,7 +235,7 @@ const LiquidityContainer = (props) => {
           onSelectButtonClick={() => setTokenSelectorType('to')}
           onChange={async (e, { value }) => {
             setInputSide('to')
-            setFromValues((prev) => ({ ...prev, amount: value }))
+            setToValues((prev) => ({ ...prev, amount: value }))
           }}
         />
         {fromValues.coin && toValues.coin && (
@@ -231,21 +257,24 @@ const LiquidityContainer = (props) => {
             </RowContainer>
           </>
         )}
-        {pact.registered
-          ?
-            <Button
-              disabled={!buttonStatus().status}
-              buttonStyle={{ marginTop: 24, marginRight: 0}}
-              loading={loading}
-              onClick={supply}>
-              {buttonStatus().msg}
-            </Button>
-          :
-            <KdaModal
-              buttonStyle={{ marginTop: 24, marginRight: 0}}
-              buttonName="Connect Wallet"
-            />
-        }
+        <TxView
+          view={selectedView}
+          show={showTxModal}
+          token0={fromValues.coin}
+          token1={toValues.coin}
+          createTokenPair={() => pact.createTokenPairLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount)}
+          onClose={() => setShowTxModal(false)}
+        />
+        <ReviewTx
+          fromValues={fromValues}
+          toValues={toValues}
+          buttonStatus = {buttonStatus}
+          liquidityView = {selectedView}
+          supply={supply}
+          loading={loading}
+          open={showReview}
+          setOpen={setShowReview}
+        />
     </FormContainer>
   );
 };

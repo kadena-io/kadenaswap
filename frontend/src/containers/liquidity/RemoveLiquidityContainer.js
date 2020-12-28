@@ -95,7 +95,7 @@ const RemoveLiquidityContainer = (props) => {
           <List.Item>{`Pooled ${fromValues.coin}: ${reduceBalance(pact.poolBalance[0]*amount/100)}`}</List.Item>
           <List.Item>{`Pooled ${toValues.coin}: ${reduceBalance(pact.poolBalance[1]*amount/100)}`}</List.Item>
         </List>
-        <StyledButton color='black'
+        <StyledButton
           loading={loading}
           onClick={async () => {
               setLoading(true)
