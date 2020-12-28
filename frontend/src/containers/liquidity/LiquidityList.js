@@ -68,6 +68,12 @@ const Label = styled.span`
 
 const LiquidityList = (props) => {
   const pact = useContext(PactContext);
+
+
+  useEffect( async () => {
+    pact.getPairListAccountBalance(pairTokens,pact.account.account)
+  }, []);
+
   return (
     <ColumnContainer>
       <Message style={{ marginTop: -100, marginBottom: 40, textAlign: "center"}}>
@@ -94,11 +100,10 @@ const LiquidityList = (props) => {
         </RightContainer>
         <Divider/>
         {pact.account.account!==null
-          ? pairTokens.map(pair => {
+          ? pact.pairList.map(pair => {
               return (
                 <TokenPair
-                  account={pact.account.balance}
-                  pair = {pair}
+                  pair={pair}
                   selectAddLiquidity = {props.selectAddLiquidity}
                   selectRemoveLiquidity = {props.selectRemoveLiquidity}
                 />

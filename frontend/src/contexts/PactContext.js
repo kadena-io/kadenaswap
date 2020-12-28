@@ -376,28 +376,42 @@ export const PactProvider = (props) => {
     }
   }
 
-  // const getPairListAccountBalance = async (list, account) => {
-  //   let code = list.reduce((accum, cum) => {
-  //     return cum+`(kswap.tokens.get-balance (kswap.exchange.get-pair-key ${accum.token0.name} ${accum.token1.name}) ${JSON.stringify(account)})`
-  //   }, "")
-  //   try {
-  //     let data = await Pact.fetch.local({
-  //         pactCode: code,
-  //         meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
-  //       }, network);
-  //       if (data.result.status === "success"){
-  //         console.log("Success", data.result.data);
-  //         setPairAccountBalance(data.result.data);
-  //       } else {
-  //         console.log("Fail", data)
-  //         // setPairAccountBalance(null);
-  //         console.log("Pair Account is not verified")
-  //       }
-  //   } catch (e) {
-  //     console.log(e)
-  //   }
-  // }
-
+  const getPairListAccountBalance = async (list, account) => {
+    console.log("called")
+    setPairList([]);
+    list.forEach(async pair => {
+      try {
+        let data = await Pact.fetch.local({
+            pactCode: `
+            (use swap.exchange)
+            (let*
+              (
+                (p (get-pair ${pair.token0.name} ${pair.token1.name}))
+                (reserveA (reserve-for p ${pair.token0.name}))
+                (reserveB (reserve-for p ${pair.token1.name}))
+                (totalBal (swap.tokens.total-supply (swap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name})))
+                (acctBal (swap.tokens.get-balance (swap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name}) ${JSON.stringify(account)}))
+              )[acctBal totalBal reserveA reserveB (* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
+             `,
+            meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+          }, network);
+          if (data.result.status === "success"){
+            console.log("Success", data.result.data, "pair list");
+            setPairList([...pairList,
+              {...pair,
+                balance: data.result.data[0],
+                supply: data.result.data[1],
+                reserves:[data.result.data[2],  data.result.data[3]],
+                pooledAmount: [data.result.data[4],  data.result.data[5]]} ]);
+          } else {
+            console.log("Fail pair list", data)
+            console.log("Pair Account is not verified")
+          }
+      } catch (e) {
+        console.log(e)
+      }
+    })
+  }
 
   const getReserves = async (token0, token1) => {
     try {
@@ -847,6 +861,7 @@ export const PactProvider = (props) => {
         hasWallet,
         ttl,
         setTtl,
+        getPairListAccountBalance,
       }}
     >
       {props.children}
