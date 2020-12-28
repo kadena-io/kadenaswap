@@ -19,20 +19,10 @@ const Container = styled.div`
 
 const TokenPair = (props) => {
   let pact = useContext(PactContext);
-  const [pairBalance, setPairBalance] = useState(pact.pairAccountBalance);
-  let {name, token0, token1} = props.pair;
-
-  useEffect( async () => {
-    pact.setVerifiedAccount(pact.account.account);
-    pact.getPairAccountBalance(token0.name, token1.name, pact.account.account);
-    pact.getTotalTokenSupply(token0.name, token1.name);
-    pact.getPooledAmount(name, token0.name, token1.name, pact.account.account);
-  }, []);
-
-  console.log(pact.totalSupply)
+  let {name, token0, token1, balance, supply, pooledAmount} = props.pair;
 
   return (
-    pact.pairAccountBalance?
+    balance ?
           <List>
              <Message
              key={token0.code +token1.code}
@@ -47,15 +37,15 @@ const TokenPair = (props) => {
               </List.Item>
               <br/>
               <List.Item>
-                {`Your pool tokens: ${reduceBalance(pact.pairAccountBalance)}`}
+                {`Your pool tokens: ${reduceBalance(balance)}`}
                 <List.Content>
-                Pooled {token0.code}: {reduceBalance(pact.poolBalance[0])}
+                Pooled {token0.code}: {reduceBalance(pooledAmount[0])}
                 </List.Content>
                 <List.Content>
-                Pooled {token1.code}: {reduceBalance(pact.poolBalance[1])}
+                Pooled {token1.code}: {reduceBalance(pooledAmount[1])}
                 </List.Content>
                 <List.Content>
-                {`Your pool share: ${reduceBalance(pact.pairAccountBalance/pact.totalSupply*100)}%`}
+                {`Your pool share: ${reduceBalance(reduceBalance(balance)/reduceBalance(supply)*100)}%`}
                 </List.Content>
               </List.Item>
               <br/>
