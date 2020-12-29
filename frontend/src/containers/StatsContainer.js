@@ -5,6 +5,7 @@ import { ReactComponent as KadenaLogo } from '../assets/images/crypto/kadena-log
 import { PactContext } from '../contexts/PactContext';
 import pairTokens from '../constants/pairTokens'
 import reduceBalance from '../utils/reduceBalance';
+import { ReactComponent as CloseIcon } from '../assets/images/shared/cross.svg';
 
 const Container = styled.div`
   display: flex;
@@ -52,26 +53,26 @@ const StatsContainer = ({ data }) => {
 
   return (
     <Container>
-      <FormContainer title="pool stats">
+      <FormContainer title="pool stats"  containerStyle={{ maxWidth: 500 }}>
         <TitlesContainer>
-          <span style={{ width: 100 }}>Name</span>
-          <span style={{ width: 80 }}>Total Reserve - token0 </span>
-          <span style={{ width: 80 }}>Total Reserve - token1</span>
+          <span style={{ width: 120 }}>Name</span>
+          <span style={{ width: 150 }}>Total Reserve - token0 </span>
+          <span style={{ width: 150 }}>Total Reserve - token1</span>
           <span style={{ width: 80 }}>Rate</span>
         </TitlesContainer>
         {Object.values(pact.pairList).map(pair => (
           pair&&pair.reserves ?
           <Row key={pair.name}>
             <div style={{ marginLeft: 0,  flex: 0.2 }}>
-              <IconsContainer>
+              <IconsContainer style={{ width:30 }}>
                 {pair.token0.icon}
                 {pair.token1.icon}
               </IconsContainer>
             </div>
-            <div  style={{ marginLeft: -10,width: 80 }}>{`${pair.token0.code}/${pair.token1.code}`}</div>
-            <div style={{ marginLeft: -8, width: 80 }}>{reduceBalance(pair.reserves[0])}</div>
-            <div style={{ marginLeft: 5, width: 20 }}>{reduceBalance(pair.reserves[1])}</div>
-            <div style={{ marginLeft: 50, width: 50}}>{`${reduceBalance(reduceBalance(pair.reserves[0])/reduceBalance(pair.reserves[1]))} ${pair.token0.code}/${pair.token1.code}`}</div>
+            <div style={{ marginLeft: -10, width:30 }}>{`${pair.token0.code}/${pair.token1.code}`}</div>
+            <div style={{marginLeft: 45, width:150 }}>{reduceBalance(pair.reserves[0])}</div>
+            <div style={{marginLeft: 10, width:150 }}>{reduceBalance(pair.reserves[1])}</div>
+            <div style={{marginLeft: 5}}>{`${reduceBalance(reduceBalance(pair.reserves[0])/reduceBalance(pair.reserves[1]))} ${pair.token0.code}/${pair.token1.code}`}</div>
           </Row>
           :""
         ))}
