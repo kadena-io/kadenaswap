@@ -6,6 +6,6 @@ import { ReactComponent as XyzIcon } from '../assets/images/crypto/xyz-logo.svg'
 
 export default {
   KDA: { name: 'coin', code: 'KDA', icon: <KadenaIcon /> },
-  ABC: { name: 'kswap.abc', code: 'ABC', icon: <AbcIcon /> },
-  XYZ: { name: 'kswap.xyz', code: 'XYZ', icon: <XyzIcon /> }
+  ABC: { name: 'kswap.abc', code: 'ABC', icon: <AbcIcon style={{width: 24, height: 24}}/> },
+  XYZ: { name: 'kswap.xyz', code: 'XYZ', icon: <XyzIcon style={{width: 24, height: 24}}/> }
 };
