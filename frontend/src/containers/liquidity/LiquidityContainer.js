@@ -205,6 +205,17 @@ const LiquidityContainer = (props) => {
       }
   }
 
+  useEffect(() => {
+    const getReserves = async () => {
+      console.log(fromValues.coin)
+      if (toValues.coin && fromValues.coin) {
+        await pact.getPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
+        await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
+      }
+    }
+    getReserves();
+  }, [fromValues.coin, toValues.coin])
+
   return (
       <FormContainer title={selectedView}>
         <TokenSelector
