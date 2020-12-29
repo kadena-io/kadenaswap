@@ -56,8 +56,8 @@ const LiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [inputSide, setInputSide] = useState("")
-  const [fromValues, setFromValues] = useState({coin: null, account: null, guard: null, balance: null});
-  const [toValues, setToValues] = useState({coin: null, account: null, guard: null, balance: null});
+  const [fromValues, setFromValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' }});
+  const [toValues, setToValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' }});
   const [pairExist, setPairExist] = useState(false)
   const [showTxModal, setShowTxModal] = useState(false)
   const [showReview, setShowReview] = React.useState(false)
@@ -135,8 +135,8 @@ const LiquidityContainer = (props) => {
   useEffect(() => {
     if (pact.walletSuccess) {
       setLoading(false)
-      setFromValues({coin: null, account: null, guard: null, balance: null});
-      setToValues({coin: null, account: null, guard: null, balance: null})
+      setFromValues({coin: null, account: null, guard: null, balance: null,  amount: '' }});
+      setToValues({coin: null, account: null, guard: null, balance: null, amount: '' }})
       pact.setWalletSuccess(false)
     }
   }, [pact.walletSuccess])
@@ -196,16 +196,16 @@ const LiquidityContainer = (props) => {
           } else {
             setShowTxModal(true)
             if (res?.result?.status === 'success') {
-              setFromValues({coin: null, account: null, guard: null, balance: null});
-              setToValues({coin: null, account: null, guard: null, balance: null})
+              setFromValues({coin: null, account: null, guard: null, balance: null, amount: '' }});
+              setToValues({coin: null, account: null, guard: null, balance: null, amount: ''})
             }
             setLoading(false)
             setShowReview(false)
           }
         } else {
           pact.addLiquidityWallet(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
-          setFromValues({coin: null, account: null, guard: null, balance: null});
-          setToValues({coin: null, account: null, guard: null, balance: null})
+          setFromValues({coin: null, account: null, guard: null, balance: null, amount: ''});
+          setToValues({coin: null, account: null, guard: null, balance: null, amount: ''})
           setShowReview(false)
         }
       }
