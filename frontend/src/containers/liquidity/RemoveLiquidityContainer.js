@@ -59,6 +59,13 @@ const RemoveLiquidityContainer = (props) => {
   const [loading, setLoading] = useState(false)
   const {name, token0, token1, balance, supply, pooledAmount} = props.pair
 
+  useEffect(() => {
+    if (pact.walletSuccess) {
+      setLoading(false)
+      pact.setWalletSuccess(false)
+    }
+  }, [pact.walletSuccess])
+
   return (
       <FormContainer title={liquidityView}>
         <TxView
@@ -99,10 +106,21 @@ const RemoveLiquidityContainer = (props) => {
         <StyledButton
           loading={loading}
           onClick={async () => {
-              setLoading(true)
-              await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance)*amount/100);
-              setLoading(false)
-              setShowTxModal(true)
+            if (pact.signing.method !== 'sign') {
+              const res = await pact.removeLiquidityLocal(token0.name, token1.name, balance*amount/100);
+              console.log('res', res)
+              console.log(typeof res)
+              if (res === -1) {
+                setLoading(false)
+                alert('Incorrect password. If forgotten, you can reset it with your private key')
+                return
+              } else {
+                setShowTxModal(true)
+                setLoading(false)
+              }
+            } else {
+              pact.removeLiquidityWallet(token0.name, token1.name, balance*amount/100);
+            }
           }
         }>
           Remove Liquidity

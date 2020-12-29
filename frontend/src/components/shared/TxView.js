@@ -79,7 +79,7 @@ const Value = styled.span`
 
 
 const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1, createTokenPair}) => {
-
+console.log(view)
   const pact = useContext(PactContext);
 
   const showTicker = (ticker) => {
@@ -212,7 +212,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
           buttonStyle={{ width: '100%' }}
           onClick={async () => {
             if (view === "Add Liquidity") {
-              pact.swapsend();
+              pact.swapSend();
               onClose();
             } else {
               await createTokenPair();
@@ -295,7 +295,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
                   ?
                     !view
                     ? successView()
-                    : view==="Remove Liquidity"
+                    : view==="removeLiquidity"
                       ? successRemoveView()
                       : successAddView()
                   :

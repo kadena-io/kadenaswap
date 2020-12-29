@@ -132,6 +132,15 @@ const LiquidityContainer = (props) => {
     }
   }, [toValues.amount])
 
+  useEffect(() => {
+    if (pact.walletSuccess) {
+      setLoading(false)
+      setFromValues({coin: null, account: null, guard: null, balance: null});
+      setToValues({coin: null, account: null, guard: null, balance: null})
+      pact.setWalletSuccess(false)
+    }
+  }, [pact.walletSuccess])
+
   const buttonStatus = () => {
     let status = {
       0: {msg: "Connect your KDA wallet", status: false},
@@ -150,20 +159,20 @@ const LiquidityContainer = (props) => {
      if (fromValues.coin && toValues.coin && fromValues.amount && toValues.amount){
        return status[4];
      }
-     else if (!fromValues.amount && !toValues.amount) return status[1];
+     else if (!fromValues.amount || !toValues.amount) return status[1];
      else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
      else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
      else if (fromValues.coin === toValues.coin) return status[6];
      else return status[4]
    }
-   else if (!fromValues.amount && !toValues.amount) return status[1];
+   else if (!fromValues.amount || !toValues.amount) return status[1];
    else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
    else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
    else if (fromValues.coin === toValues.coin) return status[6];
    else {
-     // if (isNaN(pact.ratio)) {
-     //   return {...status[2], status: false};
-     // } else
+     if (isNaN(pact.ratio)) {
+       return {...status[2], status: false};
+     } else
      return status[2];
    }
   }
@@ -176,11 +185,29 @@ const LiquidityContainer = (props) => {
         setShowReview(false)
         setShowTxModal(true)
       } else {
-        setLoading(true)
-        await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
-        setLoading(false)
-        setShowReview(false)
-        setShowTxModal(true)
+        if (pact.signing.method !== 'sign') {
+          const res = await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
+          console.log('res', res)
+          console.log(typeof res)
+          if (res === -1) {
+            setLoading(false)
+            alert('Incorrect password. If forgotten, you can reset it with your private key')
+            return
+          } else {
+            setShowTxModal(true)
+            if (res?.result?.status === 'success') {
+              setFromValues({coin: null, account: null, guard: null, balance: null});
+              setToValues({coin: null, account: null, guard: null, balance: null})
+            }
+            setLoading(false)
+            setShowReview(false)
+          }
+        } else {
+          pact.addLiquidityWallet(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
+          setFromValues({coin: null, account: null, guard: null, balance: null});
+          setToValues({coin: null, account: null, guard: null, balance: null})
+          setShowReview(false)
+        }
       }
   }
 
