@@ -157,20 +157,20 @@ const LiquidityContainer = (props) => {
        return status[4];
      }
      else if (!fromValues.amount || !toValues.amount) return status[1];
-     else if (fromValues.amount > fromValues.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
-     else if (toValues.amount > toValues) return {...status[3], msg: status[3].msg(toValues.coin)};
+     else if (Number(fromValues.amount) > Number(fromValues.balance)) return {...status[3], msg: status[3].msg(fromValues.coin)};
+     else if (Number(toValues.amount) > Number(toValues.balance)) return {...status[3], msg: status[3].msg(toValues.coin)};
      else if (fromValues.coin === toValues.coin) return status[6];
      else return status[4]
    }
    else if (!fromValues.amount || !toValues.amount) return status[1];
-   else if (fromValues.amount > fromValues.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
-   else if (toValues.amount > toValues) return {...status[3], msg: status[3].msg(toValues.coin)};
+   else if (Number(fromValues.amount) > Number(fromValues.balance)) return {...status[3], msg: status[3].msg(fromValues.coin)};
+   else if (Number(toValues.amount) > Number(toValues.balance)) return {...status[3], msg: status[3].msg(toValues.coin)};
    else if (fromValues.coin === toValues.coin) return status[6];
    else {
      if (isNaN(pact.ratio)) {
        return {...status[2], status: false};
      } else
-     return status[2];
+       return status[2];
    }
   }
 
@@ -191,10 +191,10 @@ const LiquidityContainer = (props) => {
             alert('Incorrect password. If forgotten, you can reset it with your private key')
             return
           } else {
+            setShowReview(false)
             setShowTxModal(true)
             console.log(res)
             setLoading(false)
-            setShowReview(false)
           }
         } else {
           pact.addLiquidityWallet(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);

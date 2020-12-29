@@ -107,7 +107,7 @@ const RemoveLiquidityContainer = (props) => {
           loading={loading}
           onClick={async () => {
             if (pact.signing.method !== 'sign') {
-              const res = await pact.removeLiquidityLocal(token0.name, token1.name, balance*amount/100);
+              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance)*amount/100);
               console.log('res', res)
               console.log(typeof res)
               if (res === -1) {
@@ -119,7 +119,7 @@ const RemoveLiquidityContainer = (props) => {
                 setLoading(false)
               }
             } else {
-              pact.removeLiquidityWallet(token0.name, token1.name, balance*amount/100);
+              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(balance)*amount/100);
             }
           }
         }>

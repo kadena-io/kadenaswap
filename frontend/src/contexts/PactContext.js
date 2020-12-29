@@ -184,7 +184,6 @@ export const PactProvider = (props) => {
                 ${JSON.stringify(account.account)}
                 ${JSON.stringify(account.account)}
                 (read-keyset 'user-ks)
-                )
               )`,
             keyPairs: {
               ...keyPair,
@@ -331,7 +330,6 @@ export const PactProvider = (props) => {
               ${JSON.stringify(account.account)}
               ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
-              )
             )`,
             networkId: "testnet04",
           keyPairs: {
@@ -375,7 +373,6 @@ export const PactProvider = (props) => {
             ${JSON.stringify(account.account)}
             ${JSON.stringify(account.account)}
             (read-keyset 'user-ks)
-            )
           )`,
         caps: [
           Pact.lang.mkCap("Gas capability", "Pay gas", "coin.GAS", []),
@@ -643,7 +640,6 @@ export const PactProvider = (props) => {
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          )
         )`
       const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
@@ -652,7 +648,6 @@ export const PactProvider = (props) => {
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          )
         )`
       const cmd = {
           pactCode: (isSwapIn ? inPactCode : outPactCode),
@@ -700,7 +695,6 @@ export const PactProvider = (props) => {
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          )
         )`
       const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
@@ -709,7 +703,6 @@ export const PactProvider = (props) => {
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          )
         )`
       const cmd = {
           pactCode: (isSwapIn ? inPactCode : outPactCode),
@@ -750,7 +743,6 @@ export const PactProvider = (props) => {
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          )
         )`
       const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
@@ -759,7 +751,6 @@ export const PactProvider = (props) => {
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
-          )
         )`
       const signCmd = {
         pactCode: (isSwapIn ? inPactCode : outPactCode),
