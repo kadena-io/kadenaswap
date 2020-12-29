@@ -56,8 +56,8 @@ const LiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [inputSide, setInputSide] = useState("")
-  const [fromValues, setFromValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' }});
-  const [toValues, setToValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' }});
+  const [fromValues, setFromValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' });
+  const [toValues, setToValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' });
   const [pairExist, setPairExist] = useState(false)
   const [showTxModal, setShowTxModal] = useState(false)
   const [showReview, setShowReview] = React.useState(false)
