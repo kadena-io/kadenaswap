@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'styled-components/macro';
 import FormContainer from '../components/shared/FormContainer';
 import { ReactComponent as KadenaLogo } from '../assets/images/crypto/kadena-logo.svg';
-import { ReactComponent as EthereumLogo } from '../assets/images/crypto/ethereum.svg';
 import { PactContext } from '../contexts/PactContext';
 import pairTokens from '../constants/pairTokens'
 import reduceBalance from '../utils/reduceBalance';
