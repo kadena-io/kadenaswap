@@ -135,8 +135,8 @@ const LiquidityContainer = (props) => {
   useEffect(() => {
     if (pact.walletSuccess) {
       setLoading(false)
-      setFromValues({coin: null, account: null, guard: null, balance: null,  amount: '' }});
-      setToValues({coin: null, account: null, guard: null, balance: null, amount: '' }})
+      setFromValues({coin: null, account: null, guard: null, balance: null,  amount: '' });
+      setToValues({coin: null, account: null, guard: null, balance: null, amount: '' })
       pact.setWalletSuccess(false)
     }
   }, [pact.walletSuccess])
@@ -196,7 +196,7 @@ const LiquidityContainer = (props) => {
           } else {
             setShowTxModal(true)
             if (res?.result?.status === 'success') {
-              setFromValues({coin: null, account: null, guard: null, balance: null, amount: '' }});
+              setFromValues({coin: null, account: null, guard: null, balance: null, amount: '' });
               setToValues({coin: null, account: null, guard: null, balance: null, amount: ''})
             }
             setLoading(false)
