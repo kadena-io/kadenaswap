@@ -48,9 +48,9 @@ const StatsContainer = ({ data }) => {
   const pact = React.useContext(PactContext);
 
   React.useEffect(async () => {
-    await pact.getPairList(pairTokens)
+    await pact.getPairList()
   }, [])
-  console.log(pact.pairList);
+
   return (
     <Container>
       <FormContainer title="pool stats">
@@ -61,7 +61,7 @@ const StatsContainer = ({ data }) => {
           <span style={{ width: 80 }}>Rate</span>
         </TitlesContainer>
         {Object.values(pact.pairList).map(pair => (
-          pair.reserves ?
+          pair&&pair.reserves ?
           <Row key={pair.name}>
             <div style={{ marginLeft: 0,  flex: 0.2 }}>
               <IconsContainer>

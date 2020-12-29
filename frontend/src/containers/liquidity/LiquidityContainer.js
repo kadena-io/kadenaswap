@@ -83,7 +83,7 @@ const LiquidityContainer = (props) => {
         setPairExist(true)
       }
     }
-  }, [fromValues, toValues,pairExist]);
+  }, [fromValues, toValues,pairExist, pact.account.account]);
 
   const onTokenClick = ({ crypto }) => {
     if (tokenSelectorType === 'from') {

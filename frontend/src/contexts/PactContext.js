@@ -377,8 +377,8 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getPairListAccountBalance = (list, account) => {
-    Object.values(list).forEach(async pair => {
+  const getPairListAccountBalance = async (account) => {
+    let pairList = await Promise.all(Object.values(pairTokens).map(async pair => {
       try {
         let data = await Pact.fetch.local({
             pactCode: `
@@ -395,14 +395,13 @@ export const PactProvider = (props) => {
             meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          console.log("Success", data.result.data, "pair list");
-          setPairListAccount({...list, [pair.name]: {...pair,
+          console.log("Success", data.result.data, "pair list", pairListAccount);
+          return {...pair,
               balance: data.result.data[0],
               supply: data.result.data[1],
               reserves:[data.result.data[2],  data.result.data[3]],
               pooledAmount: [data.result.data[4],  data.result.data[5]]
             }
-          })
         } else {
           console.log("Fail pair list", data)
           console.log("Pair Account is not verified")
@@ -410,11 +409,13 @@ export const PactProvider = (props) => {
       } catch (e) {
         console.log(e)
       }
-      })
+    }))
+    console.log(pairList)
+    setPairListAccount(pairList);
   }
 
-  const getPairList = (list) => {
-    Object.values(list).forEach(async pair => {
+  const getPairList = async () => {
+    let pairList = await Promise.all(Object.values(pairTokens).map(async pair => {
       try {
         let data = await Pact.fetch.local({
             pactCode: `
@@ -431,11 +432,10 @@ export const PactProvider = (props) => {
           }, network);
         if (data.result.status === "success"){
           console.log("Success", data.result.data, "pair list");
-          setPairList({...list, [pair.name]: {...pair,
+          return {...pair,
               supply: data.result.data[0],
               reserves:[data.result.data[1],  data.result.data[2]]
             }
-          })
         } else {
           console.log("Fail pair list", data)
           console.log("Pair Account is not verified")
@@ -443,7 +443,9 @@ export const PactProvider = (props) => {
       } catch (e) {
         console.log(e)
       }
-      })
+    }))
+    console.log(pairList)
+    setPairList(pairList);
   }
 
 

@@ -70,9 +70,10 @@ const LiquidityList = (props) => {
 
 
   useEffect( async () => {
-    pact.getPairListAccountBalance(pairTokens,pact.account.account)
+    pact.getPairListAccountBalance(pact.account.account)
   }, [pact.account.account]);
 
+  
   return (
     <ColumnContainer>
       <Message style={{ marginTop: -100, marginBottom: 40, textAlign: "center"}}>
@@ -101,12 +102,15 @@ const LiquidityList = (props) => {
         {pact.account.account!==null
           ? Object.values(pact.pairListAccount).map(pair => {
               return (
+                pair
+                ?
                 <TokenPair
                   key={pair.name}
                   pair={pair}
                   selectAddLiquidity = {props.selectAddLiquidity}
                   selectRemoveLiquidity = {props.selectRemoveLiquidity}
                 />
+                : ""
               )
             })
           : <Message>Connect an account to view your liquidity</Message>
