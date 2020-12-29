@@ -206,6 +206,11 @@ const Header = () => {
             </Item>
           </>
         )}
+        <Label
+          style={{ padding: '10px 16px', color:"white", fontSize: 16 }}
+        >
+          Testnet
+        </Label>
         {pact?.account.account && (
           <Item to="#" onClick={pact.logout}>
             <PowerIcon></PowerIcon>
