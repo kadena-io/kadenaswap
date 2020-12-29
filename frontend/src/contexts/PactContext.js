@@ -216,6 +216,14 @@ export const PactProvider = (props) => {
 
   const addLiquidityLocal = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
+      let privKey = signing.key
+      if (signing.method === 'pk+pw') {
+        const pw = prompt("please enter your password")
+        privKey = await decryptKey(pw)
+      }
+      if (privKey.length !== 64) {
+        return
+      }
       let pair = await getPairAccount(token0, token1);
       let amount0Decimal = keepDecimal(amountDesired0);
       let amount1Decimal = keepDecimal(amountDesired1);
@@ -230,10 +238,10 @@ export const PactProvider = (props) => {
               ${JSON.stringify(account.account)}
               ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
-              )
             )`,
           keyPairs: {
-            ...keyPair,
+            publicKey: account.guard.keys[0],
+            secretKey: privKey,
             clist: [
               {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
               {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
@@ -241,7 +249,7 @@ export const PactProvider = (props) => {
             ]
           },
           envData: {
-            "user-ks": [keyPair.publicKey]
+            "user-ks": account.guard
           },
           meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
           networkId: "testnet04"
@@ -257,8 +265,58 @@ export const PactProvider = (props) => {
     }
   }
 
+  const addLiquidityWallet = async (token0, token1, amountDesired0, amountDesired1) => {
+    try {
+      let pair = await getPairAccount(token0, token1);
+      let amount0Decimal = keepDecimal(amountDesired0);
+      let amount1Decimal = keepDecimal(amountDesired1);
+      const signCmd = {
+        pactCode: `(kswap.exchange.add-liquidity
+            ${token0}
+            ${token1}
+            ${keepDecimal(amountDesired0)}
+            ${keepDecimal(amountDesired1)}
+            ${keepDecimal(amountDesired0*(1-0.003))}
+            ${keepDecimal(amountDesired1*(1-0.003))}
+            ${JSON.stringify(account.account)}
+            ${JSON.stringify(account.account)}
+            (read-keyset 'user-ks)
+          )`,
+        caps: [
+          Pact.lang.mkCap("Gas capability", "Pay gas", "coin.GAS", []),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token0}.TRANSFER`, [account.account, pair, Number(amountDesired0)]),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token1}.TRANSFER`, [account.account, pair, Number(amountDesired1)]),
+        ],
+        sender: account.account,
+        gasLimit: 3000,
+        chainId: chainId,
+        ttl: 600,
+        envData: { "user-ks": account.guard }
+      }
+      const cmd = await Pact.wallet.sign(signCmd);
+      setWalletSuccess(true)
+      const res = await Pact.wallet.sendSigned(cmd, network);
+      //this is a small hack to get the polling header widget to work
+      setLocalRes({ reqKey: res.requestKeys[0] })
+      setPolling(true)
+      await listen(res.requestKeys[0]);
+      setPolling(false)
+    } catch (e) {
+      alert("you cancelled the TX or you did not have the wallet app open")
+      console.log(e)
+    }
+  }
+
   const removeLiquidityLocal = async (token0, token1, liquidity) => {
     try {
+      let privKey = signing.key
+      if (signing.method === 'pk+pw') {
+        const pw = prompt("please enter your password")
+        privKey = await decryptKey(pw)
+      }
+      if (privKey.length !== 64) {
+        return
+      }
       let pairKey = await getPairKey(token0, token1);
       liquidity = keepDecimal(liquidity);
       let pair = await getPairAccount(token0, token1);
@@ -276,7 +334,8 @@ export const PactProvider = (props) => {
             )`,
             networkId: "testnet04",
           keyPairs: {
-            ...keyPair,
+            publicKey: account.guard.keys[0],
+            secretKey: privKey,
             clist: [
               {name: `kswap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
               {name: `kswap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
@@ -284,7 +343,7 @@ export const PactProvider = (props) => {
             ]
           },
           envData: {
-            "user-ks": [keyPair.publicKey]
+            "user-ks": account.guard
           },
           meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
         };
@@ -293,6 +352,48 @@ export const PactProvider = (props) => {
         console.log(data);
         setLocalRes(data);
     } catch (e) {
+      console.log(e)
+    }
+  }
+
+  const removeLiquidityWallet = async (token0, token1, liquidity) => {
+    try {
+      let pairKey = await getPairKey(token0, token1);
+      liquidity = keepDecimal(liquidity);
+      let pair = await getPairAccount(token0, token1);
+      const signCmd = {
+        pactCode:`(kswap.exchange.remove-liquidity
+            ${token0}
+            ${token1}
+            ${liquidity}
+            0.0
+            0.0
+            ${JSON.stringify(account.account)}
+            ${JSON.stringify(account.account)}
+            (read-keyset 'user-ks)
+            )
+          )`,
+        caps: [
+          Pact.lang.mkCap("Gas capability", "Pay gas", "coin.GAS", []),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `kswap.tokens.TRANSFER`, [pairKey, account.account, pair, Number(liquidity)]),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `kswap.tokens.TRANSFER`, [pairKey, account.account, pair, Number(liquidity)]),
+        ],
+        sender: account.account,
+        gasLimit: 3000,
+        chainId: chainId,
+        ttl: 600,
+        envData: { "user-ks": account.guard }
+      }
+      const cmd = await Pact.wallet.sign(signCmd);
+      setWalletSuccess(true)
+      const res = await Pact.wallet.sendSigned(cmd, network);
+      //this is a small hack to get the polling header widget to work
+      setLocalRes({ reqKey: res.requestKeys[0] })
+      setPolling(true)
+      await listen(res.requestKeys[0]);
+      setPolling(false)
+    } catch (e) {
+      alert("you cancelled the TX or you did not have the wallet app open")
       console.log(e)
     }
   }
@@ -468,6 +569,7 @@ export const PactProvider = (props) => {
           await setPairReserve({token0: data.result.data[0].decimal? data.result.data[0].decimal:  data.result.data[0], token1: data.result.data[1].decimal? data.result.data[1].decimal:  data.result.data[1]});
         } else {
           console.log("Failed")
+          await setPairReserve({});
         }
     } catch (e) {
       console.log(e)
@@ -849,9 +951,9 @@ export const PactProvider = (props) => {
         getRatio1,
         supplied,
         setSupplied,
-        // addLiquidity,
+        addLiquidityWallet,
         addLiquidityLocal,
-        // removeLiquidity,
+        removeLiquidityWallet,
         removeLiquidityLocal,
         createTokenPairLocal,
         pairAccount,

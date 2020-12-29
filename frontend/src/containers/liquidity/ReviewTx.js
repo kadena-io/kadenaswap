@@ -38,8 +38,8 @@ function ReviewTx(props) {
           {liquidityView === "Add Liquidity"
           ?
           <List>
-            <List.Item>{`${fromValues.coin} Deposited: ${reduceBalance(fromValues.amount)}`}</List.Item>
-            <List.Item>{`${toValues.coin} Deposited: ${reduceBalance(toValues.amount)}`}</List.Item>
+            <List.Item>{`${fromValues.coin} Deposit Desired: ${reduceBalance(fromValues.amount)}`}</List.Item>
+            <List.Item>{`${toValues.coin} Deposit Desired: ${reduceBalance(toValues.amount)}`}</List.Item>
             <br/>
             <List.Item>{`Rates:`}</List.Item>
             <br/>
@@ -49,8 +49,8 @@ function ReviewTx(props) {
           </List>
           :
           <List>
-            <List.Item>{`${fromValues.coin} Deposited: ${reduceBalance(fromValues.amount)}`}</List.Item>
-            <List.Item>{`${toValues.coin} Deposited: ${reduceBalance(toValues.amount)}`}</List.Item>
+            <List.Item>{`${fromValues.coin} Deposit Desired: ${reduceBalance(fromValues.amount)}`}</List.Item>
+            <List.Item>{`${toValues.coin} Deposit Desired: ${reduceBalance(toValues.amount)}`}</List.Item>
             <br/>
             <List.Item>{`Rates:`}</List.Item>
             <br/>

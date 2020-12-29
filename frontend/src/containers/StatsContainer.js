@@ -71,7 +71,7 @@ const StatsContainer = ({ data }) => {
             <div  style={{ marginLeft: -10,width: 80 }}>{`${pair.token0.code}/${pair.token1.code}`}</div>
             <div style={{ marginLeft: -8, width: 80 }}>{reduceBalance(pair.reserves[0])}</div>
             <div style={{ marginLeft: 5, width: 20 }}>{reduceBalance(pair.reserves[1])}</div>
-            <div style={{ marginLeft: 50, width: 50}}>{`${reduceBalance(reduceBalance(pair.reserves[1])/reduceBalance(pair.reserves[0]))} ${pair.token0.code}/${pair.token1.code}`}</div>
+            <div style={{ marginLeft: 50, width: 50}}>{`${reduceBalance(reduceBalance(pair.reserves[0])/reduceBalance(pair.reserves[1]))} ${pair.token0.code}/${pair.token1.code}`}</div>
           </Row>
           :""
         ))}
