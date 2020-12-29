@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import styled from 'styled-components/macro';
-import { ReactComponent as PlusIcon } from '../assets/images/shared/plus.svg';
 import FormContainer from '../components/shared/FormContainer';
 import Input from '../components/shared/Input';
 import InputToken from '../components/shared/InputToken';

@@ -49,6 +49,7 @@ export const PactProvider = (props) => {
   const [polling, setPolling] = useState(false);
   const [totalSupply, setTotalSupply] = useState("")
   const [pairList, setPairList] = useState(pairTokens)
+  const [pairListAccount, setPairListAccount] = useState(pairTokens)
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
   const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" })
@@ -376,9 +377,8 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getPairListAccountBalance = async (list, account) => {
-    setPairList([]);
-    list.forEach(async pair => {
+  const getPairListAccountBalance = (list, account) => {
+    Object.values(list).forEach(async pair => {
       try {
         let data = await Pact.fetch.local({
             pactCode: `
@@ -394,23 +394,58 @@ export const PactProvider = (props) => {
              `,
             meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
           }, network);
-          if (data.result.status === "success"){
-            console.log("Success", data.result.data, "pair list");
-            setPairList([...pairList,
-              {...pair,
-                balance: data.result.data[0],
-                supply: data.result.data[1],
-                reserves:[data.result.data[2],  data.result.data[3]],
-                pooledAmount: [data.result.data[4],  data.result.data[5]]} ]);
-          } else {
-            console.log("Fail pair list", data)
-            console.log("Pair Account is not verified")
-          }
+        if (data.result.status === "success"){
+          console.log("Success", data.result.data, "pair list");
+          setPairListAccount({...list, [pair.name]: {...pair,
+              balance: data.result.data[0],
+              supply: data.result.data[1],
+              reserves:[data.result.data[2],  data.result.data[3]],
+              pooledAmount: [data.result.data[4],  data.result.data[5]]
+            }
+          })
+        } else {
+          console.log("Fail pair list", data)
+          console.log("Pair Account is not verified")
+        }
       } catch (e) {
         console.log(e)
       }
-    })
+      })
   }
+
+  const getPairList = (list) => {
+    Object.values(list).forEach(async pair => {
+      try {
+        let data = await Pact.fetch.local({
+            pactCode: `
+            (use kswap.exchange)
+            (let*
+              (
+                (p (get-pair ${pair.token0.name} ${pair.token1.name}))
+                (reserveA (reserve-for p ${pair.token0.name}))
+                (reserveB (reserve-for p ${pair.token1.name}))
+                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name})))
+              )[totalBal reserveA reserveB])
+             `,
+            meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+          }, network);
+        if (data.result.status === "success"){
+          console.log("Success", data.result.data, "pair list");
+          setPairList({...list, [pair.name]: {...pair,
+              supply: data.result.data[0],
+              reserves:[data.result.data[1],  data.result.data[2]]
+            }
+          })
+        } else {
+          console.log("Fail pair list", data)
+          console.log("Pair Account is not verified")
+        }
+      } catch (e) {
+        console.log(e)
+      }
+      })
+  }
+
 
   const getReserves = async (token0, token1) => {
     try {
@@ -861,6 +896,8 @@ export const PactProvider = (props) => {
         ttl,
         setTtl,
         getPairListAccountBalance,
+        getPairList,
+        pairListAccount
       }}
     >
       {props.children}

@@ -48,11 +48,9 @@ const StatsContainer = ({ data }) => {
   const pact = React.useContext(PactContext);
 
   React.useEffect(async () => {
-    await pact.getPairListAccountBalance(pairTokens, pact.account.account)
+    await pact.getPairList(pairTokens)
   }, [])
-
-  console.log(pact.pairList)
-
+  console.log(pact.pairList);
   return (
     <Container>
       <FormContainer title="pool stats">
@@ -62,7 +60,7 @@ const StatsContainer = ({ data }) => {
           <span style={{ width: 80 }}>Total Reserve - token1</span>
           <span style={{ width: 80 }}>Rate</span>
         </TitlesContainer>
-        {pact.pairList.map(pair => (
+        {Object.values(pact.pairList).map(pair => (
           pair.reserves ?
           <Row key={pair.name}>
             <div style={{ marginLeft: 0,  flex: 0.2 }}>

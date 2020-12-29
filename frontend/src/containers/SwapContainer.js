@@ -267,7 +267,7 @@ const SwapContainer = () => {
                 return
               } else {
                 setShowTxModal(true)
-                if (res?.result?.status === 'success') {
+                if (res.result.status === 'success') {
                   setFromValues({ amount: '', balance: '', coin: '', address: '' });
                   setToValues({ amount: '', balance: '', coin: '', address: '' })
                 }

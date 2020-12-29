@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import styled from 'styled-components/macro';
 import { Message, Divider } from 'semantic-ui-react'
-import { ReactComponent as PlusIcon } from '../../assets/images/shared/plus.svg';
 import FormContainer from '../../components/shared/FormContainer';
 import Input from '../../components/shared/Input';
 import InputToken from '../../components/shared/InputToken';
@@ -72,7 +71,7 @@ const LiquidityList = (props) => {
 
   useEffect( async () => {
     pact.getPairListAccountBalance(pairTokens,pact.account.account)
-  }, []);
+  }, [pact.account.account]);
 
   return (
     <ColumnContainer>
@@ -100,7 +99,7 @@ const LiquidityList = (props) => {
         </RightContainer>
         <Divider/>
         {pact.account.account!==null
-          ? pact.pairList.map(pair => {
+          ? Object.values(pact.pairListAccount).map(pair => {
               return (
                 <TokenPair
                   key={pair.name}
