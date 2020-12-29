@@ -83,17 +83,14 @@ const LiquidityContainer = (props) => {
         setPairExist(true)
       }
     }
-  }, [fromValues, toValues,pairExist, pact.account.account]);
+  }, [fromValues, toValues, pairExist, pact.account.account]);
 
-  const onTokenClick = ({ crypto }) => {
-    if (tokenSelectorType === 'from') {
-      setFromValues((prev) => ({ ...prev, coin: crypto.code, amount:0 }))
-      setToValues((prev) => ({ ...prev, amount:0 }))
-    };
-    if (tokenSelectorType === 'to') {
-      setToValues((prev) => ({ ...prev, coin: crypto.code, amount:0 }));
-      setFromValues((prev) => ({ ...prev, amount:0 }))
-    }
+  const onTokenClick = async ({ crypto }) => {
+    let balance;
+    let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
+    balance = pact.getCorrectBalance(acct.balance)
+    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code }));
+    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code}));
   };
 
   useEffect(() => {
@@ -160,14 +157,14 @@ const LiquidityContainer = (props) => {
        return status[4];
      }
      else if (!fromValues.amount || !toValues.amount) return status[1];
-     else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
-     else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
+     else if (fromValues.amount > fromValues.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
+     else if (toValues.amount > toValues) return {...status[3], msg: status[3].msg(toValues.coin)};
      else if (fromValues.coin === toValues.coin) return status[6];
      else return status[4]
    }
    else if (!fromValues.amount || !toValues.amount) return status[1];
-   else if (fromValues.amount > pact.tokenFromAccount.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
-   else if (toValues.amount > pact.tokenToAccount.balance) return {...status[3], msg: status[3].msg(toValues.coin)};
+   else if (fromValues.amount > fromValues.balance) return {...status[3], msg: status[3].msg(fromValues.coin)};
+   else if (toValues.amount > toValues) return {...status[3], msg: status[3].msg(toValues.coin)};
    else if (fromValues.coin === toValues.coin) return status[6];
    else {
      if (isNaN(pact.ratio)) {
@@ -195,17 +192,14 @@ const LiquidityContainer = (props) => {
             return
           } else {
             setShowTxModal(true)
-            if (res?.result?.status === 'success') {
-              setFromValues({coin: null, account: null, guard: null, balance: null, amount: '' });
-              setToValues({coin: null, account: null, guard: null, balance: null, amount: ''})
-            }
+            console.log(res)
             setLoading(false)
             setShowReview(false)
           }
         } else {
           pact.addLiquidityWallet(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
-          setFromValues({coin: null, account: null, guard: null, balance: null, amount: ''});
-          setToValues({coin: null, account: null, guard: null, balance: null, amount: ''})
+          setFromValues({account: null, guard: null, balance: null, amount: ''});
+          setToValues({account: null, guard: null, balance: null, amount: ''})
           setShowReview(false)
         }
       }
@@ -222,7 +216,7 @@ const LiquidityContainer = (props) => {
         <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
         <Input
           leftLabel="input"
-          rightLabel={`balance: ${reduceBalance(pact.tokenFromAccount.balance) ?? '-'}`}
+          rightLabel={`balance: ${reduceBalance(fromValues.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             fromValues.coin ? (
@@ -245,7 +239,7 @@ const LiquidityContainer = (props) => {
         <ButtonDivider icon={<PlusIcon />} buttonStyle={{ cursor: 'default' }} />
         <Input
           leftLabel="input"
-          rightLabel={`balance: ${reduceBalance(pact.tokenToAccount.balance) ?? '-'}`}
+          rightLabel={`balance: ${reduceBalance(toValues.balance) ?? '-'}`}
           placeholder="enter amount"
           inputRightComponent={
             toValues.coin ? (

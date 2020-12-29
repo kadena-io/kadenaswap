@@ -258,9 +258,10 @@ export const PactProvider = (props) => {
       setCmd(cmd);
       console.log(data);
       setLocalRes(data);
-      console.log(localRes);
+      return data;
     } catch (e) {
       setLocalRes({});
+      return -1
       console.log(e)
     }
   }
@@ -351,9 +352,12 @@ export const PactProvider = (props) => {
         let data = await Pact.fetch.local(cmd, network);
         console.log(data);
         setLocalRes(data);
-    } catch (e) {
-      console.log(e)
-    }
+        return data;
+      } catch (e) {
+        setLocalRes({});
+        return -1
+        console.log(e)
+      }
   }
 
   const removeLiquidityWallet = async (token0, token1, liquidity) => {
