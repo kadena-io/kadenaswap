@@ -46,6 +46,8 @@ const ColumnContainer = styled.div`
   display: flex;
   flex-flow: column;
   align-items: center;
+  position: absolute;
+  top: 200px;
 
   & > span:first-child {
     font-size: 14px;
@@ -73,10 +75,9 @@ const LiquidityList = (props) => {
     pact.getPairListAccountBalance(pact.account.account)
   }, [pact.account.account]);
 
-  
   return (
-    <ColumnContainer>
-      <Message style={{ marginTop: -100, marginBottom: 40, textAlign: "center"}}>
+    <ColumnContainer >
+      <Message style={{ marginBottom: 40, textAlign: "center"}}>
         <Message.Header>Liquidity provider rewards</Message.Header>
         <br/>
         <Message.Content>
@@ -109,6 +110,7 @@ const LiquidityList = (props) => {
                   pair={pair}
                   selectAddLiquidity = {props.selectAddLiquidity}
                   selectRemoveLiquidity = {props.selectRemoveLiquidity}
+                  setTokenPair = {props.setTokenPair}
                 />
                 : ""
               )

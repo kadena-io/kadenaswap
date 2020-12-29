@@ -468,6 +468,7 @@ export const PactProvider = (props) => {
           await setPairReserve({token0: data.result.data[0].decimal? data.result.data[0].decimal:  data.result.data[0], token1: data.result.data[1].decimal? data.result.data[1].decimal:  data.result.data[1]});
         } else {
           console.log("Failed")
+          await setPairReserve({});
         }
     } catch (e) {
       console.log(e)

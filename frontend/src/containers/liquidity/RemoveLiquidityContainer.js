@@ -57,14 +57,15 @@ const RemoveLiquidityContainer = (props) => {
   const [amount, setAmount] = useState("100")
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const {name, token0, token1, balance, supply, pooledAmount} = props.pair
 
   return (
       <FormContainer title={liquidityView}>
         <TxView
           view="removeLiquidity"
           show={showTxModal}
-          token0={fromValues.coin}
-          token1={toValues.coin}
+          token0={token0.code}
+          token1={token1.code}
           onClose={() => setShowTxModal(false)}
         />
         <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
@@ -88,18 +89,18 @@ const RemoveLiquidityContainer = (props) => {
          </Container>
         <Statistic>
           <Statistic.Value></Statistic.Value>
-          <Statistic.Label>{`${fromValues.coin} / ${toValues.coin} Pool Tokens`}</Statistic.Label>
+          <Statistic.Label>{`${token0.code} / ${token1.code} Pool Tokens`}</Statistic.Label>
         </Statistic>
         <List>
-          <List.Item>{`${fromValues.coin} / ${toValues.coin}: ${reduceBalance(pact.pairAccountBalance*amount/100)}`}</List.Item>
-          <List.Item>{`Pooled ${fromValues.coin}: ${reduceBalance(pact.poolBalance[0]*amount/100)}`}</List.Item>
-          <List.Item>{`Pooled ${toValues.coin}: ${reduceBalance(pact.poolBalance[1]*amount/100)}`}</List.Item>
+          <List.Item>{`${token0.code} / ${token1.code}: ${reduceBalance(reduceBalance(balance)*amount/100)}`}</List.Item>
+          <List.Item>{`Pooled ${token0.code}: ${reduceBalance(reduceBalance(pooledAmount[0])*amount/100)}`}</List.Item>
+          <List.Item>{`Pooled ${token1.code}: ${reduceBalance(reduceBalance(pooledAmount[1])*amount/100)}`}</List.Item>
         </List>
         <StyledButton
           loading={loading}
           onClick={async () => {
               setLoading(true)
-              await pact.removeLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, reduceBalance(pact.pairAccountBalance*amount/100));
+              await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance)*amount/100);
               setLoading(false)
               setShowTxModal(true)
           }

@@ -53,7 +53,10 @@ const TokenPair = (props) => {
                   Add
                 </Button>
                 <Button
-                  onClick={() => props.selectRemoveLiquidity()}>
+                  onClick={() => {
+                    props.selectRemoveLiquidity()
+                    props.setTokenPair(props.pair)
+                  }}>
                   Remove
                 </Button>
               </Container>
