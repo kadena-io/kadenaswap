@@ -26,7 +26,9 @@ const Container = styled.div`
 const InputToken = ({ icon, code, onClick }) => {
   return (
     <Container onClick={onClick}>
-      {icon}
+
+        {icon}
+
       <span>{code}</span>
       <ArrowDown />
     </Container>
