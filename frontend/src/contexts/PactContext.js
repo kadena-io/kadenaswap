@@ -56,7 +56,7 @@ export const PactProvider = (props) => {
   const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" })
   const [walletSuccess, setWalletSuccess] = useState(false)
   const [registered, setRegistered] = useState(false);
-  const [ttl, setTtl] = useState(2800)
+  const [ttl, setTtl] = useState(600)
   // const [toastId, setToastId] = useState(null);
   const toastId = React.useRef(null)
 

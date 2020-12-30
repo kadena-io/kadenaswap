@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { PactContext } from '../../../contexts/PactContext';
 import theme from '../../../styles/theme';
@@ -61,33 +61,38 @@ const Row = styled.div`
 
 const SlippagePopupContent = () => {
   const pact = useContext(PactContext);
+  const [slp, setSlp] = useState(pact.slippage*100)
+  useEffect(() => {
+      if (slp) (async () => pact.storeSlippage(slp/100))()
+  }, [slp])
   return (
     <Container>
       <BoldLabel>Transactions Settings</BoldLabel>
       <RegularLabel style={{ marginTop: 16 }}>Slippage Tolerance</RegularLabel>
 
       <Row style={{ marginTop: 8 }}>
-        <SlippageTolleranceValue isSelected={Number(pact.slippage) === 0.1/100} onClick={() => pact.storeSlippage(0.1/100)}>
+        <SlippageTolleranceValue isSelected={slp === 0.1} onClick={() => setSlp(0.1)}>
           0.1%
         </SlippageTolleranceValue>
         <SlippageTolleranceValue
-          isSelected={Number(pact.slippage) === 0.5/100}
+          isSelected={slp === 0.5}
           style={{ marginLeft: 4, marginRight: 4 }}
-          onClick={() => pact.storeSlippage(0.5/100)}
+          onClick={() => setSlp(0.5)}
         >
           0.5%
         </SlippageTolleranceValue>
-        <SlippageTolleranceValue isSelected={Number(pact.slippage) === 1/100} style={{ marginRight: 8 }} onClick={() => pact.storeSlippage(1/100)}>
+        <SlippageTolleranceValue isSelected={slp === 1} style={{ marginRight: 8 }} onClick={() => setSlp(1)}>
           1%
         </SlippageTolleranceValue>
 
         <ContainerInputTypeNumber>
+
           <Input
-            placeholder={pact.slippage*100}
+            placeholder={slp}
             numberOnly
-            value={pact.slippage*100}
+            value={slp}
             onChange={(e, { value }) => {
-              pact.storeSlippage(value/100)
+              setSlp(value);
             }}
           />
           %
