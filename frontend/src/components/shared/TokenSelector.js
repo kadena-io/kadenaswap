@@ -55,14 +55,28 @@ const TokenItem = styled.div`
 const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
   const [searchValue, setSearchValue] = useState('');
 
+  // useEffect(() => {
+  //   if (searchValue)
+  // }, [searchValue])
+
   return (
     <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
       {(show) =>
         show &&
         ((props) => (
           <Container style={props}>
-            <Backdrop onClose={onClose} />
-            <FormContainer title="select a token" containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }} onClose={onClose}>
+            <Backdrop onClose={() => {
+              setSearchValue('')
+              onClose()
+            }} />
+            <FormContainer
+              title="select a token"
+              containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }}
+              onClose={() => {
+                setSearchValue('')
+                onClose()
+              }}
+            >
               <Label style={{ marginBottom: 4 }}>search token</Label>
               <Search
                 fluid
@@ -75,7 +89,10 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
               <Divider />
               <TokensContainer>
                 {Object.values(cryptoCurrencies)
-                  .filter((c) => c.name.toLocaleLowerCase().includes(searchValue) || c.code.toLowerCase().includes(searchValue))
+                  .filter((c) => {
+                    const name = (c.name !== 'coin' ? c.name.split('.')[1] : c.name)
+                    return name.toLocaleLowerCase().includes(searchValue) || c.code.toLowerCase().includes(searchValue)
+                  })
                   .map((crypto) => (
                     <TokenItem
                       key={crypto.code}
@@ -84,6 +101,7 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
                       onClick={() => {
                         if (selectedToken !== crypto.code) {
                           onTokenClick({ crypto });
+                          setSearchValue('')
                           onClose();
                         }
                       }}
