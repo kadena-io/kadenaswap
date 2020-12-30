@@ -56,12 +56,20 @@ const LiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [inputSide, setInputSide] = useState("")
-  const [fromValues, setFromValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' });
-  const [toValues, setToValues] = useState({coin: null, account: null, guard: null, balance: null,  amount: '' });
+  const [fromValues, setFromValues] = useState({coin: "", account: null, guard: null, balance: null,  amount: '' });
+  const [toValues, setToValues] = useState({coin: "", account: null, guard: null, balance: null,  amount: '' });
   const [pairExist, setPairExist] = useState(false)
   const [showTxModal, setShowTxModal] = useState(false)
   const [showReview, setShowReview] = React.useState(false)
   const [loading, setLoading] = useState(false)
+
+
+  useEffect(()=> {
+    if (showTxModal === false) {
+      setFromValues({coin: "", account: null, guard: null, balance: null,  amount: '' });
+      setToValues({coin: "", account: null, guard: null, balance: null, amount: '' })
+    }
+   }, [showTxModal])
 
   useEffect(async () => {
     if (tokenSelectorType === 'from') setSelectedToken(fromValues.coin);
@@ -70,13 +78,13 @@ const LiquidityContainer = (props) => {
   }, [tokenSelectorType]);
 
   useEffect(async () => {
-    if (fromValues.coin){
+    if (fromValues.coin!==""){
       await pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
     }
-    if (toValues.coin){
+    if (toValues.coin!==""){
       await pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
     }
-    if (fromValues.coin && toValues.coin) {
+    if (fromValues.coin!=="" && toValues.coin!=="") {
       await pact.getPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
       await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
       if (pact.pair) {
@@ -98,9 +106,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (fromValues.amount.length < 5) {
-          throttle(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toPrecision(13) }))
+          throttle(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(13) }))
         } else {
-          debounce(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toPrecision(13) }))
+          debounce(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(13) }))
         }
       }
     }
@@ -116,9 +124,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (toValues.amount.length < 5) {
-          throttle(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toPrecision(13) }))
+          throttle(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(13) }))
         } else {
-          debounce(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toPrecision(13) }))
+          debounce(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(13) }))
         }
       }
     }
@@ -132,8 +140,8 @@ const LiquidityContainer = (props) => {
   useEffect(() => {
     if (pact.walletSuccess) {
       setLoading(false)
-      setFromValues({coin: null, account: null, guard: null, balance: null,  amount: '' });
-      setToValues({coin: null, account: null, guard: null, balance: null, amount: '' })
+      setFromValues({coin: "", account: null, guard: null, balance: null,  amount: '' });
+      setToValues({coin: "", account: null, guard: null, balance: null, amount: '' })
       pact.setWalletSuccess(false)
     }
   }, [pact.walletSuccess])
@@ -153,7 +161,7 @@ const LiquidityContainer = (props) => {
      if (pairExist) {
        setSelectedView("Add Liquidity")
      }
-     if (fromValues.coin && toValues.coin && fromValues.amount && toValues.amount){
+     if (fromValues.coin!=="" && toValues.coin!=="" && fromValues.amount && toValues.amount){
        return status[4];
      }
      else if (!fromValues.amount || !toValues.amount) return status[1];
@@ -183,6 +191,7 @@ const LiquidityContainer = (props) => {
         setShowTxModal(true)
       } else {
         if (pact.signing.method !== 'sign') {
+          setLoading(true)
           const res = await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
           console.log('res', res)
           console.log(typeof res)
@@ -193,28 +202,18 @@ const LiquidityContainer = (props) => {
           } else {
             setShowReview(false)
             setShowTxModal(true)
-            console.log(res)
             setLoading(false)
           }
         } else {
+          setLoading(true)
           pact.addLiquidityWallet(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
-          setFromValues({account: null, guard: null, balance: null, amount: ''});
-          setToValues({account: null, guard: null, balance: null, amount: ''})
           setShowReview(false)
+          setLoading(false)
+          setFromValues({account: null, guard: null, balance: null, amount: '', coin: ""});
+          setToValues({account: null, guard: null, balance: null, amount: '', coin: ""})
         }
       }
   }
-
-  useEffect(() => {
-    const getReserves = async () => {
-      console.log(fromValues.coin)
-      if (toValues.coin && fromValues.coin) {
-        await pact.getPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
-        await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
-      }
-    }
-    getReserves();
-  }, [fromValues.coin, toValues.coin])
 
   return (
       <FormContainer title={selectedView}>

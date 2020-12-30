@@ -79,14 +79,12 @@ const Value = styled.span`
 
 
 const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1, createTokenPair}) => {
-console.log(view)
   const pact = useContext(PactContext);
 
   const showTicker = (ticker) => {
     if (ticker === 'coin') return 'KDA'
     else return ticker.toUpperCase()
   }
-
 
   const successView = () => {
     return (

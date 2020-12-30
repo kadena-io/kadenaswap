@@ -12,6 +12,7 @@ import { ReactComponent as KadenaLogo } from '../../assets/images/crypto/kadena-
 function ReviewTx(props) {
   const pact = useContext(PactContext);
   const {fromValues, toValues, buttonStatus, liquidityView, loading, supply, open, setOpen} = props;
+
   return (
       <Modal
         onClose={() => setOpen(false)}
@@ -38,8 +39,8 @@ function ReviewTx(props) {
           {liquidityView === "Add Liquidity"
           ?
           <List>
-            <List.Item>{`${fromValues.coin} Deposit Desired: ${reduceBalance(fromValues.amount)}`}</List.Item>
-            <List.Item>{`${toValues.coin} Deposit Desired: ${reduceBalance(toValues.amount)}`}</List.Item>
+            <List.Item>{`${fromValues.coin} Deposit Desired: ${fromValues.amount}`}</List.Item>
+            <List.Item>{`${toValues.coin} Deposit Desired: ${toValues.amount}`}</List.Item>
             <br/>
             <List.Item>{`Rates:`}</List.Item>
             <br/>

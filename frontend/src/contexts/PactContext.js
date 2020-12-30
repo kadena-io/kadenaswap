@@ -69,7 +69,7 @@ export const PactProvider = (props) => {
 
   useEffect(() => {
     if (account.account) setVerifiedAccount(account.account)
-  }, [])
+  }, [sendRes])
 
   useEffect(() => {
     const store = async () => localStorage.setItem('signing', JSON.stringify(signing));
