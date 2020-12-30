@@ -221,6 +221,8 @@ const LiquidityContainer = (props) => {
           show={tokenSelectorType !== null}
           selectedToken={selectedToken}
           onTokenClick={onTokenClick}
+          fromToken={fromValues.coin}
+          toToken={toValues.coin}
           onClose={() => setTokenSelectorType(null)}
         />
         <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
