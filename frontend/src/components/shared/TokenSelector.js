@@ -97,6 +97,7 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose, fromToken, 
                       selected={selectedToken === crypto.code}
                       style={{ cursor: selectedToken === crypto.code ? 'default' : 'pointer' }}
                       onClick={() => {
+                        if (fromToken === crypto.code || toToken === crypto.code) return
                         if (selectedToken !== crypto.code) {
                           onTokenClick({ crypto });
                           setSearchValue('')
