@@ -24,6 +24,7 @@ const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0
 
 const chainId = "0";
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
+const GAS_PRICE = 0.000000000001
 
 export const PactProvider = (props) => {
 
@@ -91,7 +92,7 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `(coin.details ${JSON.stringify(accountName)})`,
-          meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         console.log(data)
         if (data.result.status === "success"){
@@ -160,7 +161,7 @@ export const PactProvider = (props) => {
               ${token1}
               ""
             )`,
-          meta: Pact.lang.mkMeta("", chainId ,0.0001,5000,creationTime(),28800),
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,5000,creationTime(),28800),
           networkId: "testnet04"
       }, network);
       let pair =  data.result.data.account
@@ -196,7 +197,7 @@ export const PactProvider = (props) => {
             envData: {
               "user-ks": [keyPair.publicKey]
             },
-            meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,5000,creationTime(), 600),
+            meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,5000,creationTime(), 600),
             networkId: "testnet04"
           };
         data = await Pact.fetch.local(cmd, network);
@@ -250,7 +251,7 @@ export const PactProvider = (props) => {
           envData: {
             "user-ks": account.guard
           },
-          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
           networkId: "testnet04"
         };
       let data = await Pact.fetch.local(cmd, network);
@@ -344,7 +345,7 @@ export const PactProvider = (props) => {
           envData: {
             "user-ks": account.guard
           },
-          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
         };
         setCmd(cmd);
         let data = await Pact.fetch.local(cmd, network);
@@ -403,7 +404,7 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `(at 'account (kswap.exchange.get-pair ${token0} ${token1}))`,
-          meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
           setPairAccount(data.result.data);
@@ -423,7 +424,7 @@ export const PactProvider = (props) => {
       let data = await Pact.fetch.local({
           pactCode: `(kswap.exchange.get-pair ${token0} ${token1})`,
           keyPairs: Pact.crypto.genKeyPair(),
-          meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
           setPair(data.result.data);
@@ -445,7 +446,7 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `(kswap.exchange.get-pair-key ${token0} ${token1})`,
-          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
           // setPairKey(data.result.data);
@@ -464,7 +465,7 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `(kswap.tokens.get-balance (kswap.exchange.get-pair-key ${token0} ${token1}) ${JSON.stringify(account)})`,
-          meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
           console.log("Success", data.result.data);
@@ -494,7 +495,7 @@ export const PactProvider = (props) => {
                 (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name}) ${JSON.stringify(account)}))
               )[acctBal totalBal reserveA reserveB (* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
              `,
-            meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+            meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
           console.log("Success", data.result.data, "pair list", pairListAccount);
@@ -530,7 +531,7 @@ export const PactProvider = (props) => {
                 (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name})))
               )[totalBal reserveA reserveB])
              `,
-            meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+            meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
           console.log("Success", data.result.data, "pair list");
@@ -563,7 +564,7 @@ export const PactProvider = (props) => {
               (reserveB (reserve-for p ${token1}))
             )[reserveA reserveB])
            `,
-           meta: Pact.lang.mkMeta("account", chainId ,0.0001,3000,creationTime(), 600),
+           meta: Pact.lang.mkMeta("account", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
           console.log("succeeded, update reserve", data.result.data)
@@ -593,7 +594,7 @@ export const PactProvider = (props) => {
               (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${token0} ${token1}) ${JSON.stringify(account)}))
             )[(* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
            `,
-           meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+           meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         console.log(data)
         let balance0= data.result.data[0].decimal?data.result.data[0].decimal :data.result.data[0] ;
@@ -615,7 +616,7 @@ export const PactProvider = (props) => {
           pactCode: `
           (kswap.tokens.get-tokens)
            `,
-           meta: Pact.lang.mkMeta("", chainId ,0.0001,3000,creationTime(), 600),
+           meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
           return data.result.data;
@@ -663,7 +664,7 @@ export const PactProvider = (props) => {
           },
           meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
           networkId: "testnet04",
-          meta: Pact.lang.mkMeta(account.account, chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
       }
       setCmd(cmd);
       console.log(cmd)
@@ -718,7 +719,7 @@ export const PactProvider = (props) => {
             "user-ks": account.guard
           },
           networkId: "testnet04",
-          meta: Pact.lang.mkMeta(account.account, chainId, 0.0001, 3000, ct, 600),
+          meta: Pact.lang.mkMeta(account.account, chainId, GAS_PRICE, 3000, ct, 600),
       }
       setCmd(cmd);
       console.log(cmd)
@@ -820,6 +821,7 @@ export const PactProvider = (props) => {
                   "_blank",
                   'noopener,noreferrer'
                 );
+                window.location.reload()
               },
               onOpen: async (value) => {
                 await toast.dismiss(toastId.current)
@@ -838,6 +840,7 @@ export const PactProvider = (props) => {
                   "_blank",
                   'noopener,noreferrer'
                 );
+                window.location.reload()
               },
               onOpen: async (value) => {
                 await toast.dismiss(toastId.current)
@@ -858,7 +861,7 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: list[0],
-          meta: Pact.lang.mkMeta("account", chainId ,0.0001,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("account", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
 

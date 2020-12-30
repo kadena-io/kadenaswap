@@ -138,7 +138,7 @@ const SwapContainer = () => {
   };
 
   const onTokenClick = async ({ crypto }) => {
-    let balance; 
+    let balance;
     if (crypto.name === 'coin') {
       balance = pact.account.balance
     } else {
@@ -237,14 +237,6 @@ const SwapContainer = () => {
               <Label>liquidity provider fee</Label>
               <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
             </RowContainer>
-            {/*
-              NEED TO FIGURE OUT PRE AND POST PRICES
-              RUN A LOCAL OF THE ACTUAL TRADE AND CHECK NEW PRICES
-            <RowContainer style={{ margin: 0 }}>
-              <Label>price impact</Label>
-              <span>15.16%</span>
-            </RowContainer>
-            */}
           </>
         )}
         <Button
@@ -259,8 +251,6 @@ const SwapContainer = () => {
                   { amount: toValues.amount, address: toValues.address },
                   (fromNote === "(estimated)" ? false : true)
                 )
-              console.log('res', res)
-              console.log(typeof res)
               if (res === -1) {
                 setLoading(false)
                 alert('Incorrect password. If forgotten, you can reset it with your private key')
