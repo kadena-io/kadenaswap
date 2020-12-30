@@ -82,7 +82,6 @@ const SwapContainer = () => {
   }, [toValues.amount])
 
   useEffect(() => {
-    console.log(pact.ratio)
     if (!isNaN(pact.ratio)) {
       if (fromValues.amount !== "" && toValues.amount === "") {
         setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
@@ -143,7 +142,6 @@ const SwapContainer = () => {
       balance = pact.account.balance
     } else {
       let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
-      console.log(acct)
       balance = pact.getCorrectBalance(acct.balance)
     }
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
@@ -167,6 +165,8 @@ const SwapContainer = () => {
         show={tokenSelectorType !== null}
         selectedToken={selectedToken}
         onTokenClick={onTokenClick}
+        fromToken={fromValues.coin}
+        toToken={toValues.coin}
         onClose={() => setTokenSelectorType(null)}
       />
       <TxView

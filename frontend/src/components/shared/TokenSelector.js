@@ -44,7 +44,7 @@ const TokenItem = styled.div`
   align-items: center;
   font-size: 16px;
   opacity: ${({ active }) => (active ? 0.3 : 1)};
-
+  color: ${({ selected }) => (selected ? 'green' : '')};
   svg {
     margin-right: 8px;
     width: 24px;
@@ -52,12 +52,8 @@ const TokenItem = styled.div`
   }
 `;
 
-const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
+const TokenSelector = ({ show, selectedToken, onTokenClick, onClose, fromToken, toToken }) => {
   const [searchValue, setSearchValue] = useState('');
-
-  // useEffect(() => {
-  //   if (searchValue)
-  // }, [searchValue])
 
   return (
     <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
@@ -96,7 +92,9 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
                   .map((crypto) => (
                     <TokenItem
                       key={crypto.code}
-                      active={selectedToken === crypto.code}
+                      active={selectedToken === crypto.code || fromToken === crypto.code || toToken === crypto.code}
+                      // active={selectedToken === crypto.code}
+                      selected={selectedToken === crypto.code}
                       style={{ cursor: selectedToken === crypto.code ? 'default' : 'pointer' }}
                       onClick={() => {
                         if (selectedToken !== crypto.code) {
@@ -108,6 +106,12 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
                     >
                       {crypto.icon}
                       {crypto.code}
+                      {selectedToken === crypto.code
+                        ?
+                          <Label style={{ marginLeft: 5 }}>(SELECTED)</Label>
+                        :
+                          <></>
+                      }
                     </TokenItem>
                   ))}
               </TokensContainer>
