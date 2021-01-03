@@ -110,6 +110,8 @@ export default function Account(props) {
                 fontSize={16}
                 onClick={() => {
                   setLocked(false)
+                  localStorage.removeItem('signing', null);
+                  pact.setSigning({ method: 'none', key: "" })
                 }}
               >
                 Reset

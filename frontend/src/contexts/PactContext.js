@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import pairTokens from '../constants/pairTokens'
 
 const keepDecimal = decimal => {
-  decimal = parseFloat(decimal).toPrecision(13)
+  decimal = parseFloat(decimal).toPrecision(12)
   const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
   return num
 }
@@ -57,8 +57,9 @@ export const PactProvider = (props) => {
   const [walletSuccess, setWalletSuccess] = useState(false)
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState(600)
-  // const [toastId, setToastId] = useState(null);
+  //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
+  // const [toastIds, setToastIds] = useState({})
 
   useEffect(() => {
     if (account.account) setRegistered(true);
@@ -94,7 +95,6 @@ export const PactProvider = (props) => {
           pactCode: `(coin.details ${JSON.stringify(accountName)})`,
           meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
-        console.log(data)
         if (data.result.status === "success"){
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
           setAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
@@ -117,12 +117,9 @@ export const PactProvider = (props) => {
           keyPairs: Pact.crypto.genKeyPair(),
           meta: Pact.lang.mkMeta("", chainId ,0.01,100000000, 28800, creationTime()),
         }, network);
-        console.log(data, "gettoken")
         if (data.result.status === "success"){
           // setTokenAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
-          console.log(tokenFromAccount, token, first)
           first ? setTokenFromAccount(data.result.data) : setTokenToAccount(data.result.data)
-          console.log(data.result.data)
           return data.result.data
         } else if (data.result.status === "failure"){
           first ? setTokenFromAccount({ account: null, guard: null, balance: 0 }) : setTokenToAccount({ account: null, guard: null, balance: 0 })
@@ -144,7 +141,6 @@ export const PactProvider = (props) => {
         if (data.result.status === "success"){
           if (data.result.data.decimal) setTotalSupply(data.result.data.decimal);
           else setTotalSupply(data.result.data);
-          console.log(data.result.data)
         } else {
           console.log("Account is not verified")
         }
@@ -202,9 +198,7 @@ export const PactProvider = (props) => {
           };
         data = await Pact.fetch.local(cmd, network);
         setCmd(cmd);
-        console.log(data);
         setLocalRes(data);
-        console.log(localRes);
       } catch (e) {
         setLocalRes({});
         console.log(e)
@@ -256,7 +250,6 @@ export const PactProvider = (props) => {
         };
       let data = await Pact.fetch.local(cmd, network);
       setCmd(cmd);
-      console.log(data);
       setLocalRes(data);
       return data;
     } catch (e) {
@@ -349,7 +342,6 @@ export const PactProvider = (props) => {
         };
         setCmd(cmd);
         let data = await Pact.fetch.local(cmd, network);
-        console.log(data);
         setLocalRes(data);
         return data;
       } catch (e) {
@@ -413,7 +405,6 @@ export const PactProvider = (props) => {
         } else {
           console.log("Pair Account is not verified")
         }
-        console.log(data);
     } catch (e) {
       console.log(e)
     }
@@ -434,9 +425,7 @@ export const PactProvider = (props) => {
           return null;
           console.log("Pair does not exist")
         }
-        console.log(data);
     } catch (e) {
-      console.log('fail')
       console.log(e)
     }
   }
@@ -455,7 +444,6 @@ export const PactProvider = (props) => {
         } else {
           console.log("Pair Account is not verified")
         }
-        console.log(data);
     } catch (e) {
       console.log(e)
     }
@@ -471,8 +459,6 @@ export const PactProvider = (props) => {
           console.log("Success", data.result.data);
           setPairAccountBalance(data.result.data);
         } else {
-          console.log("Fail", data)
-          // setPairAccountBalance(null);
           console.log("Pair Account is not verified")
         }
     } catch (e) {
@@ -506,7 +492,6 @@ export const PactProvider = (props) => {
               pooledAmount: [data.result.data[4],  data.result.data[5]]
             }
         } else {
-          console.log("Fail pair list", data)
           console.log("Pair Account is not verified")
         }
       } catch (e) {
@@ -540,7 +525,6 @@ export const PactProvider = (props) => {
               reserves:[data.result.data[1],  data.result.data[2]]
             }
         } else {
-          console.log("Fail pair list", data)
           console.log("Pair Account is not verified")
         }
       } catch (e) {
@@ -579,7 +563,6 @@ export const PactProvider = (props) => {
   }
 
   const getPooledAmount = async (pairKey, token0, token1, account) => {
-    console.log(pairKey, token0, token1, account)
     let pair = await getPairAccount(token0, token1);
     try {
       let data = await Pact.fetch.local({
@@ -596,7 +579,6 @@ export const PactProvider = (props) => {
            `,
            meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
-        console.log(data)
         let balance0= data.result.data[0].decimal?data.result.data[0].decimal :data.result.data[0] ;
         let balance1= data.result.data[1].decimal?data.result.data[1].decimal :data.result.data[1] ;
         setPoolBalance([balance0, balance1]);
@@ -667,9 +649,7 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
       }
       setCmd(cmd);
-      console.log(cmd)
       let data = await Pact.fetch.send(cmd, network);
-      console.log(data);
     } catch (e) {
       console.log(e)
     }
@@ -682,12 +662,10 @@ export const PactProvider = (props) => {
         const pw = prompt("please enter your password")
         privKey = await decryptKey(pw)
       }
-      console.log(privKey)
       if (privKey.length !== 64) {
         return
       }
       const ct = creationTime();
-      console.log(account.account)
       let pair = await getPairAccount(token0.address, token1.address);
       const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
@@ -722,10 +700,8 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta(account.account, chainId, GAS_PRICE, 3000, ct, 600),
       }
       setCmd(cmd);
-      console.log(cmd)
       let data = await Pact.fetch.local(cmd, network);
       setLocalRes(data);
-      console.log(data);
       return data;
     } catch (e) {
       setLocalRes({});
@@ -736,7 +712,6 @@ export const PactProvider = (props) => {
 
   const swapWallet = async (token0, token1, isSwapIn) => {
     try {
-      console.log(Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, parseFloat(keepDecimal(token0.amount*(1+slippage)))]))
       const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
           ${keepDecimal(token1.amount*(1-slippage))}
@@ -783,7 +758,6 @@ export const PactProvider = (props) => {
   const swapSend = async () => {
     setPolling(true)
     try {
-      console.log(cmd)
       const data = await Pact.fetch.send(cmd, network)
       toastId.current = notificationContext.showNotification({
               title: 'Transaction Pending',
@@ -796,7 +770,6 @@ export const PactProvider = (props) => {
               // }
             }
       )
-      console.log(data)
       await listen(data.requestKeys[0]);
       setPolling(false)
     } catch (e) {
@@ -807,7 +780,6 @@ export const PactProvider = (props) => {
 
   const listen = async (reqKey) => {
     const res = await Pact.fetch.listen({listen: reqKey}, network);
-    console.log(res);
     setSendRes(res);
     if (res.result.status === 'success') {
       notificationContext.showNotification({
@@ -868,7 +840,6 @@ export const PactProvider = (props) => {
           console.log("Success", data.result.data);
         } else {
           console.log("Fail", data)
-          // setPairAccountBalance(null);
           console.log("Pair Account is not verified")
         }
     } catch (e) {
@@ -918,7 +889,6 @@ export const PactProvider = (props) => {
   }
 
   const encryptKey = async (pk, pw) => {
-    console.log(pk, pw)
     const encrypted = CryptoJS.RC4Drop.encrypt(pk, pw);
     setSigning({ method: 'pk+pw', key: encrypted })
   }
@@ -976,6 +946,7 @@ export const PactProvider = (props) => {
         liquidityProviderFee,
         localRes,
         polling,
+        setSigning,
         getPooledAmount,
         getTotalTokenSupply,
         totalSupply,

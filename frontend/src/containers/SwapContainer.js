@@ -46,38 +46,42 @@ const SwapContainer = () => {
   const pact = useContext(PactContext);
 
   useEffect(() => {
-    if (inputSide === 'from' && fromValues.amount !== "") {
-      setToNote("(estimated)")
-      setFromNote("")
-      setInputSide(null)
-      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
-        if (fromValues.amount.length < 5) {
-          throttle(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
-        } else {
-          debounce(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+    if (!isNaN(fromValues.amount)) {
+      if (inputSide === 'from' && fromValues.amount !== "") {
+        setToNote("(estimated)")
+        setFromNote("")
+        setInputSide(null)
+        if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+          if (fromValues.amount.length < 5) {
+            throttle(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+          } else {
+            debounce(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+          }
         }
       }
-    }
-    if (isNaN(pact.ratio) || fromValues.amount === "") {
-      setToValues((prev) => ({ ...prev, amount: '' }))
+      if (isNaN(pact.ratio) || fromValues.amount === "") {
+        setToValues((prev) => ({ ...prev, amount: '' }))
+      }
     }
   }, [fromValues.amount])
 
   useEffect(() => {
-    if (inputSide === 'to' && toValues.amount !== "") {
-      setFromNote("(estimated)")
-      setToNote("")
-      setInputSide(null)
-      if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
-        if (toValues.amount.length < 5) {
-          throttle(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
-        } else {
-          debounce(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+    if (!isNaN(toValues.amount)) {
+      if (inputSide === 'to' && toValues.amount !== "") {
+        setFromNote("(estimated)")
+        setToNote("")
+        setInputSide(null)
+        if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
+          if (toValues.amount.length < 5) {
+            throttle(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+          } else {
+            debounce(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+          }
         }
       }
-    }
-    if (isNaN(pact.ratio) || toValues.amount === "") {
-      setFromValues((prev) => ({ ...prev, amount: '' }))
+      if (isNaN(pact.ratio) || toValues.amount === "") {
+        setFromValues((prev) => ({ ...prev, amount: '' }))
+      }
     }
   }, [toValues.amount])
 

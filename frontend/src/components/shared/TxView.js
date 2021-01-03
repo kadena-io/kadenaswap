@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from 'styled-components/macro';
 import { Transition } from 'react-spring/renderprops';
 import { Message } from 'semantic-ui-react';
@@ -81,6 +81,8 @@ const Value = styled.span`
 const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1, createTokenPair}) => {
   const pact = useContext(PactContext);
 
+  const [loading, setLoading] = useState(false)
+
   const showTicker = (ticker) => {
     if (ticker === 'coin') return 'KDA'
     else return ticker.toUpperCase()
@@ -115,9 +117,12 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         <Button
           buttonStyle={{ width: '100%' }}
           onClick={async () => {
+            setLoading(true)
             pact.swapSend();
             onClose()
+            setLoading(false)
           }}
+          loading={loading}
         >
           Send Transaction
         </Button>
@@ -162,9 +167,12 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         <Button
           buttonStyle={{ width: '100%' }}
           onClick={async () => {
+            setLoading(true)
             pact.swapSend();
             onClose()
+            setLoading(false)
           }}
+          loading={loading}
         >
           Send Transaction
         </Button>
@@ -209,6 +217,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
         <Button
           buttonStyle={{ width: '100%' }}
           onClick={async () => {
+            setLoading(true)
             if (view === "Add Liquidity") {
               pact.swapSend();
               onClose();
@@ -217,7 +226,9 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
               await pact.swapSend();
               onClose();
             }
+            setLoading(false)
           }}
+          loading={loading}
         >
           Send Transaction
         </Button>
