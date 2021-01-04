@@ -106,9 +106,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (fromValues.amount.length < 5) {
-          throttle(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(13) }))
+          throttle(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(12) }))
         } else {
-          debounce(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(13) }))
+          debounce(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(12) }))
         }
       }
     }
@@ -124,9 +124,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (toValues.amount.length < 5) {
-          throttle(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(13) }))
+          throttle(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(12) }))
         } else {
-          debounce(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(13) }))
+          debounce(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(12) }))
         }
       }
     }
