@@ -1,7 +1,7 @@
 # `kadenaswap frontend` Changelog
 
-## 2.3 (2021-01-03- slippage NaN error (#26)
-
+## 2.3 (2021-01-03)
+- slippage NaN error (#26)
 - improved token selection UX
 - wallet reset button functionality (#43)
      - forget all past wallet info when pressed
