@@ -10,6 +10,7 @@ import cryptoCurrencies from '../constants/cryptoCurrencies';
 import reduceBalance from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
 import TxView from '../components/shared/TxView';
+import SigningView from '../components/shared/SigningView';
 import { PactContext } from '../contexts/PactContext';
 import { throttle, debounce } from "throttle-debounce";
 
@@ -179,6 +180,12 @@ const SwapContainer = () => {
         onTokenClick={onTokenClick}
         onClose={() => setShowTxModal(false)}
       />
+      <SigningView
+        show={pact.sigView}
+        // selectedToken={selectedToken}
+        // onTokenClick={onTokenClick}
+        onClose={() => pact.setSigView(false)}
+      />
       <FormContainer title="swap">
         <Input
           error={isNaN(fromValues.amount)}
@@ -245,7 +252,7 @@ const SwapContainer = () => {
         )}
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
-          disabled={getButtonLabel() !== "SWAP"}
+          disabled={getButtonLabel() !== "SWAP" || isNaN(fromValues.amount) || isNaN(toValues.amount)}
           loading={loading}
           onClick={async () => {
             setLoading(true)

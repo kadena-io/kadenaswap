@@ -1,4 +1,4 @@
-import React, { useState, createContext, useEffect, useContext } from 'react';
+import React, { useState, createContext, useEffect, useContext, useReducer } from 'react';
 import Pact from "pact-lang-api";
 import AES from 'crypto-js/aes'
 import CryptoJS from 'crypto-js'
@@ -53,8 +53,11 @@ export const PactProvider = (props) => {
   const [pairListAccount, setPairListAccount] = useState(pairTokens)
   const [poolBalance, setPoolBalance] = useState(["N/A", "N/A"]);
   const [sendRes, setSendRes] = useState(null);
-  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" })
-  const [walletSuccess, setWalletSuccess] = useState(false)
+  const [signing, setSigning] = useState(savedSigning ? JSON.parse(savedSigning) : { method: 'none', key: "" });
+  const [sigView, setSigView] = useState(false);
+  const [pw, setPw] = useState("");
+  const [pwStatus, setPwStatus] = useState("");
+  const [walletSuccess, setWalletSuccess] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState(600)
   //TO FIX, not working when multiple toasts are there
@@ -655,15 +658,98 @@ export const PactProvider = (props) => {
     }
   }
 
+  const getUserPw = async () => {
+    if (pw.entered === false) {
+      setTimeout(getUserPw, 50);
+      return;
+    } else {
+      return;
+    }
+  }
+  const until = () => {
+    console.log(pwStatus)
+    const poll = resolve => {
+      if(pwStatus === 'entered'){
+        console.log('if')
+        console.log(pwStatus)
+        resolve();
+      }
+      else {
+        console.log('else')
+        console.log(pwStatus)
+        setTimeout(_ => poll(resolve), 400);
+      }
+
+    }
+    return new Promise(poll);
+  }
+
+  const waitFor = async () => {
+    return new Promise((resolve) => {
+      if (pwStatus === 'entered') {
+        console.log(pwStatus)
+        resolve();
+      }
+      else {
+        setTimeout(async () => {
+          await waitFor();
+          resolve();
+        }, 100);
+      }
+    });
+  };
+
+  const resolve = () => {
+    console.log('resolved')
+  }
+
+  const waitUntil = (condition) => {
+    return new Promise((resolve) => {
+        let interval = setInterval(() => {
+            console.log(condition());
+            if (!condition()) {
+                console.log(pwStatus)
+                return
+            }
+
+            clearInterval(interval)
+            resolve()
+        }, 100)
+    })
+}
+
+    function sleep(ms) {
+        return new Promise(resolve =>{
+          console.log(pwStatus)
+          if (pwStatus !== 'entered') {
+            setTimeout(resolve, ms)
+          } else return
+        });
+     }
+
   const swapLocal = async (token0, token1, isSwapIn) => {
     try {
       let privKey = signing.key
       if (signing.method === 'pk+pw') {
-        const pw = prompt("please enter your password")
+        // const pw = prompt("please enter your password")
+        setSigView(true)
+        // return -1
+        // await waitUntil(() => pwStatus === 'entered')
+        console.log(pwStatus)
+        while (pwStatus !== '') {
+          console.log('waiting for password...')
+          console.log(pwStatus)
+          await sleep(400)
+        }
+        // await until(_ => pwStatus === 'entered')
+        // await waitFor(() => pwStatus === 'entered');
+        console.log('through')
+        console.log(pw)
         privKey = await decryptKey(pw)
+        console.log(privKey)
       }
       if (privKey.length !== 64) {
-        return
+        return -1
       }
       const ct = creationTime();
       let pair = await getPairAccount(token0.address, token1.address);
@@ -704,9 +790,10 @@ export const PactProvider = (props) => {
       setLocalRes(data);
       return data;
     } catch (e) {
+      console.log(e)
       setLocalRes({});
       return -1
-      console.log(e)
+
     }
   }
 
@@ -970,7 +1057,13 @@ export const PactProvider = (props) => {
         setTtl,
         getPairListAccountBalance,
         getPairList,
-        pairListAccount
+        pairListAccount,
+        sigView,
+        setSigView,
+        pw,
+        setPw,
+        pwStatus,
+        setPwStatus
       }}
     >
       {props.children}

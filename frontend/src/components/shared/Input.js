@@ -70,7 +70,7 @@ const Input = ({
   onSelectButtonClick,
   onChange,
   error,
-  type
+  type,
 }) => {
   const getIcon = () => {
     if (withSelectButton && !inputRightComponent)
