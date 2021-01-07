@@ -3,8 +3,11 @@ import Pact from "pact-lang-api";
 import AES from 'crypto-js/aes'
 import CryptoJS from 'crypto-js'
 import { NotificationContext, STATUSES } from './NotificationContext';
+import PasswordPopup from '../components/shared/PasswordPopup';
 import { toast } from 'react-toastify';
 import pairTokens from '../constants/pairTokens'
+import swal from '@sweetalert/with-react'
+import pwPrompt from '../components/alerts/pwPrompt'
 
 const keepDecimal = decimal => {
   decimal = parseFloat(decimal).toPrecision(12)
@@ -730,20 +733,28 @@ export const PactProvider = (props) => {
   const swapLocal = async (token0, token1, isSwapIn) => {
     try {
       let privKey = signing.key
+      // if (signing.method === 'pk+pw') {
+      //   // const pw = prompt("please enter your password")
+      //   setSigView(true)
+      //   // return -1
+      //   // await waitUntil(() => pwStatus === 'entered')
+      //   console.log(pwStatus)
+      //   while (pwStatus !== '') {
+      //     console.log('waiting for password...')
+      //     console.log(pwStatus)
+      //     await sleep(400)
+      //   }
+      //   // await until(_ => pwStatus === 'entered')
+      //   // await waitFor(() => pwStatus === 'entered');
+      //   console.log('through')
+      //   console.log(pw)
+      //   privKey = await decryptKey(pw)
+      //   console.log(privKey)
+      // }
       if (signing.method === 'pk+pw') {
-        // const pw = prompt("please enter your password")
-        setSigView(true)
-        // return -1
-        // await waitUntil(() => pwStatus === 'entered')
-        console.log(pwStatus)
-        while (pwStatus !== '') {
-          console.log('waiting for password...')
-          console.log(pwStatus)
-          await sleep(400)
-        }
-        // await until(_ => pwStatus === 'entered')
-        // await waitFor(() => pwStatus === 'entered');
-        console.log('through')
+        console.log('b')
+        const pw = await pwPrompt();
+        console.log('x')
         console.log(pw)
         privKey = await decryptKey(pw)
         console.log(privKey)

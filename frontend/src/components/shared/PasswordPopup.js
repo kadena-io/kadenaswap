@@ -11,20 +11,20 @@ import { ReactComponent as SuccessfulIcon } from '../../assets/images/shared/suc
 import { ReactComponent as ErrorIcon } from '../../assets/images/shared/error-circle.svg';
 import { PactContext } from '../../contexts/PactContext';
 
-const Container = styled.div`
-  position: absolute;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  max-width: 385px;
-  width: 100%;
-  z-index: 5;
-`;
+// const Container = styled.div`
+//   position: absolute;
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+//   max-width: 385px;
+//   width: 100%;
+//   z-index: 5;
+// `;
 
 const Label = styled.span`
   font-family: neue-bold;
   font-size: 13px;
-  color: ${({ theme: { colors } }) => colors.primary};
+  /* color: ${({ theme: { colors } }) => colors.primary}; */
 `;
 
 const RowContainer = styled.div`
@@ -34,7 +34,7 @@ const RowContainer = styled.div`
 `;
 
 const Divider = styled.div`
-  border: ${({ theme: { colors } }) => `1px solid ${colors.border}`};
+  /* border: ${({ theme: { colors } }) => `1px solid ${colors.border}`}; */
   margin: 16px 0px;
   width: 100%;
 `;
@@ -49,13 +49,13 @@ const Title = styled.div`
   font-family: neue-bold;
   font-size: 24px;
   padding: 16px;
-  color: ${({ theme: { colors } }) => colors.primary};
+  /* color: ${({ theme: { colors } }) => colors.primary}; */
 `;
 
 const SubTitle = styled.div`
   font-family: neue-bold;
   font-size: 16px;
-  color: ${({ theme: { colors } }) => colors.primary};
+  /* color: ${({ theme: { colors } }) => colors.primary}; */
 `;
 
 const TransactionsDetails = styled.div`
@@ -74,15 +74,15 @@ const SpaceBetweenRow = styled.div`
 const Value = styled.span`
   font-family: neue-regular;
   font-size: 13px;
-  color: ${({ theme: { colors } }) => colors.primary};
+  /* color: ${({ theme: { colors } }) => colors.primary}; */
 `;
 
 const ContainerInputTypeNumber = styled.div`
-  display: flex;
+  /* display: flex; */
   align-items: center;
   padding: 6.5px 8.5px;
   border-radius: 5px;
-  border: ${({ theme: { colors } }) => `1px solid ${colors.border}`};
+  /* border: ${({ theme: { colors } }) => `1px solid ${colors.border}`}; */
 
   .ui.input > input {
     border: unset;
@@ -96,15 +96,11 @@ const ContainerInputTypeNumber = styled.div`
 `;
 
 
-const SigningView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1, createTokenPair}) => {
+const PasswordPopup = ({}) => {
   const pact = useContext(PactContext);
 
   const [loading, setLoading] = useState(false)
   const [pw, setPw] = useState("");
-
-  useEffect(() => {
-    setPw(pact.pw)
-  }, [pact.pw])
 
   const password = () => {
     return (
@@ -120,7 +116,7 @@ const SigningView = ({ show, view, selectedToken, onTokenClick, onClose, token0,
             onChange={(e, { value }) => {
               pact.setPw(value);
             }}
-            
+            disabled={pw === ""}
           />
           <Message size='tiny' color='purple' style={{textAlign: 'center'}}>
             <RowContainer>
@@ -136,7 +132,7 @@ const SigningView = ({ show, view, selectedToken, onTokenClick, onClose, token0,
         <Button
           onClick={() => {
             pact.setPwStatus("entered");
-            onClose()
+            // onClose()
           }}
         >
           Next
@@ -145,21 +141,53 @@ const SigningView = ({ show, view, selectedToken, onTokenClick, onClose, token0,
     )
   }
 
+  // return (
+  //         <Container>
+  //           <FormContainer title="sign transaction" containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }}
+  //           // onClose={onClose}
+  //           >
+  //             {password()}
+  //           </FormContainer>
+  //         </Container>
+  // );
   return (
-    <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
-      {(show) =>
-        show &&
-        ((props) => (
-          <Container style={props}>
-            <Backdrop onClose={onClose} />
-            <FormContainer title="sign transaction" containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }} onClose={onClose}>
-              {password()}
-            </FormContainer>
-          </Container>
-        ))
-      }
-    </Transition>
+    <FormContainer title="sign transaction"
+    //           // onClose={onClose}
+              >
+      <SubTitle>Enter Password To Decrypt Private Key</SubTitle>
+      <TransactionsDetails>
+        <Input
+          icon='lock'
+          iconPosition='left'
+          placeholder={"Enter Your Password"}
+          value={pw}
+          type={'password'}
+          onChange={(e, { value }) => {
+            pact.setPw(value);
+          }}
+          disabled={pw === ""}
+        />
+        <Message size='tiny' color='purple' style={{textAlign: 'center'}}>
+          <RowContainer>
+            <div style={{ display: 'flex', flexFlow: 'column', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'neue-bold', fontSize: 16, marginBottom: 10 }}><Icon name='warning sign' /> Note</span>
+              <span>
+                If you forgot your password you can always reset it using your private key in the account section
+              </span>
+            </div>
+          </RowContainer>
+        </Message>
+      </TransactionsDetails>
+      <Button
+        onClick={() => {
+          pact.setPwStatus("entered");
+          // onClose()
+        }}
+      >
+        Next
+      </Button>
+    </FormContainer>
   );
 };
 
-export default SigningView;
+export default PasswordPopup;
