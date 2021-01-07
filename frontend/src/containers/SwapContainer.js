@@ -10,9 +10,9 @@ import cryptoCurrencies from '../constants/cryptoCurrencies';
 import reduceBalance from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
 import TxView from '../components/shared/TxView';
-import SigningView from '../components/shared/SigningView';
 import { PactContext } from '../contexts/PactContext';
 import { throttle, debounce } from "throttle-debounce";
+import pwError from '../components/alerts/pwError'
 
 const Container = styled.div`
   display: flex;
@@ -180,12 +180,6 @@ const SwapContainer = () => {
         onTokenClick={onTokenClick}
         onClose={() => setShowTxModal(false)}
       />
-      <SigningView
-        show={pact.sigView}
-        // selectedToken={selectedToken}
-        // onTokenClick={onTokenClick}
-        onClose={() => pact.setSigView(false)}
-      />
       <FormContainer title="swap">
         <Input
           error={isNaN(fromValues.amount)}
@@ -264,7 +258,8 @@ const SwapContainer = () => {
                 )
               if (res === -1) {
                 setLoading(false)
-                alert('Incorrect password. If forgotten, you can reset it with your private key')
+                //error alert
+                if (pact.localRes) pwError();
                 return
               } else {
                 setShowTxModal(true)
@@ -280,7 +275,7 @@ const SwapContainer = () => {
                 { amount: toValues.amount, address: toValues.address },
                 (fromNote === "(estimated)" ? false : true)
               )
-              // setLoading(false)
+              setLoading(false)
             }
 
           }}

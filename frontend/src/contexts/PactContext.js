@@ -8,6 +8,8 @@ import { toast } from 'react-toastify';
 import pairTokens from '../constants/pairTokens'
 import swal from '@sweetalert/with-react'
 import pwPrompt from '../components/alerts/pwPrompt'
+import walletError from '../components/alerts/walletError'
+import walletLoading from '../components/alerts/walletLoading'
 
 const keepDecimal = decimal => {
   decimal = parseFloat(decimal).toPrecision(12)
@@ -302,7 +304,8 @@ export const PactProvider = (props) => {
       await listen(res.requestKeys[0]);
       setPolling(false)
     } catch (e) {
-      alert("you cancelled the TX or you did not have the wallet app open")
+      //wallet error alert
+      walletError()
       console.log(e)
     }
   }
@@ -393,7 +396,8 @@ export const PactProvider = (props) => {
       await listen(res.requestKeys[0]);
       setPolling(false)
     } catch (e) {
-      alert("you cancelled the TX or you did not have the wallet app open")
+      //wallet error alert
+      walletError()
       console.log(e)
     }
   }
@@ -661,103 +665,12 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getUserPw = async () => {
-    if (pw.entered === false) {
-      setTimeout(getUserPw, 50);
-      return;
-    } else {
-      return;
-    }
-  }
-  const until = () => {
-    console.log(pwStatus)
-    const poll = resolve => {
-      if(pwStatus === 'entered'){
-        console.log('if')
-        console.log(pwStatus)
-        resolve();
-      }
-      else {
-        console.log('else')
-        console.log(pwStatus)
-        setTimeout(_ => poll(resolve), 400);
-      }
-
-    }
-    return new Promise(poll);
-  }
-
-  const waitFor = async () => {
-    return new Promise((resolve) => {
-      if (pwStatus === 'entered') {
-        console.log(pwStatus)
-        resolve();
-      }
-      else {
-        setTimeout(async () => {
-          await waitFor();
-          resolve();
-        }, 100);
-      }
-    });
-  };
-
-  const resolve = () => {
-    console.log('resolved')
-  }
-
-  const waitUntil = (condition) => {
-    return new Promise((resolve) => {
-        let interval = setInterval(() => {
-            console.log(condition());
-            if (!condition()) {
-                console.log(pwStatus)
-                return
-            }
-
-            clearInterval(interval)
-            resolve()
-        }, 100)
-    })
-}
-
-    function sleep(ms) {
-        return new Promise(resolve =>{
-          console.log(pwStatus)
-          if (pwStatus !== 'entered') {
-            setTimeout(resolve, ms)
-          } else return
-        });
-     }
-
   const swapLocal = async (token0, token1, isSwapIn) => {
     try {
       let privKey = signing.key
-      // if (signing.method === 'pk+pw') {
-      //   // const pw = prompt("please enter your password")
-      //   setSigView(true)
-      //   // return -1
-      //   // await waitUntil(() => pwStatus === 'entered')
-      //   console.log(pwStatus)
-      //   while (pwStatus !== '') {
-      //     console.log('waiting for password...')
-      //     console.log(pwStatus)
-      //     await sleep(400)
-      //   }
-      //   // await until(_ => pwStatus === 'entered')
-      //   // await waitFor(() => pwStatus === 'entered');
-      //   console.log('through')
-      //   console.log(pw)
-      //   privKey = await decryptKey(pw)
-      //   console.log(privKey)
-      // }
       if (signing.method === 'pk+pw') {
-        console.log('b')
         const pw = await pwPrompt();
-        console.log('x')
-        console.log(pw)
         privKey = await decryptKey(pw)
-        console.log(privKey)
       }
       if (privKey.length !== 64) {
         return -1
@@ -838,28 +751,35 @@ export const PactProvider = (props) => {
         ttl: 600,
         envData: { "user-ks": account.guard }
       }
+      //alert to sign tx
+      walletLoading();
       const cmd = await Pact.wallet.sign(signCmd);
+      //close alert programmatically
+      swal.close()
       setWalletSuccess(true)
       const res = await Pact.wallet.sendSigned(cmd, network);
+      console.log(res)
       //this is a small hack to get the polling header widget to work
       setLocalRes({ reqKey: res.requestKeys[0] })
       setPolling(true)
+      pollingNotif(res.requestKeys[0]);
       await listen(res.requestKeys[0]);
       setPolling(false)
     } catch (e) {
-      alert("you cancelled the TX or you did not have the wallet app open")
+      //wallet error alert
+      //TODO -> deal with missigning error
+
+      if (e.message.includes('Failed to fetch')) walletError()
       console.log(e)
     }
 
   }
 
-  const swapSend = async () => {
-    setPolling(true)
-    try {
-      const data = await Pact.fetch.send(cmd, network)
+  const pollingNotif = (reqKey) => {
+    return (
       toastId.current = notificationContext.showNotification({
               title: 'Transaction Pending',
-              message: data.requestKeys[0],
+              message: reqKey,
               type: STATUSES.INFO,
               autoClose: 92000,
               hideProgressBar: false,
@@ -868,6 +788,25 @@ export const PactProvider = (props) => {
               // }
             }
       )
+    )
+  }
+
+  const swapSend = async () => {
+    setPolling(true)
+    try {
+      const data = await Pact.fetch.send(cmd, network)
+      // toastId.current = notificationContext.showNotification({
+      //         title: 'Transaction Pending',
+      //         message: data.requestKeys[0],
+      //         type: STATUSES.INFO,
+      //         autoClose: 92000,
+      //         hideProgressBar: false,
+      //         // onOpen: (value) => {
+      //         //   setToastId(value.toastProps.toastId);
+      //         // }
+      //       }
+      // )
+      pollingNotif(data.requestKeys[0]);
       await listen(data.requestKeys[0]);
       setPolling(false)
     } catch (e) {
@@ -1073,8 +1012,6 @@ export const PactProvider = (props) => {
         setSigView,
         pw,
         setPw,
-        pwStatus,
-        setPwStatus
       }}
     >
       {props.children}
