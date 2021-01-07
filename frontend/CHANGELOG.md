@@ -1,6 +1,12 @@
 # `kadenaswap frontend` Changelog
 
-## 2.3 (2021-01-03)
+## (2021-01-07)
+- Signing method UI and UX improvements (34, 31)
+     - move off default JS alert/prompts
+     - better UI for entering password and feedback
+     - better modals for using wallet and respective errors
+
+## (2021-01-03)
 - slippage NaN error (#26)
 - improved token selection UX
 - wallet reset button functionality (#43)
