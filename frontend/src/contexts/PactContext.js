@@ -9,6 +9,7 @@ import pairTokens from '../constants/pairTokens'
 import swal from '@sweetalert/with-react'
 import pwPrompt from '../components/alerts/pwPrompt'
 import walletError from '../components/alerts/walletError'
+import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
 
 const keepDecimal = decimal => {
@@ -85,6 +86,20 @@ export const PactProvider = (props) => {
     const store = async () => localStorage.setItem('signing', JSON.stringify(signing));
     store()
   }, [signing])
+
+
+  const pollingNotif = (reqKey) => {
+    return (
+      toastId.current = notificationContext.showNotification({
+              title: 'Transaction Pending',
+              message: reqKey,
+              type: STATUSES.INFO,
+              autoClose: 92000,
+              hideProgressBar: false
+            }
+      )
+    )
+  }
 
 
   const getCorrectBalance = (balance) => {
@@ -220,7 +235,7 @@ export const PactProvider = (props) => {
     try {
       let privKey = signing.key
       if (signing.method === 'pk+pw') {
-        const pw = prompt("please enter your password")
+        const pw = await pwPrompt();
         privKey = await decryptKey(pw)
       }
       if (privKey.length !== 64) {
@@ -295,17 +310,24 @@ export const PactProvider = (props) => {
         ttl: 600,
         envData: { "user-ks": account.guard }
       }
+      //alert to sign tx
+      walletLoading();
       const cmd = await Pact.wallet.sign(signCmd);
+      //close alert programmatically
+      swal.close()
       setWalletSuccess(true)
       const res = await Pact.wallet.sendSigned(cmd, network);
+      console.log(res)
       //this is a small hack to get the polling header widget to work
       setLocalRes({ reqKey: res.requestKeys[0] })
       setPolling(true)
+      pollingNotif(res.requestKeys[0]);
       await listen(res.requestKeys[0]);
       setPolling(false)
     } catch (e) {
       //wallet error alert
-      walletError()
+      if (e.message.includes('Failed to fetch')) walletError()
+      else walletSigError()
       console.log(e)
     }
   }
@@ -314,7 +336,7 @@ export const PactProvider = (props) => {
     try {
       let privKey = signing.key
       if (signing.method === 'pk+pw') {
-        const pw = prompt("please enter your password")
+        const pw = await pwPrompt();
         privKey = await decryptKey(pw)
       }
       if (privKey.length !== 64) {
@@ -387,17 +409,24 @@ export const PactProvider = (props) => {
         ttl: 600,
         envData: { "user-ks": account.guard }
       }
+      //alert to sign tx
+      walletLoading();
       const cmd = await Pact.wallet.sign(signCmd);
+      //close alert programmatically
+      swal.close()
       setWalletSuccess(true)
       const res = await Pact.wallet.sendSigned(cmd, network);
+      console.log(res)
       //this is a small hack to get the polling header widget to work
       setLocalRes({ reqKey: res.requestKeys[0] })
       setPolling(true)
+      pollingNotif(res.requestKeys[0]);
       await listen(res.requestKeys[0]);
       setPolling(false)
     } catch (e) {
       //wallet error alert
-      walletError()
+      if (e.message.includes('Failed to fetch')) walletError()
+      else walletSigError()
       console.log(e)
     }
   }
@@ -767,45 +796,17 @@ export const PactProvider = (props) => {
       setPolling(false)
     } catch (e) {
       //wallet error alert
-      //TODO -> deal with missigning error
-
       if (e.message.includes('Failed to fetch')) walletError()
+      else walletSigError()
       console.log(e)
     }
 
-  }
-
-  const pollingNotif = (reqKey) => {
-    return (
-      toastId.current = notificationContext.showNotification({
-              title: 'Transaction Pending',
-              message: reqKey,
-              type: STATUSES.INFO,
-              autoClose: 92000,
-              hideProgressBar: false,
-              // onOpen: (value) => {
-              //   setToastId(value.toastProps.toastId);
-              // }
-            }
-      )
-    )
   }
 
   const swapSend = async () => {
     setPolling(true)
     try {
       const data = await Pact.fetch.send(cmd, network)
-      // toastId.current = notificationContext.showNotification({
-      //         title: 'Transaction Pending',
-      //         message: data.requestKeys[0],
-      //         type: STATUSES.INFO,
-      //         autoClose: 92000,
-      //         hideProgressBar: false,
-      //         // onOpen: (value) => {
-      //         //   setToastId(value.toastProps.toastId);
-      //         // }
-      //       }
-      // )
       pollingNotif(data.requestKeys[0]);
       await listen(data.requestKeys[0]);
       setPolling(false)
