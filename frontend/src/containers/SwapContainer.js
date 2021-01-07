@@ -12,6 +12,7 @@ import TokenSelector from '../components/shared/TokenSelector';
 import TxView from '../components/shared/TxView';
 import { PactContext } from '../contexts/PactContext';
 import { throttle, debounce } from "throttle-debounce";
+import pwError from '../components/alerts/pwError'
 
 const Container = styled.div`
   display: flex;
@@ -245,7 +246,7 @@ const SwapContainer = () => {
         )}
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
-          disabled={getButtonLabel() !== "SWAP"}
+          disabled={getButtonLabel() !== "SWAP" || isNaN(fromValues.amount) || isNaN(toValues.amount)}
           loading={loading}
           onClick={async () => {
             setLoading(true)
@@ -257,7 +258,8 @@ const SwapContainer = () => {
                 )
               if (res === -1) {
                 setLoading(false)
-                alert('Incorrect password. If forgotten, you can reset it with your private key')
+                //error alert
+                if (pact.localRes) pwError();
                 return
               } else {
                 setShowTxModal(true)
@@ -273,7 +275,7 @@ const SwapContainer = () => {
                 { amount: toValues.amount, address: toValues.address },
                 (fromNote === "(estimated)" ? false : true)
               )
-              // setLoading(false)
+              setLoading(false)
             }
 
           }}
