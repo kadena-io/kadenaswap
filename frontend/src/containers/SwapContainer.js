@@ -201,7 +201,7 @@ const SwapContainer = () => {
           onSelectButtonClick={() => setTokenSelectorType('from')}
           onChange={async (e, { value }) => {
             setInputSide('from')
-            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
+            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION)}))
           }}
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />

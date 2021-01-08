@@ -94,7 +94,7 @@ const RemoveLiquidityContainer = (props) => {
         </List>
         <StyledButton
           loading={loading}
-          disabled={reduceBalance(amount) === 0}
+          disabled={isNaN(amount) || reduceBalance(amount)===0}
           onClick={async () => {
             if (pact.signing.method !== 'sign') {
               const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(pooled));

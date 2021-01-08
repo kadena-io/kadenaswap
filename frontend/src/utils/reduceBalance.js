@@ -1,10 +1,10 @@
 export const reduceBalance = (balance, prec=3) => {
   if (balance) {
     if (balance.decimal) balance=balance.decimal;
-    if (parseFloat(balance) % 1 === 0) return parseInt(balance)
+    if (parseFloat(balance) % 1 === 0) {return parseInt(balance)}
     return Math.trunc(parseFloat(balance) * Math.pow(10, prec)) / Math.pow(10, prec);
   }
-  if (balance===0) return 0;
+  if (balance===0 || balance==='') return 0;
 };
 
 export const keepDecimal = decimal => {
@@ -23,6 +23,7 @@ export const extractDecimal = num => {
 
 export const  limitDecimalPlaces = (numStr, count) => {
   if (numStr.indexOf('.') == -1) {
+    if (numStr === '') return '';
     if (!isNaN(numStr)) return Number(numStr);
   }
   if (numStr.indexOf('.') === numStr.length-1
