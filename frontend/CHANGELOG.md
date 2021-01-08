@@ -1,5 +1,11 @@
 # `kadenaswap frontend` Changelog
 
+## (2021-01-08)
+- Number related UI fix / improvements
+     - Show gas units from scientific notation to user-readable value
+     - Show balance without truncated decimal places in liquidity list
+     - Add restriction for decimal digits in swap, add/remove liquidity
+
 ## (2021-01-07)
 - Signing method UI and UX improvements (34, 31)
      - move off default JS alert/prompts
@@ -29,4 +35,3 @@
    - don't allow same token to be chosen for coutnervalue
    - updated swap and pool
 - general responsiveness of inputs (swap + pool)
-
