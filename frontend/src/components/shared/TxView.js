@@ -141,14 +141,14 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
           <SpaceBetweenRow>
             <Label>Remove</Label>
             <Value>
-              {`${extractDecimal(pact.localRes.result.data.amount0)}`}
+              {`${extractDecimal(pact.localRes.result.data.amount0)} `}
               {showTicker(token0)}
             </Value>
           </SpaceBetweenRow>
           <SpaceBetweenRow style={{ padding: '16px 0px' }}>
             <Label>Remove</Label>
             <Value>
-              {`${extractDecimal(pact.localRes.result.data.amount1)}`}
+              {`${extractDecimal(pact.localRes.result.data.amount1)} `}
               {showTicker(token1)}
             </Value>
           </SpaceBetweenRow>
