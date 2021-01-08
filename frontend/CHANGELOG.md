@@ -2,7 +2,7 @@
 
 ## (2021-01-08)
 - Number related UI fix / improvements
-     - Show gas units from scientific notation to user-readable value
+     - Show gas units in user-readable value
      - Show balance without truncated decimal places in liquidity list
      - Add restriction for decimal digits in swap, add/remove liquidity
 
