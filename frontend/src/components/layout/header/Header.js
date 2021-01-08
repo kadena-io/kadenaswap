@@ -4,7 +4,7 @@ import { Modal, Message, Popup } from 'semantic-ui-react'
 import Button from '../../shared/Button';
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
-import reduceBalance from '../../../utils/reduceBalance';
+import {reduceBalance} from '../../../utils/reduceBalance';
 import { PactContext } from '../../../contexts/PactContext';
 import KdaModal from '../../../modals/kdaModal/KdaModal';
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP, ROUTE_STATS } from '../../../router/routes';

@@ -11,7 +11,7 @@ import { Header, Input, Button, List, Statistic } from 'semantic-ui-react'
 import TxView from '../../components/shared/TxView';
 import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
-import reduceBalance from '../../utils/reduceBalance';
+import {reduceBalance, extractDecimal} from '../../utils/reduceBalance';
 
 const Container = styled.div`
   margin: 15px 0px;
@@ -99,17 +99,15 @@ const RemoveLiquidityContainer = (props) => {
           <Statistic.Label>{`${token0.code} / ${token1.code} Pool Tokens`}</Statistic.Label>
         </Statistic>
         <List>
-          <List.Item>{`${token0.code} / ${token1.code}: ${reduceBalance(reduceBalance(balance)*amount/100)}`}</List.Item>
-          <List.Item>{`Pooled ${token0.code}: ${reduceBalance(reduceBalance(pooledAmount[0])*amount/100)}`}</List.Item>
-          <List.Item>{`Pooled ${token1.code}: ${reduceBalance(reduceBalance(pooledAmount[1])*amount/100)}`}</List.Item>
+          <List.Item>{`${token0.code} / ${token1.code}: ${extractDecimal(balance*amount/100)}`}</List.Item>
+          <List.Item>{`Pooled ${token0.code}: ${reduceBalance(extractDecimal(pooledAmount[0])*amount/100,12)}`}</List.Item>
+          <List.Item>{`Pooled ${token1.code}: ${reduceBalance(extractDecimal(pooledAmount[1])*amount/100,12)}`}</List.Item>
         </List>
         <StyledButton
           loading={loading}
           onClick={async () => {
             if (pact.signing.method !== 'sign') {
-              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance)*amount/100);
-              console.log('res', res)
-              console.log(typeof res)
+              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance*amount/100,12));
               if (res === -1) {
                 setLoading(false)
                 alert('Incorrect password. If forgotten, you can reset it with your private key')
@@ -119,7 +117,7 @@ const RemoveLiquidityContainer = (props) => {
                 setLoading(false)
               }
             } else {
-              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(balance)*amount/100);
+              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(balance*amount/100,12));
             }
           }
         }>

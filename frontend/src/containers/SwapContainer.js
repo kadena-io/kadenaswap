@@ -7,7 +7,7 @@ import InputToken from '../components/shared/InputToken';
 import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
-import reduceBalance from '../utils/reduceBalance';
+import {reduceBalance} from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
 import TxView from '../components/shared/TxView';
 import { PactContext } from '../contexts/PactContext';
@@ -54,9 +54,9 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (fromValues.amount.length < 5) {
-            throttle(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+            throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, 12) }))
           } else {
-            debounce(500, setToValues({ ...toValues, amount: fromValues.amount / pact.ratio }))
+            debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, 12) }))
           }
         }
       }
@@ -74,9 +74,9 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (toValues.amount.length < 5) {
-            throttle(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, 12) }))
           } else {
-            debounce(500, setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio }))
+            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, 12) }))
           }
         }
       }
@@ -89,11 +89,11 @@ const SwapContainer = () => {
   useEffect(() => {
     if (!isNaN(pact.ratio)) {
       if (fromValues.amount !== "" && toValues.amount === "") {
-        setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, 12) })
       } if (fromValues.amount === "" && toValues.amount !== "") {
-        setFromValues({ ...fromValues, amount: toValues.amount * pact.ratio })
+        setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, 12) })
       } if (fromValues.amount !== "" && toValues.amount !== "")  {
-        setToValues({ ...toValues, amount: fromValues.amount / pact.ratio })
+        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, 12) })
       }
     }
   }, [pact.ratio])

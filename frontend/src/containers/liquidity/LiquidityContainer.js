@@ -11,7 +11,7 @@ import TokenSelector from '../../components/shared/TokenSelector';
 import { throttle, debounce } from "throttle-debounce";
 import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
-import reduceBalance from '../../utils/reduceBalance';
+import { reduceBalance, gasUnit } from '../../utils/reduceBalance';
 import TxView from '../../components/shared/TxView';
 import ReviewTx from './ReviewTx';
 
@@ -247,6 +247,7 @@ const LiquidityContainer = (props) => {
             setInputSide('from')
             setFromValues((prev) => ({ ...prev, amount: value }))
           }}
+          error={isNaN(fromValues.amount)}
         />
         <ButtonDivider icon={<PlusIcon />} buttonStyle={{ cursor: 'default' }} />
         <Input
@@ -270,17 +271,18 @@ const LiquidityContainer = (props) => {
             setInputSide('to')
             setToValues((prev) => ({ ...prev, amount: value }))
           }}
+          error={isNaN(fromValues.amount)}
         />
         {fromValues.coin && toValues.coin && (
           <>
             <Label>price and pool share</Label>
             <RowContainer style={{ marginBottom: 0 }}>
               <ColumnContainer>
-                <span>{reduceBalance(pact.getRatio(toValues.coin, fromValues.coin))}</span>
+                <span>{reduceBalance(pact.getRatio(toValues.coin, fromValues.coin)) ?? '-'}</span>
                 <span>{`${toValues.coin} per ${fromValues.coin}`}</span>
               </ColumnContainer>
               <ColumnContainer>
-                <span>{reduceBalance(pact.getRatio1(toValues.coin, fromValues.coin))}</span>
+                <span>{reduceBalance(pact.getRatio1(toValues.coin, fromValues.coin)) ?? '-'}</span>
                 <span>{`${fromValues.coin} per ${toValues.coin}`}</span>
               </ColumnContainer>
               <ColumnContainer>

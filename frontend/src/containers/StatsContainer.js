@@ -4,7 +4,7 @@ import FormContainer from '../components/shared/FormContainer';
 import { ReactComponent as KadenaLogo } from '../assets/images/crypto/kadena-logo.svg';
 import { PactContext } from '../contexts/PactContext';
 import pairTokens from '../constants/pairTokens'
-import reduceBalance from '../utils/reduceBalance';
+import {reduceBalance, extractDecimal} from '../utils/reduceBalance';
 import { ReactComponent as CloseIcon } from '../assets/images/shared/cross.svg';
 
 const Container = styled.div`
@@ -72,7 +72,7 @@ const StatsContainer = ({ data }) => {
             <div style={{ marginLeft: -10, width:30 }}>{`${pair.token0.code}/${pair.token1.code}`}</div>
             <div style={{marginLeft: 45, width:150 }}>{reduceBalance(pair.reserves[0])}</div>
             <div style={{marginLeft: 10, width:150 }}>{reduceBalance(pair.reserves[1])}</div>
-            <div style={{marginLeft: 5}}>{`${reduceBalance(reduceBalance(pair.reserves[0])/reduceBalance(pair.reserves[1]))} ${pair.token0.code}/${pair.token1.code}`}</div>
+            <div style={{marginLeft: 5}}>{`${reduceBalance(extractDecimal(pair.reserves[0])/extractDecimal(pair.reserves[1]))} ${pair.token0.code}/${pair.token1.code}`}</div>
           </Row>
           :""
         ))}

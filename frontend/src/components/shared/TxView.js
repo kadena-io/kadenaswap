@@ -10,6 +10,7 @@ import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import { ReactComponent as SuccessfulIcon } from '../../assets/images/shared/successful-circle.svg';
 import { ReactComponent as ErrorIcon } from '../../assets/images/shared/error-circle.svg';
 import { PactContext } from '../../contexts/PactContext';
+import { extractDecimal, reduceBalance, gasUnit } from '../../utils/reduceBalance';
 
 const Container = styled.div`
   position: absolute;
@@ -110,7 +111,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
           <SpaceBetweenRow>
             <Label>Gas Cost</Label>
             <Value>
-              {`${pact.localRes.gas*0.00000000001} KDA`}
+              {`${gasUnit(pact.GAS_PRICE * pact.localRes.gas)} KDA`}
             </Value>
           </SpaceBetweenRow>
         </TransactionsDetails>
@@ -140,27 +141,21 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
           <SpaceBetweenRow>
             <Label>Remove</Label>
             <Value>
-              {`${
-                pact.localRes.result.data.amount0.decimal
-                  ? pact.localRes.result.data.amount0.decimal
-                  : pact.localRes.result.data.amount0
-              }`} {showTicker(token0)}
+              {`${extractDecimal(pact.localRes.result.data.amount0)}`}
+              {showTicker(token0)}
             </Value>
           </SpaceBetweenRow>
           <SpaceBetweenRow style={{ padding: '16px 0px' }}>
             <Label>Remove</Label>
             <Value>
-              {`${
-                pact.localRes.result.data.amount1.decimal
-                  ? pact.localRes.result.data.amount1.decimal
-                  : pact.localRes.result.data.amount1
-              }`} {showTicker(token1)}
+              {`${extractDecimal(pact.localRes.result.data.amount1)}`}
+              {showTicker(token1)}
             </Value>
           </SpaceBetweenRow>
           <SpaceBetweenRow>
             <Label>Gas Cost</Label>
             <Value>
-              {`${pact.localRes.gas*0.00000000001} KDA`}
+              {`${gasUnit(pact.GAS_PRICE * pact.localRes.gas)} KDA`}
             </Value>
           </SpaceBetweenRow>
         </TransactionsDetails>
@@ -191,9 +186,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
             <Label>Add</Label>
             <Value>
               {`${
-                pact.localRes.result.data.amount0.decimal
-                  ? pact.localRes.result.data.amount0.decimal
-                  : pact.localRes.result.data.amount0
+                extractDecimal(pact.localRes.result.data.amount0)
               }`} {showTicker(token0)}
             </Value>
           </SpaceBetweenRow>
@@ -201,16 +194,14 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
             <Label>Add</Label>
             <Value>
               {`${
-                pact.localRes.result.data.amount1.decimal
-                  ? pact.localRes.result.data.amount1.decimal
-                  : pact.localRes.result.data.amount1
+                extractDecimal(pact.localRes.result.data.amount1)
               }`} {showTicker(token1)}
             </Value>
           </SpaceBetweenRow>
           <SpaceBetweenRow>
             <Label>Gas Cost</Label>
             <Value>
-              {`${pact.localRes.gas*0.00000000001} KDA`}
+              {`${gasUnit(pact.GAS_PRICE * pact.localRes.gas)} KDA`}
             </Value>
           </SpaceBetweenRow>
         </TransactionsDetails>

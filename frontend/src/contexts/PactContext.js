@@ -11,12 +11,7 @@ import pwPrompt from '../components/alerts/pwPrompt'
 import walletError from '../components/alerts/walletError'
 import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
-
-const keepDecimal = decimal => {
-  decimal = parseFloat(decimal).toPrecision(12)
-  const num = decimal.toString().indexOf('.') === -1 ? `${decimal}.0` : decimal
-  return num
-}
+import { keepDecimal } from '../utils/reduceBalance'
 
 export const PactContext = createContext();
 
@@ -199,8 +194,8 @@ export const PactProvider = (props) => {
                 ${token1}
                 ${keepDecimal(amountDesired0)}
                 ${keepDecimal(amountDesired1)}
-                ${keepDecimal(amountDesired0*(1-0.003))}
-                ${keepDecimal(amountDesired1*(1-0.003))}
+                ${keepDecimal(amountDesired0*(1-slippage))}
+                ${keepDecimal(amountDesired1*(1-slippage))}
                 ${JSON.stringify(account.account)}
                 ${JSON.stringify(account.account)}
                 (read-keyset 'user-ks)
@@ -250,8 +245,8 @@ export const PactProvider = (props) => {
               ${token1}
               ${keepDecimal(amountDesired0)}
               ${keepDecimal(amountDesired1)}
-              ${keepDecimal(amountDesired0*(1-0.003))}
-              ${keepDecimal(amountDesired1*(1-0.003))}
+              ${keepDecimal(amountDesired0*(1-slippage))}
+              ${keepDecimal(amountDesired1*(1-slippage))}
               ${JSON.stringify(account.account)}
               ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
@@ -293,8 +288,8 @@ export const PactProvider = (props) => {
             ${token1}
             ${keepDecimal(amountDesired0)}
             ${keepDecimal(amountDesired1)}
-            ${keepDecimal(amountDesired0*(1-0.003))}
-            ${keepDecimal(amountDesired1*(1-0.003))}
+            ${keepDecimal(amountDesired0*(1-slippage))}
+            ${keepDecimal(amountDesired1*(1-slippage))}
             ${JSON.stringify(account.account)}
             ${JSON.stringify(account.account)}
             (read-keyset 'user-ks)
@@ -947,6 +942,7 @@ export const PactProvider = (props) => {
   return (
     <PactContext.Provider
       value={{
+        GAS_PRICE,
         tokens,
         getAccountTokenList,
         pairList,

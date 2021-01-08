@@ -10,7 +10,7 @@ import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import pairTokens from '../../constants/pairTokens';
 import TokenPair from './TokenPair';
 import {PactContext} from '../../contexts/PactContext'
-import reduceBalance from '../../utils/reduceBalance';
+import {reduceBalance} from '../../utils/reduceBalance';
 
 const Container = styled.div`
   display: flex;
