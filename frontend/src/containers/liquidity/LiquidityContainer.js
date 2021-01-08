@@ -193,8 +193,6 @@ const LiquidityContainer = (props) => {
         if (pact.signing.method !== 'sign') {
           setLoading(true)
           const res = await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
-          console.log('res', res)
-          console.log(typeof res)
           if (res === -1) {
             setLoading(false)
             alert('Incorrect password. If forgotten, you can reset it with your private key')

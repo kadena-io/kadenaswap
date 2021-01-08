@@ -117,10 +117,8 @@ export const PactProvider = (props) => {
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
           setAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
           await localStorage.setItem('acct', JSON.stringify(data.result.data));
-          console.log("Account is set to ", accountName);
         } else {
           setAccount({account: null, guard: null, balance: 0});
-          console.log("Account is not verified")
         }
     } catch (e) {
       console.log(e)
@@ -128,7 +126,6 @@ export const PactProvider = (props) => {
   }
 
   const getTokenAccount = async (token, account, first) => {
-    console.log("gettokenaccount", token, `(${token}.details ${JSON.stringify(account)})`)
     try {
       let data = await Pact.fetch.local({
           pactCode: `(${token}.details ${JSON.stringify(account)})`,
@@ -142,7 +139,6 @@ export const PactProvider = (props) => {
         } else if (data.result.status === "failure"){
           first ? setTokenFromAccount({ account: null, guard: null, balance: 0 }) : setTokenToAccount({ account: null, guard: null, balance: 0 })
           return { account: null, guard: null, balance: 0 }
-          console.log("Account does not exist")
         }
     } catch (e) {
       console.log(e)
@@ -159,8 +155,6 @@ export const PactProvider = (props) => {
         if (data.result.status === "success"){
           if (data.result.data.decimal) setTotalSupply(data.result.data.decimal);
           else setTotalSupply(data.result.data);
-        } else {
-          console.log("Account is not verified")
         }
     } catch (e) {
       console.log(e)
@@ -219,7 +213,6 @@ export const PactProvider = (props) => {
         setLocalRes(data);
       } catch (e) {
         setLocalRes({});
-        console.log(e)
       }
     } catch (e) {
       console.log(e)
@@ -312,7 +305,6 @@ export const PactProvider = (props) => {
       swal.close()
       setWalletSuccess(true)
       const res = await Pact.wallet.sendSigned(cmd, network);
-      console.log(res)
       //this is a small hack to get the polling header widget to work
       setLocalRes({ reqKey: res.requestKeys[0] })
       setPolling(true)
@@ -411,7 +403,6 @@ export const PactProvider = (props) => {
       swal.close()
       setWalletSuccess(true)
       const res = await Pact.wallet.sendSigned(cmd, network);
-      console.log(res)
       //this is a small hack to get the polling header widget to work
       setLocalRes({ reqKey: res.requestKeys[0] })
       setPolling(true)
@@ -435,9 +426,6 @@ export const PactProvider = (props) => {
         if (data.result.status === "success"){
           setPairAccount(data.result.data);
           return data.result.data;
-          console.log("Pair Account is set to", data.result.data);
-        } else {
-          console.log("Pair Account is not verified")
         }
     } catch (e) {
       console.log(e)
@@ -453,11 +441,9 @@ export const PactProvider = (props) => {
         }, network);
         if (data.result.status === "success"){
           setPair(data.result.data);
-          console.log("Pair is set to", data.result.data);
           return data.result.data;
         } else {
           return null;
-          console.log("Pair does not exist")
         }
     } catch (e) {
       console.log(e)
@@ -472,11 +458,7 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
-          // setPairKey(data.result.data);
           return data.result.data;
-          console.log("Pair Account is set to", data.result.data);
-        } else {
-          console.log("Pair Account is not verified")
         }
     } catch (e) {
       console.log(e)
@@ -490,10 +472,7 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
-          console.log("Success", data.result.data);
           setPairAccountBalance(data.result.data);
-        } else {
-          console.log("Pair Account is not verified")
         }
     } catch (e) {
       console.log(e)
@@ -518,21 +497,17 @@ export const PactProvider = (props) => {
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          console.log("Success", data.result.data, "pair list", pairListAccount);
           return {...pair,
               balance: data.result.data[0],
               supply: data.result.data[1],
               reserves:[data.result.data[2],  data.result.data[3]],
               pooledAmount: [data.result.data[4],  data.result.data[5]]
             }
-        } else {
-          console.log("Pair Account is not verified")
         }
       } catch (e) {
         console.log(e)
       }
     }))
-    console.log(pairList)
     setPairListAccount(pairList);
   }
 
@@ -553,19 +528,15 @@ export const PactProvider = (props) => {
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          console.log("Success", data.result.data, "pair list");
           return {...pair,
               supply: data.result.data[0],
               reserves:[data.result.data[1],  data.result.data[2]]
             }
-        } else {
-          console.log("Pair Account is not verified")
         }
       } catch (e) {
         console.log(e)
       }
     }))
-    console.log(pairList)
     setPairList(pairList);
   }
 
@@ -585,10 +556,8 @@ export const PactProvider = (props) => {
            meta: Pact.lang.mkMeta("account", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
-          console.log("succeeded, update reserve", data.result.data)
           await setPairReserve({token0: data.result.data[0].decimal? data.result.data[0].decimal:  data.result.data[0], token1: data.result.data[1].decimal? data.result.data[1].decimal:  data.result.data[1]});
         } else {
-          console.log("Failed")
           await setPairReserve({});
         }
     } catch (e) {
@@ -616,11 +585,6 @@ export const PactProvider = (props) => {
         let balance0= data.result.data[0].decimal?data.result.data[0].decimal :data.result.data[0] ;
         let balance1= data.result.data[1].decimal?data.result.data[1].decimal :data.result.data[1] ;
         setPoolBalance([balance0, balance1]);
-        if (data.result.status === "success"){
-          console.log(data, " pooledamount")
-        } else {
-          console.log("Failed")
-        }
     } catch (e) {
       console.log(e)
     }
@@ -869,11 +833,6 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("account", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
         if (data.result.status === "success"){
-
-          console.log("Success", data.result.data);
-        } else {
-          console.log("Fail", data)
-          console.log("Pair Account is not verified")
         }
     } catch (e) {
       console.log(e)
