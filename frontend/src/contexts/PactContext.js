@@ -26,6 +26,7 @@ const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0
 const chainId = "0";
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 const GAS_PRICE = 0.000000000001
+const PRECISION = 12
 
 export const PactProvider = (props) => {
 
@@ -819,26 +820,6 @@ export const PactProvider = (props) => {
     }
   }
 
-  const getAccountTokenList = async (account) => {
-    let list = await tokens();
-    list =
-    list
-    .map(pair =>  {
-      return `(kswap.tokens.get-balance ${JSON.stringify(pair)} ${JSON.stringify(account)})`;
-    })
-
-    try {
-      let data = await Pact.fetch.local({
-          pactCode: list[0],
-          meta: Pact.lang.mkMeta("account", chainId ,GAS_PRICE,3000,creationTime(), 600),
-        }, network);
-        if (data.result.status === "success"){
-        }
-    } catch (e) {
-      console.log(e)
-    }
-  }
-
   const getRatio = (toToken, fromToken) => {
     if (toToken===fromToken) return 1;
     return pairReserve["token1"]/pairReserve["token0"]
@@ -902,8 +883,8 @@ export const PactProvider = (props) => {
     <PactContext.Provider
       value={{
         GAS_PRICE,
+        PRECISION,
         tokens,
-        getAccountTokenList,
         pairList,
         account,
         setVerifiedAccount,

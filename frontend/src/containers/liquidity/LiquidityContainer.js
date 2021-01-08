@@ -106,9 +106,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (fromValues.amount.length < 5) {
-          throttle(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(12) }))
+          throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) }))
         } else {
-          debounce(500, setToValues({ ...toValues, amount: parseFloat(fromValues.amount / pact.ratio).toFixed(12) }))
+          debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) }))
         }
       }
     }
@@ -124,9 +124,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (toValues.amount.length < 5) {
-          throttle(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(12) }))
+          throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, pact.PRECISION) }))
         } else {
-          debounce(500, setFromValues({ ...fromValues, amount: parseFloat(toValues.amount * pact.ratio).toFixed(12) }))
+          debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, pact.PRECISION) }))
         }
       }
     }
@@ -301,8 +301,8 @@ const LiquidityContainer = (props) => {
         <ReviewTx
           fromValues={fromValues}
           toValues={toValues}
-          buttonStatus = {buttonStatus}
-          liquidityView = {selectedView}
+          buttonStatus={buttonStatus}
+          liquidityView={selectedView}
           supply={supply}
           loading={loading}
           open={showReview}

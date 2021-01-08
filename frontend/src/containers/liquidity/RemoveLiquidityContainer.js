@@ -20,28 +20,6 @@ const Container = styled.div`
   align-items: center;
 `;
 
-const RowContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin: 15px 0px;
-`;
-
-const ColumnContainer = styled.div`
-  display: flex;
-  flex-flow: column;
-  align-items: center;
-
-  & > span:first-child {
-    font-size: 14px;
-    margin-bottom: 3px;
-  }
-
-  & > span:last-child {
-    font-size: 12px;
-    color: #b5b5b5;
-  }
-`;
-
 const Label = styled.span`
   font-size: 13px;
   font-family: neue-bold;
@@ -100,14 +78,14 @@ const RemoveLiquidityContainer = (props) => {
         </Statistic>
         <List>
           <List.Item>{`${token0.code} / ${token1.code}: ${extractDecimal(balance*amount/100)}`}</List.Item>
-          <List.Item>{`Pooled ${token0.code}: ${reduceBalance(extractDecimal(pooledAmount[0])*amount/100,12)}`}</List.Item>
-          <List.Item>{`Pooled ${token1.code}: ${reduceBalance(extractDecimal(pooledAmount[1])*amount/100,12)}`}</List.Item>
+          <List.Item>{`Pooled ${token0.code}: ${reduceBalance(extractDecimal(pooledAmount[0])*amount/100,pact.PRECISION)}`}</List.Item>
+          <List.Item>{`Pooled ${token1.code}: ${reduceBalance(extractDecimal(pooledAmount[1])*amount/100,pact.PRECISION)}`}</List.Item>
         </List>
         <StyledButton
           loading={loading}
           onClick={async () => {
             if (pact.signing.method !== 'sign') {
-              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance*amount/100,12));
+              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance*amount/100,pact.PRECISION));
               if (res === -1) {
                 setLoading(false)
                 alert('Incorrect password. If forgotten, you can reset it with your private key')
@@ -117,7 +95,7 @@ const RemoveLiquidityContainer = (props) => {
                 setLoading(false)
               }
             } else {
-              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(balance*amount/100,12));
+              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(balance*amount/100,pact.PRECISION));
             }
           }
         }>
