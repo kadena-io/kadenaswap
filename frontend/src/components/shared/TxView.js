@@ -88,7 +88,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
     if (ticker === 'coin') return 'KDA'
     else return ticker.toUpperCase()
   }
-
+  
   const successView = () => {
     return (
       <Content>
@@ -295,7 +295,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
                   ?
                     !view
                     ? successView()
-                    : view==="removeLiquidity"
+                    : view==="Remove Liquidity"
                       ? successRemoveView()
                       : successAddView()
                   :

@@ -11,7 +11,7 @@ import { Header, Input, Button, List, Statistic } from 'semantic-ui-react'
 import TxView from '../../components/shared/TxView';
 import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
-import {reduceBalance, extractDecimal} from '../../utils/reduceBalance';
+import {reduceBalance, extractDecimal, limitDecimalPlaces} from '../../utils/reduceBalance';
 
 const Container = styled.div`
   margin: 15px 0px;
@@ -30,12 +30,22 @@ const Label = styled.span`
 const RemoveLiquidityContainer = (props) => {
   const pact = useContext(PactContext);
   const liquidityView = props.selectedView;
-  const [fromValues, setFromValues] = useState({ amount: 0, coin: cryptoCurrencies.KDA.code });
-  const [toValues, setToValues] = useState({ amount: 0,  coin:cryptoCurrencies.ABC.code });
-  const [amount, setAmount] = useState("100")
+  const {name, token0, token1, balance, supply, pooledAmount} = props.pair
+
+  const [amount, setAmount] = useState(100)
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
-  const {name, token0, token1, balance, supply, pooledAmount} = props.pair
+  const [pooled, setPooled] = useState(balance);
+  const [pooledToken0, setPooledToken0] = useState(reduceBalance(pooledAmount[0],12));
+  const [pooledToken1, setPooledToken1] = useState(reduceBalance(pooledAmount[1],12));
+
+  useEffect(() => {
+    if (!isNaN(amount)){
+      setPooled(reduceBalance(balance * amount / 100, pact.PRECISION));
+      setPooledToken0(reduceBalance(extractDecimal(pooledAmount[0]) * amount / 100,  pact.PRECISION));
+      setPooledToken1(reduceBalance(extractDecimal(pooledAmount[1]) * amount / 100,  pact.PRECISION));
+    }
+  }, [amount] )
 
   useEffect(() => {
     if (pact.walletSuccess) {
@@ -47,7 +57,7 @@ const RemoveLiquidityContainer = (props) => {
   return (
       <FormContainer title={liquidityView}>
         <TxView
-          view="removeLiquidity"
+          view="Remove Liquidity"
           show={showTxModal}
           token0={token0.code}
           token1={token1.code}
@@ -57,9 +67,10 @@ const RemoveLiquidityContainer = (props) => {
         <Header>Pool Tokens to Remove</Header>
         <Input
           value={amount}
+          error={isNaN(amount)}
           onChange={(e) => {
             if (Number(e.target.value)<=100 && Number(e.target.value)>=0){
-              setAmount(e.target.value)
+              setAmount(limitDecimalPlaces(e.target.value, 2));
             }
           }}
           label={{ basic: true, content: '%' }}
@@ -77,15 +88,16 @@ const RemoveLiquidityContainer = (props) => {
           <Statistic.Label>{`${token0.code} / ${token1.code} Pool Tokens`}</Statistic.Label>
         </Statistic>
         <List>
-          <List.Item>{`${token0.code} / ${token1.code}: ${extractDecimal(balance*amount/100)}`}</List.Item>
-          <List.Item>{`Pooled ${token0.code}: ${reduceBalance(extractDecimal(pooledAmount[0])*amount/100,pact.PRECISION)}`}</List.Item>
-          <List.Item>{`Pooled ${token1.code}: ${reduceBalance(extractDecimal(pooledAmount[1])*amount/100,pact.PRECISION)}`}</List.Item>
+          <List.Item>{`${token0.code} / ${token1.code}: ${pooled}`}</List.Item>
+          <List.Item>{`Pooled ${token0.code}: ${pooledToken0}`}</List.Item>
+          <List.Item>{`Pooled ${token1.code}: ${pooledToken1}`}</List.Item>
         </List>
         <StyledButton
           loading={loading}
+          disabled={reduceBalance(amount) === 0}
           onClick={async () => {
             if (pact.signing.method !== 'sign') {
-              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(balance*amount/100,pact.PRECISION));
+              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(pooled));
               if (res === -1) {
                 setLoading(false)
                 alert('Incorrect password. If forgotten, you can reset it with your private key')
@@ -95,7 +107,7 @@ const RemoveLiquidityContainer = (props) => {
                 setLoading(false)
               }
             } else {
-              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(balance*amount/100,pact.PRECISION));
+              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(pooled));
             }
           }
         }>

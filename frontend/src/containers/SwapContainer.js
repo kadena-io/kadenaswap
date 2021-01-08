@@ -7,7 +7,7 @@ import InputToken from '../components/shared/InputToken';
 import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
 import cryptoCurrencies from '../constants/cryptoCurrencies';
-import {reduceBalance} from '../utils/reduceBalance';
+import {reduceBalance, limitDecimalPlaces} from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
 import TxView from '../components/shared/TxView';
 import { PactContext } from '../contexts/PactContext';
@@ -201,7 +201,7 @@ const SwapContainer = () => {
           onSelectButtonClick={() => setTokenSelectorType('from')}
           onChange={async (e, { value }) => {
             setInputSide('from')
-            setFromValues((prev) => ({ ...prev, amount: value }))
+            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
           }}
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
@@ -225,7 +225,7 @@ const SwapContainer = () => {
           onSelectButtonClick={() => setTokenSelectorType('to')}
           onChange={async (e, { value }) => {
             setInputSide('to')
-            setToValues((prev) => ({ ...prev, amount: value }))
+            setToValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
           }}
         />
         {!isNaN(pact.ratio) && fromValues.amount && fromValues.coin && toValues.amount && toValues.coin && (

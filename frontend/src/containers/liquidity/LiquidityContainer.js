@@ -11,7 +11,7 @@ import TokenSelector from '../../components/shared/TokenSelector';
 import { throttle, debounce } from "throttle-debounce";
 import { PactContext } from '../../contexts/PactContext'
 import { ReactComponent as LeftIcon } from '../../assets/images/shared/left-arrow.svg';
-import { reduceBalance, gasUnit } from '../../utils/reduceBalance';
+import { reduceBalance, limitDecimalPlaces } from '../../utils/reduceBalance';
 import TxView from '../../components/shared/TxView';
 import ReviewTx from './ReviewTx';
 
@@ -243,7 +243,7 @@ const LiquidityContainer = (props) => {
           onSelectButtonClick={() => setTokenSelectorType('from')}
           onChange={async (e, { value }) => {
             setInputSide('from')
-            setFromValues((prev) => ({ ...prev, amount: value }))
+            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
           }}
           error={isNaN(fromValues.amount)}
         />
@@ -267,7 +267,7 @@ const LiquidityContainer = (props) => {
           onSelectButtonClick={() => setTokenSelectorType('to')}
           onChange={async (e, { value }) => {
             setInputSide('to')
-            setToValues((prev) => ({ ...prev, amount: value }))
+            setToValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
           }}
           error={isNaN(fromValues.amount)}
         />
