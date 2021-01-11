@@ -688,7 +688,7 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: "coin.GAS", args: []},
+              {name: "kswap.gas-station.GAS_PAYER", args: ["hi", {int: 1}, 1.0]},
               {name: `${token0.address}.TRANSFER`, args: [account.account, pair, parseFloat(keepDecimal(token0.amount*(1+slippage)))]},
             ]
           },
@@ -696,7 +696,7 @@ export const PactProvider = (props) => {
             "user-ks": account.guard
           },
           networkId: "testnet04",
-          meta: Pact.lang.mkMeta(account.account, chainId, GAS_PRICE, 3000, ct, 600),
+          meta: Pact.lang.mkMeta("kswap-free-gas", chainId, GAS_PRICE, 3000, ct, 600),
       }
       setCmd(cmd);
       let data = await Pact.fetch.local(cmd, network);
