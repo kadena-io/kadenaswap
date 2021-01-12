@@ -4,7 +4,7 @@ export const reduceBalance = (balance, prec=3) => {
     if (parseFloat(balance) % 1 === 0) {return parseInt(balance)}
     return Math.trunc(parseFloat(balance) * Math.pow(10, prec)) / Math.pow(10, prec);
   }
-  if (balance===0 || balance==='') return 0;
+  if (balance===0) return 0;
 };
 
 export const keepDecimal = decimal => {
