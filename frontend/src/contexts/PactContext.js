@@ -11,7 +11,7 @@ import pwPrompt from '../components/alerts/pwPrompt'
 import walletError from '../components/alerts/walletError'
 import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
-import { keepDecimal } from '../utils/reduceBalance'
+import { keepDecimal, reduceBalance } from '../utils/reduceBalance'
 
 export const PactContext = createContext();
 
