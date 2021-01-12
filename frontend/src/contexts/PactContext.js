@@ -200,13 +200,13 @@ export const PactProvider = (props) => {
               clist: [
                 {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
                 {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
-                {name: `coin.GAS`, args: []}
+                {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
               ]
             },
             envData: {
               "user-ks": [keyPair.publicKey]
             },
-            meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,5000,creationTime(), 600),
+            meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,5000,creationTime(), 600),
             networkId: "testnet04"
           };
         data = await Pact.fetch.local(cmd, network);
@@ -251,13 +251,13 @@ export const PactProvider = (props) => {
             clist: [
               {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
               {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
-              {name: `coin.GAS`, args: []}
+              {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
             ]
           },
           envData: {
             "user-ks": account.guard
           },
-          meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,3000,creationTime(), 600),
           networkId: "testnet04"
         };
       let data = await Pact.fetch.local(cmd, network);
@@ -289,11 +289,11 @@ export const PactProvider = (props) => {
             (read-keyset 'user-ks)
           )`,
         caps: [
-          Pact.lang.mkCap("Gas capability", "Pay gas", "coin.GAS", []),
+          Pact.lang.mkCap("Gas Station", "free gas", "kswap.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
           Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token0}.TRANSFER`, [account.account, pair, Number(amountDesired0)]),
           Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token1}.TRANSFER`, [account.account, pair, Number(amountDesired1)]),
         ],
-        sender: account.account,
+        sender: "kswap-free-gas",
         gasLimit: 3000,
         chainId: chainId,
         ttl: 600,
@@ -351,13 +351,13 @@ export const PactProvider = (props) => {
             clist: [
               {name: `kswap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
               {name: `kswap.tokens.TRANSFER`, args: [pairKey, account.account, pair, Number(liquidity)]},
-              {name: `coin.GAS`, args: []}
+              {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
             ]
           },
           envData: {
             "user-ks": account.guard
           },
-          meta: Pact.lang.mkMeta(account.account, chainId ,GAS_PRICE,3000,creationTime(), 600),
+          meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,3000,creationTime(), 600),
         };
         setCmd(cmd);
         let data = await Pact.fetch.local(cmd, network);
@@ -387,11 +387,11 @@ export const PactProvider = (props) => {
             (read-keyset 'user-ks)
           )`,
         caps: [
-          Pact.lang.mkCap("Gas capability", "Pay gas", "coin.GAS", []),
+          Pact.lang.mkCap("Gas Station", "free gas", "kswap.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
           Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `kswap.tokens.TRANSFER`, [pairKey, account.account, pair, Number(liquidity)]),
           Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `kswap.tokens.TRANSFER`, [pairKey, account.account, pair, Number(liquidity)]),
         ],
-        sender: account.account,
+        sender: "kswap-free-gas",
         gasLimit: 3000,
         chainId: chainId,
         ttl: 600,
@@ -688,7 +688,7 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: "kswap.gas-station.GAS_PAYER", args: ["hi", {int: 1}, 1.0]},
+              {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
               {name: `${token0.address}.TRANSFER`, args: [account.account, pair, parseFloat(keepDecimal(token0.amount*(1+slippage)))]},
             ]
           },
@@ -731,10 +731,10 @@ export const PactProvider = (props) => {
       const signCmd = {
         pactCode: (isSwapIn ? inPactCode : outPactCode),
         caps: [
-          Pact.lang.mkCap("Gas capability", "pay gas", "coin.GAS", []),
+          Pact.lang.mkCap("Gas Station", "free gas", "kswap.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
           Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, parseFloat(keepDecimal(token0.amount*(1+slippage)))]),
         ],
-        sender: account.account,
+        sender: "kswap-free-gas",
         gasLimit: 3000,
         chainId: chainId,
         ttl: 600,
