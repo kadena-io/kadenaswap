@@ -81,6 +81,14 @@
     )
 
 
+  (defun fund:string (account:string amount:decimal)
+    (with-capability (CREDIT account)
+      (credit account
+        (at 'guard (read ledger account))
+        amount))
+    )
+
+
   (defun precision:integer ()
     MINIMUM_PRECISION)
 

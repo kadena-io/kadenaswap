@@ -3,7 +3,7 @@ signers:
   - public: ef711514b5a248ac16ffd5cc94511dfccbd89005e9737343dfbb3743c8a63ca6
 data:
   ns: "kswap"
-  upgrade: false
+  upgrade: true
 networkId: testnet04
 nonce: "0"
 publicMeta:
