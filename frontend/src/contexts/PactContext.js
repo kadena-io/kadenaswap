@@ -175,8 +175,6 @@ export const PactProvider = (props) => {
       }, network);
       let pair =  data.result.data.account
       try {
-        let amount0Decimal = keepDecimal(amountDesired0);
-        let amount1Decimal = keepDecimal(amountDesired1);
         let cmd = {
             pactCode: `
             (kswap.exchange.create-pair
@@ -678,7 +676,6 @@ export const PactProvider = (props) => {
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
         )`
-        console.log(token0.amount,token0.amount*(1+parseFloat(slippage)), parseFloat(slippage),reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION))
       const cmd = {
           pactCode: (isSwapIn ? inPactCode : outPactCode),
           keyPairs: {
