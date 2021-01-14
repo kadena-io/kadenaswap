@@ -688,16 +688,8 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-<<<<<<< HEAD
-              {name: "coin.GAS", args: []},
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+slippage), 12)]},
-||||||| 36c28a8
-              {name: "coin.GAS", args: []},
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, parseFloat(keepDecimal(token0.amount*(1+slippage)))]},
-=======
               {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, parseFloat(keepDecimal(token0.amount*(1+slippage)))]},
->>>>>>> 2620ad82ae2dd272ed7aef3d5854bf54b830e920
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+slippage), 12)]},
             ]
           },
           envData: {
