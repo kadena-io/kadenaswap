@@ -189,8 +189,8 @@ export const PactProvider = (props) => {
                 ${token1}
                 ${keepDecimal(amountDesired0)}
                 ${keepDecimal(amountDesired1)}
-                ${keepDecimal(reduceBalance(amountDesired0*(1-slippage),12))}
-                ${keepDecimal(reduceBalance(amountDesired1*(1-slippage),12))}
+                ${keepDecimal(reduceBalance(amountDesired0*(1-parseFloat(slippage)),PRECISION))}
+                ${keepDecimal(reduceBalance(amountDesired1*(1-parseFloat(slippage)),PRECISION))}
                 ${JSON.stringify(account.account)}
                 ${JSON.stringify(account.account)}
                 (read-keyset 'user-ks)
@@ -239,8 +239,8 @@ export const PactProvider = (props) => {
               ${token1}
               ${keepDecimal(amountDesired0)}
               ${keepDecimal(amountDesired1)}
-              ${keepDecimal(reduceBalance(amountDesired0*(1-slippage), 12))}
-              ${keepDecimal(reduceBalance(amountDesired1*(1-slippage), 12))}
+              ${keepDecimal(reduceBalance(amountDesired0*(1-parseFloat(slippage)), PRECISION))}
+              ${keepDecimal(reduceBalance(amountDesired1*(1-parseFloat(slippage)), PRECISION))}
               ${JSON.stringify(account.account)}
               ${JSON.stringify(account.account)}
               (read-keyset 'user-ks)
@@ -282,8 +282,8 @@ export const PactProvider = (props) => {
             ${token1}
             ${keepDecimal(amountDesired0)}
             ${keepDecimal(amountDesired1)}
-            ${keepDecimal(reduceBalance(amountDesired0*(1-slippage),12))}
-            ${keepDecimal(reduceBalance(amountDesired1*(1-slippage),12))}
+            ${keepDecimal(reduceBalance(amountDesired0*(1-parseFloat(slippage)),PRECISION))}
+            ${keepDecimal(reduceBalance(amountDesired1*(1-parseFloat(slippage)),PRECISION))}
             ${JSON.stringify(account.account)}
             ${JSON.stringify(account.account)}
             (read-keyset 'user-ks)
@@ -617,7 +617,7 @@ export const PactProvider = (props) => {
 
       const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
-          ${keepDecimal(reduceBalance(token1.amount*(1-slippage), 12))}
+          ${keepDecimal(reduceBalance(token1.amount*(1-parseFloat(slippage)), PRECISION))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -625,7 +625,7 @@ export const PactProvider = (props) => {
         )`
       const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
-          ${keepDecimal(reduceBalance(token0.amount*(1+slippage), 12))}
+          ${keepDecimal(reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -637,7 +637,7 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+slippage), 12)]},
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)]},
             ]
           },
           envData: {
@@ -668,7 +668,7 @@ export const PactProvider = (props) => {
       let pair = await getPairAccount(token0.address, token1.address);
       const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
-          ${keepDecimal(reduceBalance(token1.amount*(1-slippage), 12))}
+          ${keepDecimal(reduceBalance(token1.amount*(1-parseFloat(slippage)), PRECISION))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -676,12 +676,13 @@ export const PactProvider = (props) => {
         )`
       const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
-          ${keepDecimal(reduceBalance(token0.amount*(1+slippage), 12))}
+          ${keepDecimal(reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
           (read-keyset 'user-ks)
         )`
+        console.log(token0.amount,token0.amount*(1+parseFloat(slippage)), parseFloat(slippage),reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION))
       const cmd = {
           pactCode: (isSwapIn ? inPactCode : outPactCode),
           keyPairs: {
@@ -689,7 +690,7 @@ export const PactProvider = (props) => {
             secretKey: privKey,
             clist: [
               {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+slippage), 12)]},
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)]},
             ]
           },
           envData: {
@@ -714,7 +715,7 @@ export const PactProvider = (props) => {
     try {
       const inPactCode = `(kswap.exchange.swap-exact-in
           ${keepDecimal(token0.amount)}
-          ${keepDecimal(reduceBalance(token1.amount*(1-slippage), 12))}
+          ${keepDecimal(reduceBalance(token1.amount*(1-parseFloat(slippage)), PRECISION))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -722,7 +723,7 @@ export const PactProvider = (props) => {
         )`
       const outPactCode = `(kswap.exchange.swap-exact-out
           ${keepDecimal(token1.amount)}
-          ${keepDecimal(reduceBalance(token0.amount*(1+slippage), 12))}
+          ${keepDecimal(reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION))}
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
           ${JSON.stringify(account.account)}
@@ -732,7 +733,7 @@ export const PactProvider = (props) => {
         pactCode: (isSwapIn ? inPactCode : outPactCode),
         caps: [
           Pact.lang.mkCap("Gas Station", "free gas", "kswap.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
-          Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, parseFloat(keepDecimal(token0.amount*(1+slippage)))]),
+          Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, reduceBalance(token0.amount*(1+parseFloat(slippage)),PRECISION)]),
         ],
         sender: "kswap-free-gas",
         gasLimit: 3000,
