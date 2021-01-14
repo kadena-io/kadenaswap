@@ -1,5 +1,13 @@
 # `kadenaswap frontend` Changelog
 
+## (2021-01-12)
+- Gas stations operational!
+     - Gas station contract wirtten, tested, and deployed (gas payer account: `kswap-free-gas`)
+     - Modify frontend pact calls to include gas station account as gas payer
+          - working for wallet
+          - working for private key signing methods
+     - Show confirmation with 'FREE GAS' screen and informational popup
+
 ## (2021-01-08)
 - Number related UI fix / improvements
      - Show gas units in user-readable value
