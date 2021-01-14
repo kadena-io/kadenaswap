@@ -231,8 +231,6 @@ export const PactProvider = (props) => {
         return
       }
       let pair = await getPairAccount(token0, token1);
-      let amount0Decimal = keepDecimal(amountDesired0);
-      let amount1Decimal = keepDecimal(amountDesired1);
       let cmd = {
           pactCode: `(kswap.exchange.add-liquidity
               ${token0}
@@ -274,8 +272,6 @@ export const PactProvider = (props) => {
   const addLiquidityWallet = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
       let pair = await getPairAccount(token0, token1);
-      let amount0Decimal = keepDecimal(amountDesired0);
-      let amount1Decimal = keepDecimal(amountDesired1);
       const signCmd = {
         pactCode: `(kswap.exchange.add-liquidity
             ${token0}
