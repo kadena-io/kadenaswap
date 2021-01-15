@@ -697,10 +697,7 @@ export const PactProvider = (props) => {
                 args: [
                   account.account,
                   pair,
-                  reduceBalance(
-                    (isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)),
-                    PRECISION))
-                  ),
+                  reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)),
                 ]
               },
             ]
@@ -754,12 +751,10 @@ export const PactProvider = (props) => {
             "transfer capability",
             "trasnsfer token in",
             `${token0.address}.TRANSFER`,
-            [account.account,
+            [
+              account.account,
               pair.account,
-              reduceBalance(
-                (isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)),
-                PRECISION))
-              ),
+              reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)),
             ]
           ),
         ],

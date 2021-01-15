@@ -1,7 +1,10 @@
 export const reduceBalance = (balance, prec=3) => {
   if (balance) {
+    console.log(balance)
     if (balance.decimal) balance=balance.decimal;
+    console.log(balance)
     if (parseFloat(balance) % 1 === 0) {return parseInt(balance)}
+    console.log(Math.trunc(parseFloat(balance) * Math.pow(10, prec)) / Math.pow(10, prec))
     return Math.trunc(parseFloat(balance) * Math.pow(10, prec)) / Math.pow(10, prec);
   }
   if (balance===0) return 0;
