@@ -44,7 +44,7 @@ const TokenItem = styled.div`
   align-items: center;
   font-size: 16px;
   opacity: ${({ active }) => (active ? 0.3 : 1)};
-
+  color: ${({ selected }) => (selected ? 'green' : '')};
   svg {
     margin-right: 8px;
     width: 24px;
@@ -52,7 +52,7 @@ const TokenItem = styled.div`
   }
 `;
 
-const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
+const TokenSelector = ({ show, selectedToken, onTokenClick, onClose, fromToken, toToken }) => {
   const [searchValue, setSearchValue] = useState('');
 
   return (
@@ -61,8 +61,18 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
         show &&
         ((props) => (
           <Container style={props}>
-            <Backdrop onClose={onClose} />
-            <FormContainer title="select a token" containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }} onClose={onClose}>
+            <Backdrop onClose={() => {
+              setSearchValue('')
+              onClose()
+            }} />
+            <FormContainer
+              title="select a token"
+              containerStyle={{ height: '100%', maxHeight: '80vh', maxWidth: '90vw' }}
+              onClose={() => {
+                setSearchValue('')
+                onClose()
+              }}
+            >
               <Label style={{ marginBottom: 4 }}>search token</Label>
               <Search
                 fluid
@@ -75,21 +85,34 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose }) => {
               <Divider />
               <TokensContainer>
                 {Object.values(cryptoCurrencies)
-                  .filter((c) => c.name.toLocaleLowerCase().includes(searchValue) || c.code.toLowerCase().includes(searchValue))
+                  .filter((c) => {
+                    const name = (c.name !== 'coin' ? c.name.split('.')[1] : c.name)
+                    return name.toLocaleLowerCase().includes(searchValue) || c.code.toLowerCase().includes(searchValue)
+                  })
                   .map((crypto) => (
                     <TokenItem
                       key={crypto.code}
-                      active={selectedToken === crypto.code}
+                      active={selectedToken === crypto.code || fromToken === crypto.code || toToken === crypto.code}
+                      // active={selectedToken === crypto.code}
+                      selected={selectedToken === crypto.code}
                       style={{ cursor: selectedToken === crypto.code ? 'default' : 'pointer' }}
                       onClick={() => {
+                        if (fromToken === crypto.code || toToken === crypto.code) return
                         if (selectedToken !== crypto.code) {
                           onTokenClick({ crypto });
+                          setSearchValue('')
                           onClose();
                         }
                       }}
                     >
                       {crypto.icon}
                       {crypto.code}
+                      {selectedToken === crypto.code
+                        ?
+                          <Label style={{ marginLeft: 5 }}>(SELECTED)</Label>
+                        :
+                          <></>
+                      }
                     </TokenItem>
                   ))}
               </TokensContainer>

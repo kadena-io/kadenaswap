@@ -8,15 +8,12 @@ import { theme } from '../../styles/theme';
 const Container = styled.div`
   display: flex;
   flex-flow: column;
-
   & input::placeholder {
     text-transform: capitalize;
   }
-
   .ui.icon.input > input {
     padding-right: ${({ inputRightComponent, inputComponentWidth }) => (inputRightComponent ? `${inputComponentWidth + 25}px !important` : 0)};
   }
-
   .ui.button:hover .icon {
     opacity: 1;
   }
@@ -28,7 +25,6 @@ const LabelsContainer = styled.div`
   margin-bottom: 4px;
   margin-left: 2px;
   margin-right: 2px;
-
   span {
     font-size: 13px;
     text-transform: capitalize;
@@ -48,7 +44,6 @@ const Button = styled.button`
   max-height: 22px;
   padding: 8px !important;
   background: ${({ theme: { buttonBackgroundGradient } }) => buttonBackgroundGradient};
-
   span {
     font-family: neue-bold;
     font-size: 14px;
@@ -73,7 +68,9 @@ const Input = ({
   disabled,
   value,
   onSelectButtonClick,
-  onChange
+  onChange,
+  error,
+  type,
 }) => {
   const getIcon = () => {
     if (withSelectButton && !inputRightComponent)
@@ -111,6 +108,8 @@ const Input = ({
         size={size}
         disabled={disabled}
         value={value}
+        error={error}
+        type={type}
         onChange={(e, props) => {
           if (numberOnly && props.value.match(/[a-zA-Z]/)) return;
           onChange(e, props);

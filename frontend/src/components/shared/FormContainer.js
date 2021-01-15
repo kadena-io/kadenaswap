@@ -7,7 +7,7 @@ const Container = styled.div`
   position: relative;
   display: flex;
   flex-flow: column;
-  padding: 11px 13px;
+  padding: 20px 20px;
   max-width: 385px;
   width: 100%;
   border-radius: 10px;
