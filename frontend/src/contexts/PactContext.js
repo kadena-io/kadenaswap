@@ -20,6 +20,7 @@ const savedPrivKey = localStorage.getItem('pk');
 const savedNetwork = localStorage.getItem('network');
 const savedSlippage = localStorage.getItem('slippage');
 const savedSigning = localStorage.getItem('signing');
+const savedTtl = localStorage.getItem('ttl');
 
 const network = "https://us1.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact";
 
@@ -61,7 +62,7 @@ export const PactProvider = (props) => {
   const [pwStatus, setPwStatus] = useState("");
   const [walletSuccess, setWalletSuccess] = useState(false);
   const [registered, setRegistered] = useState(false);
-  const [ttl, setTtl] = useState(600)
+  const [ttl, setTtl] = useState((savedTtl ? savedTtl : 600));
   //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
   // const [toastIds, setToastIds] = useState({})
@@ -106,6 +107,11 @@ export const PactProvider = (props) => {
   const storeSlippage = async (slippage) => {
     await setSlippage(slippage)
     await localStorage.setItem('slippage', slippage);
+  }
+
+  const storeTtl = async (ttl) => {
+    await setTtl(slippage)
+    await localStorage.setItem('ttl', ttl);
   }
 
   const setVerifiedAccount = async (accountName) => {
@@ -943,6 +949,7 @@ export const PactProvider = (props) => {
         setSigView,
         pw,
         setPw,
+        storeTtl
       }}
     >
       {props.children}
