@@ -228,21 +228,24 @@ const SwapContainer = () => {
             setToValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
           }}
         />
-        {!isNaN(pact.ratio) && fromValues.amount && fromValues.coin && toValues.amount && toValues.coin && (
-          <>
-            <RowContainer>
-              <Label>price</Label>
-              <span>{`${reduceBalance(pact.ratio)} ${fromValues.coin} per ${toValues.coin}`}</span>
-            </RowContainer>
-            <RowContainer style={{ marginTop: 5 }}>
-              <Label>max slippage</Label>
-              <span>{`${pact.slippage*100}%`}</span>
-            </RowContainer>
-            <RowContainer style={{ marginTop: 5 }}>
-              <Label>liquidity provider fee</Label>
-              <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
-            </RowContainer>
-          </>
+        {(!isNaN(pact.ratio) && fromValues.amount && fromValues.coin && toValues.amount && toValues.coin
+          ?
+  	         <>
+              <RowContainer>
+                <Label>price</Label>
+                <span>{`${reduceBalance(pact.ratio)} ${fromValues.coin} per ${toValues.coin}`}</span>
+              </RowContainer>
+              <RowContainer style={{ marginTop: 5 }}>
+                <Label>max slippage</Label>
+                <span>{`${pact.slippage*100}%`}</span>
+              </RowContainer>
+              <RowContainer style={{ marginTop: 5 }}>
+                <Label>liquidity provider fee</Label>
+                <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
+              </RowContainer>
+            </>
+	        :
+            <></>
         )}
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
