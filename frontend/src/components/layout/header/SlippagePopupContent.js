@@ -62,9 +62,13 @@ const Row = styled.div`
 const SlippagePopupContent = () => {
   const pact = useContext(PactContext);
   const [slp, setSlp] = useState(pact.slippage*100)
+  const [tl, setTl] = useState(pact.ttl*60)
   useEffect(() => {
       if (slp) (async () => pact.storeSlippage(slp/100))()
   }, [slp])
+  useEffect(() => {
+      if (tl) (async () => pact.storeTtl(tl/60))()
+  }, [tl])
   return (
     <Container>
       <BoldLabel>Transactions Settings</BoldLabel>
@@ -103,12 +107,11 @@ const SlippagePopupContent = () => {
       <Row style={{ marginTop: 8 }}>
         <ContainerInputTypeNumber>
           <Input
-            placeholder={pact.ttl}
-            disabled
+            placeholder={tl}
             numberOnly
-            value={(pact.ttl/60)}
+            value={tl}
             onChange={(e, { value }) => {
-              pact.setTtl(Number(value));
+              setTl(value);
             }}
           />
         </ContainerInputTypeNumber>
