@@ -46,7 +46,7 @@ export const PactProvider = (props) => {
   const [ratio, setRatio] = useState(NaN);
   const [pairAccountBalance, setPairAccountBalance] = useState(null);
   const [supplied, setSupplied] = useState(false);
-  const [slippage, setSlippage] = useState((savedSlippage ? savedSlippage : 0.50));
+  const [slippage, setSlippage] = useState((savedSlippage ? savedSlippage : 0.05));
   const [liquidityProviderFee, setLiquidityProviderFee] = useState(0.003);
   const [cmd, setCmd] = useState(null);
   const [localRes, setLocalRes] = useState(null);
@@ -688,8 +688,21 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)]},
+              { name:
+                "kswap.gas-station.GAS_PAYER",
+                args: ["free-gas", {int: 1}, 1.0]
+              },
+              { name:
+                `${token0.address}.TRANSFER`,
+                args: [
+                  account.account,
+                  pair,
+                  reduceBalance(
+                    (isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)),
+                    PRECISION))
+                  ),
+                ]
+              },
             ]
           },
           envData: {
@@ -731,8 +744,24 @@ export const PactProvider = (props) => {
       const signCmd = {
         pactCode: (isSwapIn ? inPactCode : outPactCode),
         caps: [
-          Pact.lang.mkCap("Gas Station", "free gas", "kswap.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
-          Pact.lang.mkCap("transfer capability", "trasnsfer token in", `${token0.address}.TRANSFER`, [account.account, pair.account, reduceBalance(token0.amount*(1+parseFloat(slippage)),PRECISION)]),
+          Pact.lang.mkCap(
+            "Gas Station",
+            "free gas",
+            "kswap.gas-station.GAS_PAYER",
+            ["free-gas", {int: 1}, 1.0]
+          ),
+          Pact.lang.mkCap(
+            "transfer capability",
+            "trasnsfer token in",
+            `${token0.address}.TRANSFER`,
+            [account.account,
+              pair.account,
+              reduceBalance(
+                (isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)),
+                PRECISION))
+              ),
+            ]
+          ),
         ],
         sender: "kswap-free-gas",
         gasLimit: 3000,
@@ -742,6 +771,7 @@ export const PactProvider = (props) => {
       }
       //alert to sign tx
       walletLoading();
+      console.log(signCmd)
       const cmd = await Pact.wallet.sign(signCmd);
       //close alert programmatically
       swal.close()
