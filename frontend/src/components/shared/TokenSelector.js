@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import styled from 'styled-components/macro';
 import { Transition } from 'react-spring/renderprops';
 import FormContainer from './FormContainer';
 import Search from './Search';
 import Backdrop from './Backdrop';
-import cryptoCurrencies from '../../constants/cryptoCurrencies';
+import { PactContext } from '../../contexts/PactContext'
 
 const Container = styled.div`
   position: absolute;
@@ -54,6 +54,7 @@ const TokenItem = styled.div`
 
 const TokenSelector = ({ show, selectedToken, onTokenClick, onClose, fromToken, toToken }) => {
   const [searchValue, setSearchValue] = useState('');
+  const pact = useContext(PactContext);
 
   return (
     <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
@@ -84,21 +85,22 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose, fromToken, 
               <Label>token</Label>
               <Divider />
               <TokensContainer>
-                {Object.values(cryptoCurrencies)
+                {Object.values(pact.tokenData)
                   .filter((c) => {
-                    const name = (c.name !== 'coin' ? c.name.split('.')[1] : c.name)
-                    return name.toLocaleLowerCase().includes(searchValue) || c.code.toLowerCase().includes(searchValue)
+                    const code = (c.code !== 'coin' ? c.code.split('.')[1] : c.code)
+                    return code.toLocaleLowerCase().includes(searchValue) || c.name.toLowerCase().includes(searchValue)
                   })
-                  .map((crypto) => (
+                  .map((crypto) => {
+                    return(
                     <TokenItem
-                      key={crypto.code}
-                      active={selectedToken === crypto.code || fromToken === crypto.code || toToken === crypto.code}
-                      // active={selectedToken === crypto.code}
-                      selected={selectedToken === crypto.code}
-                      style={{ cursor: selectedToken === crypto.code ? 'default' : 'pointer' }}
+                      key={crypto.name}
+                      active={selectedToken === crypto.name || fromToken === crypto.name || toToken === crypto.name}
+                      // active={selectedToken === crypto.name}
+                      selected={selectedToken === crypto.name}
+                      style={{ cursor: selectedToken === crypto.name ? 'default' : 'pointer' }}
                       onClick={() => {
-                        if (fromToken === crypto.code || toToken === crypto.code) return
-                        if (selectedToken !== crypto.code) {
+                        if (fromToken === crypto.name || toToken === crypto.name) return
+                        if (selectedToken !== crypto.name) {
                           onTokenClick({ crypto });
                           setSearchValue('')
                           onClose();
@@ -106,15 +108,15 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose, fromToken, 
                       }}
                     >
                       {crypto.icon}
-                      {crypto.code}
-                      {selectedToken === crypto.code
+                      {crypto.name}
+                      {selectedToken === crypto.name
                         ?
                           <Label style={{ marginLeft: 5 }}>(SELECTED)</Label>
                         :
                           <></>
                       }
                     </TokenItem>
-                  ))}
+                  )})}
               </TokensContainer>
             </FormContainer>
           </Container>

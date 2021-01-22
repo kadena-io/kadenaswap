@@ -6,7 +6,6 @@ import FormContainer from './FormContainer';
 import Search from './Search';
 import Backdrop from './Backdrop';
 import Button from './Button'
-import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import { ReactComponent as SuccessfulIcon } from '../../assets/images/shared/successful-circle.svg';
 import { ReactComponent as ErrorIcon } from '../../assets/images/shared/error-circle.svg';
 import { PactContext } from '../../contexts/PactContext';

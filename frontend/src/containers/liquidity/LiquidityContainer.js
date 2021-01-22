@@ -6,7 +6,6 @@ import Input from '../../components/shared/Input';
 import InputToken from '../../components/shared/InputToken';
 import ButtonDivider from '../../components/shared/ButtonDivider';
 import Button from '../../components/shared/Button';
-import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import TokenSelector from '../../components/shared/TokenSelector';
 import { throttle, debounce } from "throttle-debounce";
 import { PactContext } from '../../contexts/PactContext'
@@ -56,8 +55,8 @@ const LiquidityContainer = (props) => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
   const [inputSide, setInputSide] = useState("")
-  const [fromValues, setFromValues] = useState({coin: "", account: null, guard: null, balance: null,  amount: '' });
-  const [toValues, setToValues] = useState({coin: "", account: null, guard: null, balance: null,  amount: '' });
+  const [fromValues, setFromValues] = useState({coin: "", account: null, guard: null, balance: null,  amount: '', precision: 0 });
+  const [toValues, setToValues] = useState({coin: "", account: null, guard: null, balance: null,  amount: '', precision: 0 });
   const [pairExist, setPairExist] = useState(false)
   const [showTxModal, setShowTxModal] = useState(false)
   const [showReview, setShowReview] = React.useState(false)
@@ -79,14 +78,14 @@ const LiquidityContainer = (props) => {
 
   useEffect(async () => {
     if (fromValues.coin!==""){
-      await pact.getTokenAccount(cryptoCurrencies[fromValues.coin].name, pact.account.account, true);
+      await pact.getTokenAccount(pact.tokenData[fromValues.coin].name, pact.account.account, true);
     }
     if (toValues.coin!==""){
-      await pact.getTokenAccount(cryptoCurrencies[toValues.coin].name, pact.account.account, false);
+      await pact.getTokenAccount(pact.tokenData[toValues.coin].name, pact.account.account, false);
     }
     if (fromValues.coin!=="" && toValues.coin!=="") {
-      await pact.getPair(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
-      await pact.getReserves(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name);
+      await pact.getPair(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name);
+      await pact.getReserves(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name);
       if (pact.pair) {
         setPairExist(true)
       }
@@ -97,8 +96,8 @@ const LiquidityContainer = (props) => {
     let balance;
     let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
     balance = pact.getCorrectBalance(acct.balance)
-    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code }));
-    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code}));
+    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: fromValues.precision }));
+    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: toValues.precision }));
   };
 
   useEffect(() => {
@@ -106,9 +105,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (fromValues.amount.length < 5) {
-          throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) }))
+          throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) }))
         } else {
-          debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) }))
+          debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, fromValues.precision) }))
         }
       }
     }
@@ -124,9 +123,9 @@ const LiquidityContainer = (props) => {
       setInputSide(null)
       if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
         if (toValues.amount.length < 5) {
-          throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, pact.PRECISION) }))
+          throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
         } else {
-          debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, pact.PRECISION) }))
+          debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, toValues.precision) }))
         }
       }
     }
@@ -140,8 +139,9 @@ const LiquidityContainer = (props) => {
   useEffect(() => {
     if (pact.walletSuccess) {
       setLoading(false)
-      setFromValues({coin: "", account: null, guard: null, balance: null,  amount: '' });
-      setToValues({coin: "", account: null, guard: null, balance: null, amount: '' })
+      setFromValues({coin: "", account: null, guard: null, balance: null,  amount: '', precision: 0 });
+      setToValues({coin: "", account: null, guard: null, balance: null, amount: '', precision: 0
+     })
       pact.setWalletSuccess(false)
     }
   }, [pact.walletSuccess])
@@ -185,14 +185,14 @@ const LiquidityContainer = (props) => {
   const supply = async () => {
       if (selectedView==="Create A Pair"){
         setLoading(true)
-        await pact.createTokenPairLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount)
+        await pact.createTokenPairLocal(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name, fromValues.amount, toValues.amount)
         setLoading(false)
         setShowReview(false)
         setShowTxModal(true)
       } else {
         if (pact.signing.method !== 'sign') {
           setLoading(true)
-          const res = await pact.addLiquidityLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
+          const res = await pact.addLiquidityLocal(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name, fromValues.amount, toValues.amount);
           if (res === -1) {
             setLoading(false)
             alert('Incorrect password. If forgotten, you can reset it with your private key')
@@ -204,7 +204,7 @@ const LiquidityContainer = (props) => {
           }
         } else {
           setLoading(true)
-          pact.addLiquidityWallet(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount);
+          pact.addLiquidityWallet(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name, fromValues.amount, toValues.amount);
           setShowReview(false)
           setLoading(false)
           setFromValues({account: null, guard: null, balance: null, amount: '', coin: ""});
@@ -231,8 +231,8 @@ const LiquidityContainer = (props) => {
           inputRightComponent={
             fromValues.coin ? (
               <InputToken
-                icon={cryptoCurrencies[fromValues.coin].icon}
-                code={cryptoCurrencies[fromValues.coin].code}
+                icon={pact.tokenData[fromValues.coin].icon}
+                code={pact.tokenData[fromValues.coin].name}
                 onClick={() => setTokenSelectorType('from')}
               />
             ) : null
@@ -243,7 +243,7 @@ const LiquidityContainer = (props) => {
           onSelectButtonClick={() => setTokenSelectorType('from')}
           onChange={async (e, { value }) => {
             setInputSide('from')
-            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
+            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, fromValues.precision) }))
           }}
           error={isNaN(fromValues.amount)}
         />
@@ -255,8 +255,8 @@ const LiquidityContainer = (props) => {
           inputRightComponent={
             toValues.coin ? (
               <InputToken
-                icon={cryptoCurrencies[toValues.coin].icon}
-                code={cryptoCurrencies[toValues.coin].code}
+                icon={pact.tokenData[toValues.coin].icon}
+                code={pact.tokenData[toValues.coin].name}
                 onClick={() => setTokenSelectorType('to')}
               />
             ) : null
@@ -267,7 +267,7 @@ const LiquidityContainer = (props) => {
           onSelectButtonClick={() => setTokenSelectorType('to')}
           onChange={async (e, { value }) => {
             setInputSide('to')
-            setToValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
+            setToValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, toValues.precision) }))
           }}
           error={isNaN(fromValues.amount)}
         />
@@ -295,7 +295,7 @@ const LiquidityContainer = (props) => {
           show={showTxModal}
           token0={fromValues.coin}
           token1={toValues.coin}
-          createTokenPair={() => pact.createTokenPairLocal(cryptoCurrencies[fromValues.coin].name, cryptoCurrencies[toValues.coin].name, fromValues.amount, toValues.amount)}
+          createTokenPair={() => pact.createTokenPairLocal(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name, fromValues.amount, toValues.amount)}
           onClose={() => setShowTxModal(false)}
         />
         <ReviewTx

@@ -6,7 +6,7 @@ import Input from '../../components/shared/Input';
 import InputToken from '../../components/shared/InputToken';
 import ButtonDivider from '../../components/shared/ButtonDivider';
 import Button from '../../components/shared/Button';
-import cryptoCurrencies from '../../constants/cryptoCurrencies';
+import cryptoCurrencies from '../../constants/tokens';
 import pairTokens from '../../constants/pairTokens';
 import TokenPair from './TokenPair';
 import {PactContext} from '../../contexts/PactContext'

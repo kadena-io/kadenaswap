@@ -5,7 +5,7 @@ import FormContainer from '../../components/shared/FormContainer';
 import InputToken from '../../components/shared/InputToken';
 import ButtonDivider from '../../components/shared/ButtonDivider';
 import {default as StyledButton} from '../../components/shared/Button';
-import cryptoCurrencies from '../../constants/cryptoCurrencies';
+import cryptoCurrencies from '../../constants/tokens';
 import TokenSelector from '../../components/shared/TokenSelector';
 import { Header, Input, Button, List, Statistic } from 'semantic-ui-react'
 import TxView from '../../components/shared/TxView';
