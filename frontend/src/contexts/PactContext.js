@@ -11,7 +11,8 @@ import pwPrompt from '../components/alerts/pwPrompt'
 import walletError from '../components/alerts/walletError'
 import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
-import { keepDecimal, reduceBalance } from '../utils/reduceBalance'
+import tokenData from '../constants/cryptoCurrencies'
+import { reduceBalance, keepDecimal, extractDecimal } from '../utils/reduceBalance'
 
 export const PactContext = createContext();
 
@@ -63,6 +64,7 @@ export const PactProvider = (props) => {
   const [walletSuccess, setWalletSuccess] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState((savedTtl ? savedTtl : 600));
+  const [balances, setBalances] = useState(false);
   //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
   // const [toastIds, setToastIds] = useState({})
@@ -76,13 +78,44 @@ export const PactProvider = (props) => {
   }, [pairReserve]);
 
   useEffect(() => {
-    if (account.account) setVerifiedAccount(account.account)
+    if (account.account) setVerifiedAccount(account.account);
   }, [sendRes])
+
+  useEffect(() => {
+    if (account.account) setVerifiedAccount(account.account);
+    fetchAllBalances();
+  }, [balances, account.account, sendRes])
 
   useEffect(() => {
     const store = async () => localStorage.setItem('signing', JSON.stringify(signing));
     store()
   }, [signing])
+
+  const fetchAllBalances = async () => {
+    let tokenNames = Object.values(tokenData).map(tokenData=>`(${tokenData.name}.get-balance "${account.account}")`).join(" ");
+    let fetchBalanceCode = `[${tokenNames}]`
+    try {
+      let data = await Pact.fetch.local({
+          pactCode: fetchBalanceCode,
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
+        }, network);
+        console.log(data)
+      if (data.result.status === "success"){
+        let count = 0;
+        Object.keys(tokenData).forEach(token => {
+          tokenData[token].balance = extractDecimal(data.result.data[count]);
+          count++;
+        })
+        console.log(data)
+        setBalances(true)
+      } else {
+        setBalances(false)
+      }
+    } catch (e) {
+      console.log(e)
+      setBalances(true);
+    }
+  }
 
 
   const pollingNotif = (reqKey) => {
