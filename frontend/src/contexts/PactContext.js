@@ -82,7 +82,6 @@ export const PactProvider = (props) => {
   }, [sendRes])
 
   useEffect(() => {
-    if (account.account) setVerifiedAccount(account.account);
     fetchAllBalances();
   }, [balances, account.account, sendRes])
 
