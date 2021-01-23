@@ -100,7 +100,6 @@ export default function Account(props) {
                   walletAccts()
                   const accts = await getAccounts();
                   swal.close()
-                  console.log(accts)
                   if (accts.status === 'success') {
                     await selectAcct(accts.data, setAcct, setTemp, pact.setVerifiedAccount);
                   } else {
