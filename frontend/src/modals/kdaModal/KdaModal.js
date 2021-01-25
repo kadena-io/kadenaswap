@@ -15,11 +15,6 @@ import walletError from '../../components/alerts/walletError'
 import selectAcct from '../../components/alerts/selectAcct'
 
 export default function Account(props) {
-  const RowContainer = styled.div`
-    /* display: flex; */
-    /* justify-content: space-between; */
-    margin: 15px 0px;
-  `;
 
   const pact = useContext(PactContext);
   const [acct, setAcct] = useState((pact.account.account ? pact.account.account : ""))
@@ -82,7 +77,6 @@ export default function Account(props) {
           <Header style={{ marginBottom: 24 }}>
             <span style={{ fontSize: 24, fontFamily: 'neue-bold', color: '#3a4750' }}>Your KDA Account</span>
           </Header>
-          <RowContainer>
           <Input
             placeholder="Enter Account"
             error={pact.account.account === null && temp !== ''}
@@ -114,7 +108,6 @@ export default function Account(props) {
               </Button>
             }
           />
-          </RowContainer>
           {pact.account.account ? (
             <>
               <Header>
