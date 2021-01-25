@@ -1,6 +1,7 @@
 export const reduceBalance = (balance, prec=3) => {
   if (balance) {
     if (balance.decimal) balance=balance.decimal;
+    if (balance.int) balance=balance.int;
     if (parseFloat(balance) % 1 === 0) {return parseInt(balance)}
     return Math.trunc(parseFloat(balance) * Math.pow(10, prec)) / Math.pow(10, prec);
   }
@@ -18,6 +19,7 @@ export const gasUnit = decimal => {
 
 export const extractDecimal = num => {
   if (num.decimal) return num.decimal;
+  if (num.int) return num.int;
   else return num;
 }
 

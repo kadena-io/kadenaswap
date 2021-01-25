@@ -11,7 +11,8 @@ import pwPrompt from '../components/alerts/pwPrompt'
 import walletError from '../components/alerts/walletError'
 import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
-import { keepDecimal, reduceBalance } from '../utils/reduceBalance'
+import tokenData from '../constants/cryptoCurrencies'
+import { reduceBalance, keepDecimal, extractDecimal } from '../utils/reduceBalance'
 
 export const PactContext = createContext();
 
@@ -63,6 +64,7 @@ export const PactProvider = (props) => {
   const [walletSuccess, setWalletSuccess] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState((savedTtl ? savedTtl : 600));
+  const [balances, setBalances] = useState(false);
   //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
   // const [toastIds, setToastIds] = useState({})
@@ -76,13 +78,54 @@ export const PactProvider = (props) => {
   }, [pairReserve]);
 
   useEffect(() => {
-    if (account.account) setVerifiedAccount(account.account)
+    if (account.account) setVerifiedAccount(account.account);
   }, [sendRes])
+
+  useEffect(() => {
+    fetchAllBalances();
+  }, [balances, account.account, sendRes])
 
   useEffect(() => {
     const store = async () => localStorage.setItem('signing', JSON.stringify(signing));
     store()
   }, [signing])
+
+  const fetchAllBalances = async () => {
+    let count=0;
+    let endBracket = ''
+    let tokenNames = Object.values(tokenData).reduce((accum, cum)=> {
+      count++;
+      endBracket+=')'
+      let code =  `
+      (let
+        ((${cum.code}
+          (try -1 (${cum.name}.get-balance "${account.account}"))
+      ))`
+      accum+=code;
+      return accum;
+    }, '')
+    let objFormat =  `{${Object.keys(tokenData).map(token => `"${token}": ${token}`).join(',')}}`
+    tokenNames = tokenNames + objFormat + endBracket;
+    try {
+      let data = await Pact.fetch.local({
+          pactCode: tokenNames,
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
+        }, network);
+      if (data.result.status === "success"){
+        Object.keys(tokenData).forEach(token => {
+          tokenData[token].balance = extractDecimal(data.result.data[token])===-1
+            ? '0'
+            : extractDecimal(data.result.data[token]);
+        })
+        setBalances(true)
+      } else {
+        setBalances(false)
+      }
+    } catch (e) {
+      console.log(e)
+      setBalances(true);
+    }
+  }
 
 
   const pollingNotif = (reqKey) => {
