@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { Header, Modal, Menu, Icon, Message } from 'semantic-ui-react';
+import styled from 'styled-components/macro';
 import Input from '../../components/shared/Input';
 import Button from '../../components/shared/Button';
 import { PactContext } from '../../contexts/PactContext';
@@ -7,8 +8,19 @@ import theme from '../../styles/theme';
 import Checkbox from '../../components/shared/Checkbox';
 import { ReactComponent as LockIcon } from '../../assets/images/shared/lock.svg';
 import { ReactComponent as UnlockIcon } from '../../assets/images/shared/unlock.svg';
+import getAccounts from '../../utils/getZelcoreAccts';
+import swal from '@sweetalert/with-react'
+import walletAccts from '../../components/alerts/walletAccts'
+import walletError from '../../components/alerts/walletError'
+import selectAcct from '../../components/alerts/selectAcct'
 
 export default function Account(props) {
+  const RowContainer = styled.div`
+    /* display: flex; */
+    /* justify-content: space-between; */
+    margin: 15px 0px;
+  `;
+
   const pact = useContext(PactContext);
   const [acct, setAcct] = useState((pact.account.account ? pact.account.account : ""))
   const [locked, setLocked] = useState((pact.account.account && pact.hasWallet() ? true : false));
@@ -17,6 +29,8 @@ export default function Account(props) {
   const [pw, setPw] = useState('');
   const [pwConf, setPwConf] = useState('');
   const [temp, setTemp] = useState('');
+  const [zelAcct, setZelAcct] = useState();
+  const [loading, setLoading] = useState(false);
 
 
   const is_hexadecimal = (str) => {
@@ -68,8 +82,8 @@ export default function Account(props) {
           <Header style={{ marginBottom: 24 }}>
             <span style={{ fontSize: 24, fontFamily: 'neue-bold', color: '#3a4750' }}>Your KDA Account</span>
           </Header>
+          <RowContainer>
           <Input
-            leftLabel="account"
             placeholder="Enter Account"
             error={pact.account.account === null && temp !== ''}
             containerStyle={{ marginBottom: 22 }}
@@ -79,7 +93,28 @@ export default function Account(props) {
               setTemp(value);
               await pact.setVerifiedAccount(value);
             }}
+            rightLabel={
+              <Button
+                onClick={async () => {
+                  setLoading(true);
+                  walletAccts()
+                  const accts = await getAccounts();
+                  swal.close()
+                  if (accts.status === 'success') {
+                    await selectAcct(accts.data, setAcct, setTemp, pact.setVerifiedAccount);
+                  } else {
+                    walletError()
+                  }
+                  setLoading(false);
+                }}
+                style={{marginLeft: 30, marginBottom: 0}}
+                loading={loading}
+              >
+                get zelcore accounts
+              </Button>
+            }
           />
+          </RowContainer>
           {pact.account.account ? (
             <>
               <Header>
@@ -148,7 +183,7 @@ export default function Account(props) {
               disabled={locked}
             >
               <Icon name="signup" />
-              Chainweaver Signing (safest)
+              Chainweaver / Zelcore Signing (safest)
             </Menu.Item>
           </Menu>
           </div>
