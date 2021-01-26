@@ -254,8 +254,8 @@ const SwapContainer = () => {
             setLoading(true)
             if (pact.signing.method !== 'sign') {
               const res = await pact.swapLocal(
-                  { amount: fromValues.amount, address: fromValues.address },
-                  { amount: toValues.amount, address: toValues.address },
+                  { amount: fromValues.amount, address: fromValues.address, coin: fromValues.coin },
+                  { amount: toValues.amount, address: toValues.address, coin: toValues.coin },
                   (fromNote === "(estimated)" ? false : true)
                 )
               if (res === -1) {
@@ -273,8 +273,8 @@ const SwapContainer = () => {
               }
             } else {
               pact.swapWallet(
-                { amount: fromValues.amount, address: fromValues.address },
-                { amount: toValues.amount, address: toValues.address },
+                { amount: fromValues.amount, address: fromValues.address, coin: fromValues.coin },
+                { amount: toValues.amount, address: toValues.address, coin: toValues.coin },
                 (fromNote === "(estimated)" ? false : true)
               )
               setLoading(false)

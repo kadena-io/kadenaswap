@@ -796,7 +796,7 @@ export const PactProvider = (props) => {
                 args: [
                   account.account,
                   pair,
-                  reduceBalance(isSwapIn ? token0.amount : token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision),
+                  reduceBalance(isSwapIn ? token0.amount : token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision),
                 ]
               },
             ]
@@ -805,8 +805,8 @@ export const PactProvider = (props) => {
             "user-ks": account.guard,
             "token0Amount": token0.amount,
             "token1Amount": token1.amount,
-            "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.name].precision),
-            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision)
+            "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.coin].precision),
+            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)
           },
           networkId: NETWORKID,
           meta: Pact.lang.mkMeta("kswap-free-gas", chainId, GAS_PRICE, 3000, ct, 600),
@@ -857,7 +857,7 @@ export const PactProvider = (props) => {
             [
               account.account,
               pair.account,
-              reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision)),
+              reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)),
             ]
           ),
         ],
@@ -869,8 +869,8 @@ export const PactProvider = (props) => {
           "user-ks": account.guard,
           "token0Amount": token0.amount,
           "token1Amount": token1.amount,
-          "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision),
-          "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.name].precision)
+          "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision),
+          "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.coin].precision)
         }
       }
       //alert to sign tx
