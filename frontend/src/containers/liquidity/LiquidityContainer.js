@@ -96,8 +96,8 @@ const LiquidityContainer = (props) => {
     let balance;
     let acct = await pact.getTokenAccount(crypto.code, pact.account.account, tokenSelectorType === 'from')
     balance = pact.getCorrectBalance(acct.balance)
-    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: fromValues.precision }));
-    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: toValues.precision }));
+    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: crypto.precision }));
+    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: crypto.precision }));
   };
 
   useEffect(() => {
@@ -256,7 +256,7 @@ const LiquidityContainer = (props) => {
             toValues.coin ? (
               <InputToken
                 icon={pact.tokenData[toValues.coin].icon}
-                code={pact.tokenData[toValues.coin].code}
+                code={pact.tokenData[toValues.coin].name}
                 onClick={() => setTokenSelectorType('to')}
               />
             ) : null

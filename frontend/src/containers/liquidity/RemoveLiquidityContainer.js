@@ -41,7 +41,7 @@ const RemoveLiquidityContainer = (props) => {
 
   useEffect(() => {
     if (!isNaN(amount)){
-      setPooled(reduceBalance(balance * amount / 100, pact.PRECISION));
+      setPooled(reduceBalance(extractDecimal(balance) * amount / 100, pact.PRECISION));
       setPooledToken0(reduceBalance(extractDecimal(pooledAmount[0]) * amount / 100,  pact.PRECISION));
       setPooledToken1(reduceBalance(extractDecimal(pooledAmount[1]) * amount / 100,  pact.PRECISION));
     }

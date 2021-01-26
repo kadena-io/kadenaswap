@@ -346,9 +346,7 @@ export const PactProvider = (props) => {
           meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,3000,creationTime(), 600),
           networkId: NETWORKID
         };
-      console.log(cmd)
       let data = await Pact.fetch.local(cmd, network);
-      console.log(data)
       setCmd(cmd);
       setLocalRes(data);
       return data;
@@ -623,7 +621,6 @@ export const PactProvider = (props) => {
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          console.log(pair)
           return {...pair,
               supply: data.result.data[0],
               reserves:[data.result.data[1],  data.result.data[2]]
