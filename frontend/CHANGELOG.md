@@ -1,13 +1,14 @@
 # `kadenaswap frontend` Changelog
 
 ## (2021-01-26)
-- Add feature to show user balance of all tokens in the token selector
-- Improve precision by fetching each token's minimum precision instead of using default precision value 12
+- Add feature to show user balance of all tokens in the token selector (#45)
+- Improve precision by fetching each token's minimum precision instead of using default precision value 12 (#50)
 - Improve number formatting by using envData to send transactional data
+- Add clickable style to wallet button in header (#61)
 
 ## (2021-01-12)
 - Gas stations operational!
-     - Gas station contract wirtten, tested, and deployed (gas payer account: `kswap-free-gas`)
+     - Gas station contract written, tested, and deployed (gas payer account: `kswap-free-gas`)
      - Modify frontend pact calls to include gas station account as gas payer
           - working for wallet
           - working for private key signing methods
