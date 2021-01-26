@@ -1,2 +1,0 @@
-(read-decimal 1)
-(read-decimal '1)
