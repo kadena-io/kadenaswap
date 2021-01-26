@@ -7,7 +7,7 @@ import Input from '../components/shared/Input';
 import InputToken from '../components/shared/InputToken';
 import MenuTabs from '../components/shared/MenuTabs';
 import TokenSelector from '../components/shared/TokenSelector';
-import cryptoCurrencies from '../constants/cryptoCurrencies';
+import cryptoCurrencies from '../constants/tokens';
 
 import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP } from '../router/routes';
 import { NavLink, useHistory } from 'react-router-dom';

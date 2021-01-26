@@ -6,7 +6,6 @@ import Input from '../components/shared/Input';
 import InputToken from '../components/shared/InputToken';
 import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
-import cryptoCurrencies from '../constants/cryptoCurrencies';
 import {reduceBalance, limitDecimalPlaces} from '../utils/reduceBalance';
 import TokenSelector from '../components/shared/TokenSelector';
 import TxView from '../components/shared/TxView';
@@ -35,8 +34,8 @@ const Label = styled.span`
 const SwapContainer = () => {
   const [tokenSelectorType, setTokenSelectorType] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
-  const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '', address: '' });
-  const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '', address: '' });
+  const [fromValues, setFromValues] = useState({ amount: '', balance: '', coin: '', address: '', precision: 0 });
+  const [toValues, setToValues] = useState({ amount: '', balance: '', coin: '', address: '', precision: 0 });
   const [inputSide, setInputSide] = useState("")
   const [fromNote, setFromNote] = useState("")
   const [toNote, setToNote] = useState("")
@@ -54,9 +53,9 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (fromValues.amount.length < 5) {
-            throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) }))
+            throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) }))
           } else {
-            debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) }))
+            debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, fromValues.precision) }))
           }
         }
       }
@@ -74,9 +73,9 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (toValues.amount.length < 5) {
-            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, pact.PRECISION) }))
+            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
           } else {
-            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, pact.PRECISION) }))
+            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
           }
         }
       }
@@ -89,11 +88,11 @@ const SwapContainer = () => {
   useEffect(() => {
     if (!isNaN(pact.ratio)) {
       if (fromValues.amount !== "" && toValues.amount === "") {
-        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) })
+        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) })
       } if (fromValues.amount === "" && toValues.amount !== "") {
-        setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, pact.PRECISION) })
+        setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) })
       } if (fromValues.amount !== "" && toValues.amount !== "")  {
-        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, pact.PRECISION) })
+        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) })
       }
     }
   }, [pact.ratio])
@@ -143,14 +142,14 @@ const SwapContainer = () => {
 
   const onTokenClick = async ({ crypto }) => {
     let balance;
-    if (crypto.name === 'coin') {
+    if (crypto.code === 'coin') {
       balance = pact.account.balance
     } else {
-      let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
+      let acct = await pact.getTokenAccount(crypto.code, pact.account.account, tokenSelectorType === 'from')
       balance = pact.getCorrectBalance(acct.balance)
     }
-    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
-    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.code, address: crypto.name }));
+    if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, address: crypto.code, precision: crypto.precision }));
+    if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, address: crypto.code, precision: crypto.precision }));
   };
 
   const getButtonLabel = () => {
@@ -189,8 +188,8 @@ const SwapContainer = () => {
           inputRightComponent={
             fromValues.coin ? (
               <InputToken
-                icon={cryptoCurrencies[fromValues.coin].icon}
-                code={cryptoCurrencies[fromValues.coin].code}
+                icon={pact.tokenData[fromValues.coin].icon}
+                code={pact.tokenData[fromValues.coin].name}
                 onClick={() => setTokenSelectorType('from')}
               />
             ) : null
@@ -201,7 +200,7 @@ const SwapContainer = () => {
           onSelectButtonClick={() => setTokenSelectorType('from')}
           onChange={async (e, { value }) => {
             setInputSide('from')
-            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION)}))
+            setFromValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, fromValues.precision)}))
           }}
         />
         <ButtonDivider icon={<SwapArrowsIcon />} onClick={swapValues} />
@@ -213,8 +212,8 @@ const SwapContainer = () => {
           inputRightComponent={
             toValues.coin ? (
               <InputToken
-                icon={cryptoCurrencies[toValues.coin].icon}
-                code={cryptoCurrencies[toValues.coin].code}
+                icon={pact.tokenData[toValues.coin].icon}
+                code={pact.tokenData[toValues.coin].name}
                 onClick={() => setTokenSelectorType('to')}
               />
             ) : null
@@ -225,7 +224,7 @@ const SwapContainer = () => {
           onSelectButtonClick={() => setTokenSelectorType('to')}
           onChange={async (e, { value }) => {
             setInputSide('to')
-            setToValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, pact.PRECISION) }))
+            setToValues((prev) => ({ ...prev, amount: limitDecimalPlaces(value, toValues.precision) }))
           }}
         />
         {(!isNaN(pact.ratio) && fromValues.amount && fromValues.coin && toValues.amount && toValues.coin
@@ -255,8 +254,8 @@ const SwapContainer = () => {
             setLoading(true)
             if (pact.signing.method !== 'sign') {
               const res = await pact.swapLocal(
-                  { amount: fromValues.amount, address: fromValues.address },
-                  { amount: toValues.amount, address: toValues.address },
+                  { amount: fromValues.amount, address: fromValues.address, coin: fromValues.coin },
+                  { amount: toValues.amount, address: toValues.address, coin: toValues.coin },
                   (fromNote === "(estimated)" ? false : true)
                 )
               if (res === -1) {
@@ -267,15 +266,15 @@ const SwapContainer = () => {
               } else {
                 setShowTxModal(true)
                 if (res?.result?.status === 'success') {
-                  setFromValues({ amount: '', balance: '', coin: '', address: '' });
-                  setToValues({ amount: '', balance: '', coin: '', address: '' })
+                  setFromValues({ amount: '', balance: '', coin: '', address: '', precision: 0 });
+                  setToValues({ amount: '', balance: '', coin: '', address: '', precision: 0 })
                 }
                 setLoading(false)
               }
             } else {
               pact.swapWallet(
-                { amount: fromValues.amount, address: fromValues.address },
-                { amount: toValues.amount, address: toValues.address },
+                { amount: fromValues.amount, address: fromValues.address, coin: fromValues.coin },
+                { amount: toValues.amount, address: toValues.address, coin: toValues.coin },
                 (fromNote === "(estimated)" ? false : true)
               )
               setLoading(false)

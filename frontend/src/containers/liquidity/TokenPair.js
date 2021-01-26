@@ -4,7 +4,6 @@ import { Transition } from 'react-spring/renderprops';
 import FormContainer from '../../components/shared/FormContainer';
 import Search from '../../components/shared/Search';
 import Backdrop from '../../components/shared/Backdrop';
-import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import { List, Message, Button} from 'semantic-ui-react'
 import { ReactComponent as KadenaIcon } from '../../assets/images/crypto/kadena-logo.svg';
 import { ReactComponent as ArrowDown } from '../../assets/images/shared/arrow-down.svg';
@@ -29,7 +28,7 @@ const TokenPair = (props) => {
                 <List.Content>
                   <List.Header>
                   <KadenaIcon/>
-                  {` ${token0.code} / ${token1.code}`}
+                  {` ${token0} / ${token1}`}
                   </List.Header>
                 </List.Content>
               </List.Item>

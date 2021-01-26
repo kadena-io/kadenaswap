@@ -3,7 +3,6 @@ import styled from 'styled-components/macro';
 import FormContainer from '../components/shared/FormContainer';
 import { ReactComponent as KadenaLogo } from '../assets/images/crypto/kadena-logo.svg';
 import { PactContext } from '../contexts/PactContext';
-import pairTokens from '../constants/pairTokens'
 import {reduceBalance, extractDecimal} from '../utils/reduceBalance';
 import { ReactComponent as CloseIcon } from '../assets/images/shared/cross.svg';
 
@@ -50,7 +49,6 @@ const StatsContainer = ({ data }) => {
   React.useEffect(async () => {
     await pact.getPairList()
   }, [])
-
   return (
     <Container>
       <FormContainer title="pool stats"  containerStyle={{ maxWidth: 500 }}>
@@ -65,14 +63,14 @@ const StatsContainer = ({ data }) => {
           <Row key={pair.name}>
             <div style={{ marginLeft: 0,  flex: 0.2 }}>
               <IconsContainer style={{ width:30 }}>
-                {pair.token0.icon}
-                {pair.token1.icon}
+                {pact.tokenData[pair.token0].icon}
+                {pact.tokenData[pair.token1].icon}
               </IconsContainer>
             </div>
-            <div style={{ marginLeft: -10, width:30 }}>{`${pair.token0.code}/${pair.token1.code}`}</div>
+            <div style={{ marginLeft: -10, width:30 }}>{`${pair.token0}/${pair.token1}`}</div>
             <div style={{marginLeft: 45, width:150 }}>{reduceBalance(pair.reserves[0])}</div>
             <div style={{marginLeft: 10, width:150 }}>{reduceBalance(pair.reserves[1])}</div>
-            <div style={{marginLeft: 5}}>{`${reduceBalance(extractDecimal(pair.reserves[0])/extractDecimal(pair.reserves[1]))} ${pair.token0.code}/${pair.token1.code}`}</div>
+            <div style={{marginLeft: 5}}>{`${reduceBalance(extractDecimal(pair.reserves[0])/extractDecimal(pair.reserves[1]))} ${pair.token0}/${pair.token1}`}</div>
           </Row>
           :""
         ))}

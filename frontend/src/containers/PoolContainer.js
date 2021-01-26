@@ -5,7 +5,7 @@ import Input from '../components/shared/Input';
 import InputToken from '../components/shared/InputToken';
 import ButtonDivider from '../components/shared/ButtonDivider';
 import Button from '../components/shared/Button';
-import cryptoCurrencies from '../constants/cryptoCurrencies';
+import cryptoCurrencies from '../constants/tokens';
 import TokenSelector from '../components/shared/TokenSelector';
 import LiquidityContainer from './liquidity/LiquidityContainer';
 import RemoveLiquidityContainer from './liquidity/RemoveLiquidityContainer';

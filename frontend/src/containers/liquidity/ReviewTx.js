@@ -4,7 +4,6 @@ import Button from '../../components/shared/Button';
 import Input from '../../components/shared/Input';
 import { PactContext } from '../../contexts/PactContext'
 import { Statistic, List, Divider } from 'semantic-ui-react'
-import cryptoCurrencies from '../../constants/cryptoCurrencies';
 import {reduceBalance} from '../../utils/reduceBalance';
 import TxView from '../../components/shared/TxView';
 import { ReactComponent as KadenaLogo } from '../../assets/images/crypto/kadena-logo.svg';
