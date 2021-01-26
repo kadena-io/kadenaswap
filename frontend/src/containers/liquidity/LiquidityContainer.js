@@ -78,14 +78,14 @@ const LiquidityContainer = (props) => {
 
   useEffect(async () => {
     if (fromValues.coin!==""){
-      await pact.getTokenAccount(pact.tokenData[fromValues.coin].name, pact.account.account, true);
+      await pact.getTokenAccount(pact.tokenData[fromValues.coin].code, pact.account.account, true);
     }
     if (toValues.coin!==""){
-      await pact.getTokenAccount(pact.tokenData[toValues.coin].name, pact.account.account, false);
+      await pact.getTokenAccount(pact.tokenData[toValues.coin].code, pact.account.account, false);
     }
     if (fromValues.coin!=="" && toValues.coin!=="") {
-      await pact.getPair(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name);
-      await pact.getReserves(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name);
+      await pact.getPair(pact.tokenData[fromValues.coin].code, pact.tokenData[toValues.coin].code);
+      await pact.getReserves(pact.tokenData[fromValues.coin].code, pact.tokenData[toValues.coin].code);
       if (pact.pair) {
         setPairExist(true)
       }
@@ -94,7 +94,7 @@ const LiquidityContainer = (props) => {
 
   const onTokenClick = async ({ crypto }) => {
     let balance;
-    let acct = await pact.getTokenAccount(crypto.name, pact.account.account, tokenSelectorType === 'from')
+    let acct = await pact.getTokenAccount(crypto.code, pact.account.account, tokenSelectorType === 'from')
     balance = pact.getCorrectBalance(acct.balance)
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: fromValues.precision }));
     if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: toValues.precision }));
@@ -185,14 +185,14 @@ const LiquidityContainer = (props) => {
   const supply = async () => {
       if (selectedView==="Create A Pair"){
         setLoading(true)
-        await pact.createTokenPairLocal(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name, fromValues.amount, toValues.amount)
+        await pact.createTokenPairLocal(pact.tokenData[fromValues.coin].code, pact.tokenData[toValues.coin].code, fromValues.amount, toValues.amount)
         setLoading(false)
         setShowReview(false)
         setShowTxModal(true)
       } else {
         if (pact.signing.method !== 'sign') {
           setLoading(true)
-          const res = await pact.addLiquidityLocal(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name, fromValues.amount, toValues.amount);
+          const res = await pact.addLiquidityLocal(pact.tokenData[fromValues.coin], pact.tokenData[toValues.coin], fromValues.amount, toValues.amount);
           if (res === -1) {
             setLoading(false)
             alert('Incorrect password. If forgotten, you can reset it with your private key')
@@ -204,7 +204,7 @@ const LiquidityContainer = (props) => {
           }
         } else {
           setLoading(true)
-          pact.addLiquidityWallet(pact.tokenData[fromValues.coin].name, pact.tokenData[toValues.coin].name, fromValues.amount, toValues.amount);
+          pact.addLiquidityWallet(pact.tokenData[fromValues.coin], pact.tokenData[toValues.coin], fromValues.amount, toValues.amount);
           setShowReview(false)
           setLoading(false)
           setFromValues({account: null, guard: null, balance: null, amount: '', coin: ""});
@@ -256,7 +256,7 @@ const LiquidityContainer = (props) => {
             toValues.coin ? (
               <InputToken
                 icon={pact.tokenData[toValues.coin].icon}
-                code={pact.tokenData[toValues.coin].name}
+                code={pact.tokenData[toValues.coin].code}
                 onClick={() => setTokenSelectorType('to')}
               />
             ) : null

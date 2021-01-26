@@ -28,7 +28,7 @@ const TokenPair = (props) => {
                 <List.Content>
                   <List.Header>
                   <KadenaIcon/>
-                  {` ${token0.code} / ${token1.code}`}
+                  {` ${token0} / ${token1}`}
                   </List.Header>
                 </List.Content>
               </List.Item>

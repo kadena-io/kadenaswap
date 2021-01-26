@@ -1,16 +1,17 @@
-{ "coin:kswap.abc": {
+{
+  "coin:kswap.abc": {
     "name": "coin:kswap.abc",
-    "token0": "coin",
-    "token1": "kswap.abc"
+    "token0": "KDA",
+    "token1": "ABC"
   },
   "coin:kswap.xyz": {
     "name": "coin:kswap.xyz",
-    "token0": "coin",
-    "token1": "kswap.xyz"
+    "token0": "KDA",
+    "token1": "XYZ"
   },
   "kswap.abc:kswap.xyz": {
     "name": "kswap.abc:kswap.xyz",
-    "token0": "kswap.abc",
-    "token1": "kswap.xyz"
-  },
+    "token0": "ABC",
+    "token1": "XYZ"
+  }
 }

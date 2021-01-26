@@ -59,8 +59,8 @@ const RemoveLiquidityContainer = (props) => {
         <TxView
           view="Remove Liquidity"
           show={showTxModal}
-          token0={token0.code}
-          token1={token1.code}
+          token0={token0}
+          token1={token1}
           onClose={() => setShowTxModal(false)}
         />
         <LeftIcon style={{ cursor: 'pointer', position: 'absolute', width:20, height: 30, top: 14, left: 14 }} onClick={() => props.closeLiquidity()} />
@@ -85,19 +85,19 @@ const RemoveLiquidityContainer = (props) => {
          </Container>
         <Statistic>
           <Statistic.Value></Statistic.Value>
-          <Statistic.Label>{`${token0.code} / ${token1.code} Pool Tokens`}</Statistic.Label>
+          <Statistic.Label>{`${token0} / ${token1} Pool Tokens`}</Statistic.Label>
         </Statistic>
         <List>
-          <List.Item>{`${token0.code} / ${token1.code}: ${pooled}`}</List.Item>
-          <List.Item>{`Pooled ${token0.code}: ${pooledToken0}`}</List.Item>
-          <List.Item>{`Pooled ${token1.code}: ${pooledToken1}`}</List.Item>
+          <List.Item>{`${token0} / ${token1}: ${pooled}`}</List.Item>
+          <List.Item>{`Pooled ${token0}: ${pooledToken0}`}</List.Item>
+          <List.Item>{`Pooled ${token1}: ${pooledToken1}`}</List.Item>
         </List>
         <StyledButton
           loading={loading}
           disabled={isNaN(amount) || reduceBalance(amount)===0}
           onClick={async () => {
             if (pact.signing.method !== 'sign') {
-              const res = await pact.removeLiquidityLocal(token0.name, token1.name, reduceBalance(pooled));
+              const res = await pact.removeLiquidityLocal(pact.tokenData[token0].code, pact.tokenData[token1].code, reduceBalance(pooled));
               if (res === -1) {
                 setLoading(false)
                 alert('Incorrect password. If forgotten, you can reset it with your private key')
@@ -107,7 +107,7 @@ const RemoveLiquidityContainer = (props) => {
                 setLoading(false)
               }
             } else {
-              pact.removeLiquidityWallet(token0.name, token1.name, reduceBalance(pooled));
+              pact.removeLiquidityWallet(pact.tokenData[token0].code, pact.tokenData[token1].code, reduceBalance(pooled));
             }
           }
         }>

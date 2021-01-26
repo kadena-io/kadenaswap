@@ -5,7 +5,7 @@ import CryptoJS from 'crypto-js'
 import { NotificationContext, STATUSES } from './NotificationContext';
 import PasswordPopup from '../components/shared/PasswordPopup';
 import { toast } from 'react-toastify';
-import pairTokens from '../constants/pairTokens'
+import pairTokens from '../constants/pairs.json'
 import swal from '@sweetalert/with-react'
 import pwPrompt from '../components/alerts/pwPrompt'
 import walletError from '../components/alerts/walletError'
@@ -79,54 +79,17 @@ export const PactProvider = (props) => {
   }, [sendRes])
 
   useEffect(() => {
-    fetchAllBalances();
-  }, [balances, account.account, sendRes])
-
-  useEffect(() => {
     const store = async () => localStorage.setItem('signing', JSON.stringify(signing));
     store()
   }, [signing])
 
   useEffect(() => {
-    fetchPrecision()
+    fetchPrecision();
   }, [precision])
-  
-  const fetchAllBalances = async () => {
-    let count=0;
-    let endBracket = ''
-    let tokenNames = Object.values(tokenData).reduce((accum, cum)=> {
-      count++;
-      endBracket+=')'
-      let code =  `
-      (let
-        ((${cum.code}
-          (try -1 (${cum.name}.get-balance "${account.account}"))
-      ))`
-      accum+=code;
-      return accum;
-    }, '')
-    let objFormat =  `{${Object.keys(tokenData).map(token => `"${token}": ${token}`).join(',')}}`
-    tokenNames = tokenNames + objFormat + endBracket;
-    try {
-      let data = await Pact.fetch.local({
-          pactCode: tokenNames,
-          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
-        }, network);
-      if (data.result.status === "success"){
-        Object.keys(tokenData).forEach(token => {
-          tokenData[token].balance = extractDecimal(data.result.data[token])===-1
-            ? '0'
-            : extractDecimal(data.result.data[token]);
-        })
-        setBalances(true)
-      } else {
-        setBalances(false)
-      }
-    } catch (e) {
-      console.log(e)
-      setBalances(true);
-    }
-  }
+
+  useEffect(() => {
+    fetchAllBalances();
+  }, [balances, account.account, sendRes])
 
   const pollingNotif = (reqKey) => {
     return (
@@ -156,20 +119,67 @@ export const PactProvider = (props) => {
     await localStorage.setItem('ttl', ttl);
   }
 
-  const fetchPrecision = async () => {
-    let tokenNames = Object.values(tokenData).map(tokenData=>`(${tokenData.code}.precision)`).join(" ");
-    let fetchPrecisionCode = `[${tokenNames}]`
+  const fetchAllBalances = async () => {
+    let count=0;
+    let endBracket = ''
+    let tokenNames = Object.values(tokenData).reduce((accum, cumul)=> {
+      count++;
+      endBracket+=')'
+      let code =  `
+      (let
+        ((${cumul.name}
+          (try -1 (${cumul.code}.get-balance "${account.account}"))
+      ))`
+      accum+=code;
+      return accum;
+    }, '')
+    let objFormat =  `{${Object.keys(tokenData).map(token => `"${token}": ${token}`).join(',')}}`
+    tokenNames = tokenNames + objFormat + endBracket;
     try {
       let data = await Pact.fetch.local({
-          pactCode: fetchPrecisionCode,
+          pactCode: tokenNames,
           meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
         }, network);
-
       if (data.result.status === "success"){
-        let count = 0;
         Object.keys(tokenData).forEach(token => {
-          tokenData[token].precision = extractDecimal(data.result.data[count]);
-          count++;
+          tokenData[token].balance = extractDecimal(data.result.data[token])===-1
+            ? '0'
+            : extractDecimal(data.result.data[token]);
+        })
+        setBalances(true)
+      } else {
+        setBalances(false)
+      }
+    } catch (e) {
+      console.log(e)
+      setBalances(true);
+    }
+  }
+
+  const fetchPrecision = async () => {
+    let count=0;
+    let endBracket = ''
+    let tokenNames = Object.values(tokenData).reduce((accum, cumul)=> {
+      count++;
+      endBracket+=')'
+      let code =  `
+      (let
+        ((${cumul.name}
+          (try -1 (${cumul.code}.precision))
+      ))`
+      accum+=code;
+      return accum;
+    }, '')
+    let objFormat =  `{${Object.keys(tokenData).map(token => `"${token}": ${token}`).join(',')}}`
+    tokenNames = tokenNames + objFormat + endBracket;
+    try {
+      let data = await Pact.fetch.local({
+          pactCode: tokenNames,
+          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
+        }, network);
+      if (data.result.status === "success"){
+        Object.keys(tokenData).forEach(token => {
+          tokenData[token].precision = extractDecimal(data.result.data[token]);
         })
         setPrecision(true);
       }
@@ -277,8 +287,8 @@ export const PactProvider = (props) => {
               "user-ks": [keyPair.publicKey],
               "amountDesired0": amountDesired0,
               "amountDesired1": amountDesired1,
-              "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),PRECISION),
-              "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),PRECISION)
+              "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0].precision),
+              "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1].precision)
             },
             meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,5000,creationTime(), 600),
             networkId: NETWORKID
@@ -304,11 +314,11 @@ export const PactProvider = (props) => {
       if (privKey.length !== 64) {
         return
       }
-      let pair = await getPairAccount(token0, token1);
+      let pair = await getPairAccount(token0.code, token1.code);
       let cmd = {
           pactCode: `(kswap.exchange.add-liquidity
-              ${token0}
-              ${token1}
+              ${token0.code}
+              ${token1.code}
               (read-decimal 'amountDesired0)
               (read-decimal 'amountDesired1)
               (read-decimal 'amountMinimum0)
@@ -321,8 +331,8 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
-              {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
+              {name: `${token0.code}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
+              {name: `${token1.code}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
               {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
             ]
           },
@@ -330,30 +340,32 @@ export const PactProvider = (props) => {
             "user-ks": account.guard,
             "amountDesired0": amountDesired0,
             "amountDesired1": amountDesired1,
-            "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),PRECISION),
-            "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),PRECISION)
+            "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
+            "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
           },
           meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,3000,creationTime(), 600),
           networkId: NETWORKID
         };
+      console.log(cmd)
       let data = await Pact.fetch.local(cmd, network);
+      console.log(data)
       setCmd(cmd);
       setLocalRes(data);
       return data;
     } catch (e) {
       setLocalRes({});
-      return -1
       console.log(e)
+      return -1
     }
   }
 
   const addLiquidityWallet = async (token0, token1, amountDesired0, amountDesired1) => {
     try {
-      let pair = await getPairAccount(token0, token1);
+      let pair = await getPairAccount(token0.code, token1.code);
       const signCmd = {
         pactCode: `(kswap.exchange.add-liquidity
-            ${token0}
-            ${token1}
+            ${token0.code}
+            ${token1.code}
             (read-decimal 'amountDesired0)
             (read-decimal 'amountDesired1)
             (read-decimal 'amountMinimum0)
@@ -364,8 +376,8 @@ export const PactProvider = (props) => {
           )`,
         caps: [
           Pact.lang.mkCap("Gas Station", "free gas", "kswap.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
-          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token0}.TRANSFER`, [account.account, pair, Number(amountDesired0)]),
-          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token1}.TRANSFER`, [account.account, pair, Number(amountDesired1)]),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token0.code}.TRANSFER`, [account.account, pair, Number(amountDesired0)]),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `${token1.code}.TRANSFER`, [account.account, pair, Number(amountDesired1)]),
         ],
         sender: "kswap-free-gas",
         gasLimit: 3000,
@@ -375,8 +387,8 @@ export const PactProvider = (props) => {
           "user-ks": account.guard,
           "amountDesired0": amountDesired0,
           "amountDesired1": amountDesired1,
-          "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),PRECISION),
-          "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),PRECISION)
+          "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
+          "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
         }
       }
       //alert to sign tx
@@ -570,11 +582,11 @@ export const PactProvider = (props) => {
             (use kswap.exchange)
             (let*
               (
-                (p (get-pair ${pair.token0.name} ${pair.token1.name}))
-                (reserveA (reserve-for p ${pair.token0.name}))
-                (reserveB (reserve-for p ${pair.token1.name}))
-                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name})))
-                (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name}) ${JSON.stringify(account)}))
+                (p (get-pair ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}))
+                (reserveA (reserve-for p ${tokenData[pair.token0].code}))
+                (reserveB (reserve-for p ${tokenData[pair.token1].code}))
+                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code})))
+                (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}) ${JSON.stringify(account)}))
               )[acctBal totalBal reserveA reserveB (* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
              `,
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
@@ -602,15 +614,16 @@ export const PactProvider = (props) => {
             (use kswap.exchange)
             (let*
               (
-                (p (get-pair ${pair.token0.name} ${pair.token1.name}))
-                (reserveA (reserve-for p ${pair.token0.name}))
-                (reserveB (reserve-for p ${pair.token1.name}))
-                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${pair.token0.name} ${pair.token1.name})))
+                (p (get-pair ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}))
+                (reserveA (reserve-for p ${tokenData[pair.token0].code}))
+                (reserveB (reserve-for p ${tokenData[pair.token1].code}))
+                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code})))
               )[totalBal reserveA reserveB])
              `,
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
+          console.log(pair)
           return {...pair,
               supply: data.result.data[0],
               reserves:[data.result.data[1],  data.result.data[2]]
@@ -719,15 +732,15 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair, reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)]},
+              {name: `${token0.address}.TRANSFER`, args: [account.account, pair,  reduceBalance(isSwapIn ? token0.amount : token0.amount*(1+parseFloat(slippage), tokenData[token0.name].precision))]},
             ]
           },
           envData: {
             "user-ks": account.guard,
             "token0Amount": token0.amount,
             "token1Amount": token1.amount,
-            "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), PRECISION),
-            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)
+            "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.name].precision),
+            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision)
           },
           meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
           networkId: NETWORKID,
@@ -783,7 +796,7 @@ export const PactProvider = (props) => {
                 args: [
                   account.account,
                   pair,
-                  reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)),
+                  reduceBalance(isSwapIn ? token0.amount : token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision),
                 ]
               },
             ]
@@ -792,8 +805,8 @@ export const PactProvider = (props) => {
             "user-ks": account.guard,
             "token0Amount": token0.amount,
             "token1Amount": token1.amount,
-            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION),
-            "token1AmountWithSlippage": reduceBalance(token1.amount*(1+parseFloat(slippage)), PRECISION),
+            "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.name].precision),
+            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision)
           },
           networkId: NETWORKID,
           meta: Pact.lang.mkMeta("kswap-free-gas", chainId, GAS_PRICE, 3000, ct, 600),
@@ -844,7 +857,7 @@ export const PactProvider = (props) => {
             [
               account.account,
               pair.account,
-              reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), PRECISION)),
+              reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision)),
             ]
           ),
         ],
@@ -856,8 +869,8 @@ export const PactProvider = (props) => {
           "user-ks": account.guard,
           "token0Amount": token0.amount,
           "token1Amount": token1.amount,
-          "token0AmountWithSlippage": reduceBalance(token0.amount*(1-parseFloat(slippage)), PRECISION),
-          "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), PRECISION)
+          "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision),
+          "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.name].precision)
         }
       }
       //alert to sign tx
@@ -1004,7 +1017,6 @@ export const PactProvider = (props) => {
     <PactContext.Provider
       value={{
         GAS_PRICE,
-        PRECISION,
         tokens,
         pairList,
         account,

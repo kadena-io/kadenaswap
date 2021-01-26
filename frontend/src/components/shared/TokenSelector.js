@@ -115,7 +115,7 @@ const TokenSelector = ({ show, selectedToken, onTokenClick, onClose, fromToken, 
                         :
                           <></>
                       }
-                      <span style={{ marginLeft: "auto", marginRight: 1, fontSize: 13 }}>{crypto.balance? `${crypto.balance} ${crypto.code}` : ""} </span>
+                      <span style={{ marginLeft: "auto", marginRight: 1, fontSize: 13 }}>{crypto.balance? `${crypto.balance} ${crypto.name}` : ""} </span>
                     </TokenItem>
                   )})}
               </TokensContainer>
