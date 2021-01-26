@@ -5,6 +5,11 @@ import reduceToken from '../../../utils/reduceToken';
 
 const Container = styled.div`
   display: flex;
+  border-color: 'pink';
+  :hover {
+    opacity: 0.7;
+    cursor: pointer;
+  }
 `;
 
 const BalanceContainer = styled.div`
