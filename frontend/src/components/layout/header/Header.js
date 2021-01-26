@@ -75,6 +75,8 @@ const Item = styled(NavLink)`
   }
   &:hover {
     color: white;
+    opacity: 0.7;
+    cursor: pointer;
   }
 `;
 
@@ -195,6 +197,7 @@ const Header = () => {
           <>
             <Item className="mobile-none" to="#">
               <Button
+                hover={true}
                 background="white"
                 color={theme.colors.pink}
                 buttonStyle={{ padding: '10px 16px' }}

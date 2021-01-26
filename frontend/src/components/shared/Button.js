@@ -13,9 +13,13 @@ const StyledButton = styled(SUIButton)`
     return buttonBackgroundGradient;
   }};
   opacity: 1 !important;
+  :hover {
+    opacity: ${({ hover }) => (hover ? 0.7 : 1.0)+' !important'};
+    cursor: pointer;
+  }
 `;
 
-const Button = ({ props, disabled, buttonStyle, background, color, fontSize, children, onClick, loading }) => {
+const Button = ({ props, disabled, buttonStyle, background, color, fontSize, children, onClick, loading, hover }) => {
   return (
     <StyledButton
       {...props}
@@ -26,6 +30,7 @@ const Button = ({ props, disabled, buttonStyle, background, color, fontSize, chi
       style={buttonStyle}
       onClick={onClick}
       loading={loading}
+      hover={hover}
     >
       {children}
     </StyledButton>
