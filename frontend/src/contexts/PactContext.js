@@ -1014,6 +1014,7 @@ export const PactProvider = (props) => {
     <PactContext.Provider
       value={{
         GAS_PRICE,
+        PRECISION,
         tokens,
         pairList,
         account,
