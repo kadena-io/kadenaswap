@@ -1,8 +1,8 @@
 codeFile: ../../ns.pact
 signers:
-  - public: 56ff9e5c1b5ec3e98172a76aa3cdc03d3ec664f147267fd99eee4dd09763c853 #doug (ns-admin-keyset)
-  - public: a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80 #stu (ns-admin-keyset)
-  - public: 8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358 #heekyun (pay gas)
+  - public: 56ff9e5c1b5ec3e98172a76aa3cdc03d3ec664f147267fd99eee4dd09763c853 #doug (ns-operate-keyset)
+  - public: a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80 #stu (ns-operate-keyset)
+  - public: 8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358 #heekyun (pays gas)
 data:
   ns: "kswap"
   swap-ns-user:
@@ -22,6 +22,6 @@ nonce: install-kswap-namespace
 publicMeta:
   chainId: "2"
   sender: "8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358" #heekyun
-  gasLimit: 600
+  gasLimit: 1200
   gasPrice: 0.000000000001
   ttl: 150000
