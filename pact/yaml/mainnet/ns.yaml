@@ -11,11 +11,13 @@ data:
     keys:
       - 8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358 #heekyun
       - a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80 #stu
+      - 4b0f29b9e0a996587e5b5524731c91ecf02ecaa8b7e70e5f8f1881c5f0c18fc1 #francesco
     pred: keys-any
   swap-ns-admin:
     keys:
       - 8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358 #heekyun
       - a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80 #stu
+      - 4b0f29b9e0a996587e5b5524731c91ecf02ecaa8b7e70e5f8f1881c5f0c18fc1 #francesco
     pred: keys-any
 networkId: mainnet01
 nonce: install-kswap-namespace
