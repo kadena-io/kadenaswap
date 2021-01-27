@@ -1,0 +1,9 @@
+hash: OTwoZGBP9BNdkVw6-T16nCFP3sxIfm8ST6yUqqp2o1E
+sigs:
+  07b7f96e27d5c202c56a56a3e0dea569f2fa9c76274a1c9a19ecc970470011dc: null
+  1d062c51850de34ac86e47a70bcbdb68441b530074f8abb51978f6ac1717d5ef: null
+  56ff9e5c1b5ec3e98172a76aa3cdc03d3ec664f147267fd99eee4dd09763c853: null
+  7d08eec6c9e52dd39ec8cd29d71b2742aba033482d4a8da2aeeb5e14928f18d6: null
+  a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80: null
+cmd: '{"networkId":"mainnet01","payload":{"exec":{"data":{"ns":"kswap","swap-ns-admin":{"pred":"keys-any","keys":["8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358","a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80"]},"swap-ns-user":{"pred":"keys-any","keys":["8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358","a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80"]}},"code":"(define-keyset ''swap-ns-user)\n(define-keyset ''swap-ns-admin)\n(ns.write-registry (read-msg ''ns) (keyset-ref-guard ''swap-ns-admin) true)\n(define-namespace\n  (read-msg ''ns)\n  (keyset-ref-guard ''swap-ns-user)\n  (keyset-ref-guard ''swap-ns-admin)\n)\n"}},"signers":[{"pubKey":"07b7f96e27d5c202c56a56a3e0dea569f2fa9c76274a1c9a19ecc970470011dc"},{"pubKey":"1d062c51850de34ac86e47a70bcbdb68441b530074f8abb51978f6ac1717d5ef"},{"pubKey":"56ff9e5c1b5ec3e98172a76aa3cdc03d3ec664f147267fd99eee4dd09763c853"},{"pubKey":"7d08eec6c9e52dd39ec8cd29d71b2742aba033482d4a8da2aeeb5e14928f18d6"},{"pubKey":"a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80"}],"meta":{"creationTime":1611772383,"ttl":150000,"gasLimit":600,"chainId":"2","gasPrice":1.0e-12,"sender":""},"nonce":"install-kswap-namespace"}'
+
