@@ -9,5 +9,5 @@ publicMeta:
   chainId: "2"
   sender: "8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358"
   gasLimit: 600
-  gasPrice: 0.0000000001
+  gasPrice: 0.000000000001
   ttl: 150000
