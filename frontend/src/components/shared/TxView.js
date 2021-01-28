@@ -337,7 +337,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
       </Content>
     )
   }
-
+  // console.log(pact)
   return (
     <Transition items={show} from={{ opacity: 0 }} enter={{ opacity: 1 }} leave={{ opacity: 0 }}>
       {(show) =>

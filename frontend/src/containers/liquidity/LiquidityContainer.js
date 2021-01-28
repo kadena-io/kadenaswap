@@ -184,11 +184,21 @@ const LiquidityContainer = (props) => {
 
   const supply = async () => {
       if (selectedView==="Create A Pair"){
-        setLoading(true)
-        await pact.createTokenPairLocal(pact.tokenData[fromValues.coin].code, pact.tokenData[toValues.coin].code, fromValues.amount, toValues.amount)
-        setLoading(false)
-        setShowReview(false)
-        setShowTxModal(true)
+        if (pact.signing.method !== 'sign') {
+          setLoading(true)
+          const res = await pact.createTokenPairLocal(pact.tokenData[fromValues.coin], pact.tokenData[toValues.coin], fromValues.amount, toValues.amount)
+          if (res === -1) {
+            setLoading(false)
+            alert('Incorrect password. If forgotten, you can reset it with your private key')
+            return
+          } else {
+            setShowReview(false)
+            setShowTxModal(true)
+            setLoading(false)
+          }
+        } else {
+          console.log("not signed")
+        }
       } else {
         if (pact.signing.method !== 'sign') {
           setLoading(true)

@@ -248,8 +248,8 @@ export const PactProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
           pactCode: `(kswap.exchange.create-pair
-              ${token0}
-              ${token1}
+              ${token0.code}
+              ${token1.code}
               ""
             )`,
           meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,5000,creationTime(),28800),
@@ -260,13 +260,13 @@ export const PactProvider = (props) => {
         let cmd = {
             pactCode: `
             (kswap.exchange.create-pair
-                ${token0}
-                ${token1}
+                ${token0.code}
+                ${token1.code}
                 ""
             )
             (kswap.exchange.add-liquidity
-                ${token0}
-                ${token1}
+                ${token0.code}
+                ${token1.code}
                 (read-decimal 'amountDesired0)
                 (read-decimal 'amountDesired1)
                 (read-decimal 'amountMinimum0)
@@ -278,8 +278,8 @@ export const PactProvider = (props) => {
             keyPairs: {
               ...keyPair,
               clist: [
-                {name: `${token0}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
-                {name: `${token1}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
+                {name: `${token0.code}.TRANSFER`, args: [account.account, pair, Number(amountDesired0)]},
+                {name: `${token1.code}.TRANSFER`, args: [account.account, pair, Number(amountDesired1)]},
                 {name: "kswap.gas-station.GAS_PAYER", args: ["free-gas", {int: 1}, 1.0]},
               ]
             },
@@ -287,18 +287,21 @@ export const PactProvider = (props) => {
               "user-ks": [keyPair.publicKey],
               "amountDesired0": amountDesired0,
               "amountDesired1": amountDesired1,
-              "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0].precision),
-              "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1].precision)
+              "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
+              "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
             },
             meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,5000,creationTime(), 600),
             networkId: NETWORKID
           };
-        data = await Pact.fetch.local(cmd, network);
-        setCmd(cmd);
-        setLocalRes(data);
-      } catch (e) {
-        setLocalRes({});
-      }
+          let data = await Pact.fetch.local(cmd, network);
+          setCmd(cmd);
+          setLocalRes(data);
+          return data;
+        } catch (e) {
+          setLocalRes({});
+          console.log(e)
+          return -1
+        }
     } catch (e) {
       console.log(e)
     }
