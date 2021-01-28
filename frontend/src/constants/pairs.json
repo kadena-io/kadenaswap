@@ -13,5 +13,10 @@
     "name": "kswap.abc:kswap.xyz",
     "token0": "ABC",
     "token1": "XYZ"
+  },
+  "coin:free.flux": {
+    "name": "coin:free.flux",
+    "token0": "KDA",
+    "token1": "FLUX"
   }
 }
