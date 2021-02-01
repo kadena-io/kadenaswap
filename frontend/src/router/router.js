@@ -5,7 +5,8 @@ import PoolContainer from '../containers/PoolContainer';
 import SwapContainer from '../containers/SwapContainer';
 import WrapContainer from '../containers/WrapContainer';
 import StatsContainer from '../containers/StatsContainer';
-import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP, ROUTE_STATS } from './routes';
+import StaticContainer from '../containers/StaticContainer';
+import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP, ROUTE_STATS, ROUTE_STATIC } from './routes';
 
 export default () => {
   return (
@@ -17,6 +18,7 @@ export default () => {
           <Route exact path={ROUTE_POOL} component={PoolContainer} />
           <Route exact path={ROUTE_WRAP} component={WrapContainer} />
           <Route exact path={ROUTE_STATS} component={StatsContainer} />
+          <Route exact path={ROUTE_STATIC} component={StaticContainer} />
         </Switch>
       </Layout>
     </Router>
