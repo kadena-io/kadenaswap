@@ -1,0 +1,163 @@
+
+(load "../exchange.repl")
+(load "..//util/guards.repl")
+
+(begin-tx)
+(env-data {
+  'ns: "swap",
+  'upgrade: false })
+(load "kpenny.pact")
+(commit-tx)
+
+
+(begin-tx)
+(env-data
+  { 'bob: ["bob"]
+  , 'alice: ["alice"]
+  })
+
+(test-capability (coin.COINBASE))
+(coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
+(coin.coinbase "Alice" (read-keyset 'alice) 10000.0)
+
+(commit-tx)
+
+
+(begin-tx)
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" swap.kpenny.KPENNY_BANK 15.0)
+    ]
+  }])
+
+
+(expect "Convert 15.0 kda to kpenny for Bob"
+  "Write succeeded"
+  (swap.kpenny.convert "Bob" 15.0)
+)
+
+(expect "Kpenny credited for bob"
+  (* 15.0 swap.kpenny.CONVERSION_RATE) (swap.kpenny.get-balance "Bob"))
+
+(commit-tx)
+
+(begin-tx)
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(coin.TRANSFER "Bob" swap.kpenny.KPENNY_BANK 1.0)
+    ]
+  }])
+
+(expect "Convert 1.0 kda to kpenny for Bob"
+  "Write succeeded"
+  (swap.kpenny.convert "Bob" 1.0)
+)
+
+(expect "Kpenny credited for bob"
+  (* 16.0 swap.kpenny.CONVERSION_RATE) (swap.kpenny.get-balance "Bob"))
+
+(expect "Past conversions are queried"
+  [{"account": "Bob", "amount-kda": 15.0, "amount-kpenny": 15000000.0 }
+  ,{"account": "Bob", "amount-kda": 1.0, "amount-kpenny": 1000000.0 } ]
+  (swap.kpenny.read-conversions "Bob")
+)
+(commit-tx)
+
+;;swap tests
+
+;; add-liquidity
+;;
+(begin-tx)
+(use swap.exchange)
+
+(create-pair test.abc swap.kpenny "")
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(swap.kpenny.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 10.0)
+     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 40.0)
+    ]
+  }])
+
+(expect "add-liquidity"
+  { "liquidity": 19.9
+  , "supply": 20.0
+  , "amount0": 10.0
+  , "amount1": 40.0 }
+  (add-liquidity
+    swap.kpenny
+    test.abc
+    10.0
+    40.0
+    10.0
+    40.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+    ))
+
+(expect "kda debited for bob"
+  15999990.0 (swap.kpenny.get-balance "Bob"))
+(expect "abc debited for bob"
+  1960.0 (test.abc.get-balance "Bob"))
+(expect "kda credited for pair"
+  10.0 (swap.kpenny.get-balance (at 'account (get-pair swap.kpenny test.abc))))
+(expect "abc credited for pair"
+  40.0 (test.abc.get-balance (at 'account (get-pair swap.kpenny test.abc))))
+
+(commit-tx)
+
+
+;;redeem
+
+(begin-tx)
+
+(env-sigs [
+  { 'key: ""
+  , 'caps:
+    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)]
+  }, {
+    'key: "bob",
+    'caps: [(swap.kpenny.DEBIT "Bob")]
+  }])
+
+(expect "kpenny balance before redeem"
+  15999990.0 (swap.kpenny.get-balance "Bob"))
+
+(expect "kda balance before redeem"
+  1984.0 (coin.get-balance "Bob"))
+
+
+(expect-failure
+  "Chain time must be after 2021-03-15T00:00:00Z"
+  (swap.kpenny.redeem "Bob")
+)
+
+(env-chain-data { 'block-time: (time "2021-03-15T00:00:01Z" )})
+
+(swap.kpenny.redeem "Bob")
+
+(expect "kpenny balance after redeem"
+  0.0 (swap.kpenny.get-balance "Bob"))
+
+(expect "kda balance before redeem"
+  1999.99999 (coin.get-balance "Bob"))
+
+(commit-tx)
+
+;;Deadline Test
+
+;;fungible test
+
+; (begin-tx)
+; (use fungible-v2-test)
+; (test-capability (swap.kpenny.CREDIT FUNDER_ACCT))
+; (test-capability (coin.CREDIT FUNDER_ACCT))
+; (swap.kpenny.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
+; (commit-tx)
+;
+; (fungible-v2-test.suite swap.kpenny fungible-test-helper-default "transfer-crosschain-tests")
