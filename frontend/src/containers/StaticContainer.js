@@ -26,7 +26,7 @@ const StaticContainer = ({ data }) => {
           1. Get familiar with Bountyswap
           <a
             style={{ marginLeft: 3}}
-            href="https://medium.com/p/ecde4cf014dc"
+            href="https://medium.com/kadena-io/introducing-kadenaswap-bountyswap-live-beta-ecde4cf014dc"
             target="_blank"
           >
             here
