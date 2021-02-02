@@ -29,6 +29,8 @@
 
   (defcap FUND () true)
 
+  (defcap REDEEM () true)
+
   (defcap TRANSFER:bool
     ( sender:string
       receiver:string
@@ -130,20 +132,26 @@
     )
   )
 
-  (defun redeem:string (account:string)
-    (enforce-guard (at-after-date SWAP_DEADLINE))
+  (defun redeem-one:string (account:string)
+    (require-capability (REDEEM))
     (with-read ledger account
       { "balance" := amount-kpenny,
         "guard" := g
       }
-      (with-capability (DEBIT account)
-        (debit account amount-kpenny))
-      (let (
-        (amount-kda (/ amount-kpenny CONVERSION_RATE)))
-        (coin.transfer KPENNY_BANK account amount-kda)
-        (format
-          "{} KPenny redeemed at {} KDA for {}"
-          [amount-kpenny amount-kda account])))
+      (if (= amount-kpenny 0.0)
+        "Account's kpenny balance is 0.0"
+        (coin.transfer-create KPENNY_BANK account g (/ amount-kpenny CONVERSION_RATE))
+      )
+      (update ledger account {
+        "balance": 0.0
+      }))
+  )
+
+  (defun redeem-all:string ()
+    (enforce-guard (at-after-date FINAL_DEADLINE))
+    (with-capability (REDEEM)
+      (with-capability (GOVERNANCE)
+        (map (redeem-one) (keys ledger))))
   )
 
   (defun precision:integer ()

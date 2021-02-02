@@ -29,9 +29,9 @@
   { 'key: "bob"
   , 'caps:
     [(coin.TRANSFER "Bob" swap.kpenny.KPENNY_BANK 15.0)
+     ()
     ]
   }])
-
 
 (expect "Convert 15.0 kda to kpenny for Bob"
   "Write succeeded"
@@ -48,6 +48,7 @@
   { 'key: "bob"
   , 'caps:
     [(coin.TRANSFER "Bob" swap.kpenny.KPENNY_BANK 1.0)
+
     ]
   }])
 
@@ -112,42 +113,127 @@
 (commit-tx)
 
 
-;;redeem
+;;redeem without removing liquidity
 
 (begin-tx)
 
 (env-sigs [
   { 'key: ""
   , 'caps:
-    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)]
+    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
+  , (coin.TRANSFER "kpenny-bank"
+      (at 'account (swap.exchange.get-pair swap.kpenny test.abc)) 0.0001)]
   }, {
     'key: "bob",
     'caps: [(swap.kpenny.DEBIT "Bob")]
   }])
 
-(expect "kpenny balance before redeem"
+(expect "kpenny balance before redemption"
   15999990.0 (swap.kpenny.get-balance "Bob"))
 
-(expect "kda balance before redeem"
+(expect "kda balance before redemption"
   1984.0 (coin.get-balance "Bob"))
 
+(expect "kpenny balance before redeem for unremoved liquidity token"
+  10.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+
+(expect "kda balance for kpenny-bank before redemption"
+  16.0 (coin.get-balance 'kpenny-bank))
 
 (expect-failure
-  "Chain time must be after 2021-03-15T00:00:00Z"
-  (swap.kpenny.redeem "Bob")
+  "Chain time must be after 2021-03-30T00:00:00Z"
+  (swap.kpenny.redeem-all)
 )
 
-(env-chain-data { 'block-time: (time "2021-03-15T00:00:01Z" )})
+(env-chain-data { 'block-time: (time "2021-03-30T00:00:01Z" )})
 
-(swap.kpenny.redeem "Bob")
+(swap.kpenny.redeem-all)
 
-(expect "kpenny balance after redeem"
+(expect "kpenny balance after redeem for Bob"
   0.0 (swap.kpenny.get-balance "Bob"))
 
-(expect "kda balance before redeem"
+(expect "kda balance after redeem for Bob"
   1999.99999 (coin.get-balance "Bob"))
 
-(commit-tx)
+(expect "kpenny balance after redeem for unremoved liquidity token"
+  0.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+
+(expect "kda balance before redeem for unremoved liquidity token"
+  0.00001 (coin.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+
+(expect "kda balance for kpenny-bank"
+  0.0 (coin.get-balance 'kpenny-bank))
+
+(rollback-tx)
+
+;;Redeem after removing liquidty
+(begin-tx)
+(use swap.exchange)
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(swap.kpenny.TRANSFER "Bob"
+        (at 'account (get-pair test.abc swap.kpenny)) 10.0)
+     (test.abc.TRANSFER "Bob"
+        (at 'account (get-pair test.abc swap.kpenny)) 40.0)
+     (swap.tokens.TRANSFER "swap.kpenny:test.abc" "Bob"
+        (at 'account (get-pair test.abc swap.kpenny)) 19.9)
+    ]
+  }])
+
+(remove-liquidity
+    swap.kpenny
+    test.abc
+    19.9
+    0.0
+    0.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+)
+
+(env-sigs [
+  { 'key: ""
+  , 'caps:
+    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
+  , (coin.TRANSFER "kpenny-bank"
+      (at 'account (swap.exchange.get-pair swap.kpenny test.abc)) 0.0001)]
+  }, {
+    'key: "bob",
+    'caps: [(swap.kpenny.DEBIT "Bob")]
+  }])
+
+(expect "kpenny balance before redemption"
+  15999999.95 (swap.kpenny.get-balance "Bob"))
+
+(expect "kda balance before redemption"
+  1984.0 (coin.get-balance "Bob"))
+
+(expect "kpenny balance before redeem for unremoved liquidity token"
+  0.05 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+
+(expect "kda balance for kpenny-bank before redemption"
+  16.0 (coin.get-balance 'kpenny-bank))
+
+(swap.kpenny.redeem-all)
+
+(expect "kpenny balance after redeem for Bob"
+  0.0 (swap.kpenny.get-balance "Bob"))
+
+(expect "kda balance after redeem for Bob"
+  1999.99999995 (coin.get-balance "Bob"))
+
+(expect "kpenny balance after redeem for unremoved liquidity token"
+  0.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+
+(expect "kda balance before redeem for unremoved liquidity token"
+  0.00000005 (coin.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+
+(expect "kda balance for kpenny-bank"
+  0.0 (coin.get-balance 'kpenny-bank))
+
+(rollback-tx)
 
 ;;Deadline Test
 
