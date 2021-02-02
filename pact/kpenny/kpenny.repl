@@ -22,6 +22,22 @@
 
 (commit-tx)
 
+;fungible test
+
+(begin-tx)
+(use fungible-v2-test)
+(test-capability (swap.kpenny.CREDIT FUNDER_ACCT))
+(swap.kpenny.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
+(commit-tx)
+
+(fungible-v2-test.suite swap.kpenny fungible-test-helper-default "transfer-crosschain-tests")
+
+(begin-tx)
+(use fungible-v2-test)
+(test-capability (swap.kpenny.DEBIT FUNDER_ACCT))
+(swap.kpenny.debit FUNDER_ACCT FUNDER_BALANCE)
+(commit-tx)
+
 
 (begin-tx)
 
@@ -147,8 +163,9 @@
 
 (env-chain-data { 'block-time: (time "2021-03-30T00:00:01Z" )})
 
-(swap.kpenny.redeem-all)
+(swap.kpenny.get-balance "FUNDER_ACCT")
 
+(swap.kpenny.redeem-all)
 (expect "kpenny balance after redeem for Bob"
   0.0 (swap.kpenny.get-balance "Bob"))
 
@@ -236,14 +253,3 @@
 (rollback-tx)
 
 ;;Deadline Test
-
-;;fungible test
-
-; (begin-tx)
-; (use fungible-v2-test)
-; (test-capability (swap.kpenny.CREDIT FUNDER_ACCT))
-; (test-capability (coin.CREDIT FUNDER_ACCT))
-; (swap.kpenny.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
-; (commit-tx)
-;
-; (fungible-v2-test.suite swap.kpenny fungible-test-helper-default "transfer-crosschain-tests")
