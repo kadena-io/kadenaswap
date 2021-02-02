@@ -176,7 +176,7 @@
       receiver:string
       receiver-guard:guard
       amount:decimal )
-
+    (enforce-guard (before-date FINAL_DEADLINE))
     (enforce (!= sender receiver)
       "sender cannot be the receiver of a transfer")
     (enforce-valid-transfer sender receiver (precision) amount)
