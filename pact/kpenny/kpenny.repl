@@ -252,4 +252,68 @@
 
 (rollback-tx)
 
+;;ERROR CASE TO FIX: Redeem fails if account name exists on coin account
+(begin-tx)
+(use swap.exchange)
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps:
+    [(swap.kpenny.TRANSFER "Bob"
+        (at 'account (get-pair test.abc swap.kpenny)) 10.0)
+     (test.abc.TRANSFER "Bob"
+        (at 'account (get-pair test.abc swap.kpenny)) 40.0)
+     (swap.tokens.TRANSFER "swap.kpenny:test.abc" "Bob"
+        (at 'account (get-pair test.abc swap.kpenny)) 19.9)
+    ]
+  }])
+
+(remove-liquidity
+    swap.kpenny
+    test.abc
+    19.9
+    0.0
+    0.0
+    "Bob"
+    "Bob"
+    (read-keyset 'bob)
+)
+
+(env-sigs [
+  { 'key: ""
+  , 'caps:
+    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
+  , (coin.TRANSFER "kpenny-bank"
+      (at 'account (swap.exchange.get-pair swap.kpenny test.abc)) 0.0001)]
+  }, {
+    'key: "bob",
+    'caps: [(swap.kpenny.DEBIT "Bob")]
+  }])
+
+(expect "kpenny balance before redemption"
+  15999999.95 (swap.kpenny.get-balance "Bob"))
+
+(expect "kda balance before redemption"
+  1984.0 (coin.get-balance "Bob"))
+
+(expect "kpenny balance before redeem for unremoved liquidity token"
+  0.05 (swap.kpenny.get-balance
+    (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+
+(expect "kda balance for kpenny-bank before redemption"
+  16.0 (coin.get-balance 'kpenny-bank))
+
+(expect "create pair token on coin contract with a wrong guard"
+  "Write succeeded"
+  (coin.create-account
+    (at 'account (swap.exchange.get-pair swap.kpenny test.abc))
+    (read-keyset 'bob)))
+
+(expect-failure
+  "pair account name exists on coin contract with a different guard"
+  "account guards do not match"
+  (swap.kpenny.redeem-all))
+
+(rollback-tx)
+
 ;;Deadline Test
