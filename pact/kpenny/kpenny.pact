@@ -44,6 +44,7 @@
       amount:decimal
     )
     @managed amount TRANSFER-mgr
+    (enforce-guard (before-date FINAL_DEADLINE))
     (enforce-valid-transfer sender receiver (precision) amount)
     (compose-capability (DEBIT sender))
     (compose-capability (CREDIT receiver))
@@ -148,6 +149,9 @@
       { "balance" := amount-kpenny
       }
       (let ((amount-kda (/ amount-kpenny RESERVATION_RATE)))
+        (if (or (<= amount-kpenny 0.0) (swap.tokens.get))
+
+        )
         (coin.transfer KPENNY_BANK account (floor amount-kda (coin.precision)))
         (update ledger account {
           "balance" : 0.0
@@ -167,7 +171,6 @@
     MINIMUM_PRECISION)
 
   (defun transfer:string (sender:string receiver:string amount:decimal)
-    (enforce-guard (before-date FINAL_DEADLINE))
     (enforce (!= sender receiver)
       "sender cannot be the receiver of a transfer")
     (enforce-valid-transfer sender receiver (precision) amount)
@@ -185,7 +188,6 @@
       receiver:string
       receiver-guard:guard
       amount:decimal )
-    (enforce-guard (before-date FINAL_DEADLINE))
     (enforce (!= sender receiver)
       "sender cannot be the receiver of a transfer")
     (enforce-valid-transfer sender receiver (precision) amount)
