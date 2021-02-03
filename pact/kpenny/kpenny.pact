@@ -5,12 +5,12 @@
   (use swap.fungible-util)
   (use util.guards)
 
-  (defschema conversion
+  (defschema reservation
     account:string
     amount-kda:decimal
     amount-kpenny:decimal)
 
-  (deftable conversions:{conversion})
+  (deftable reservations:{reservation})
 
   (defschema entry
     balance:decimal
@@ -26,6 +26,13 @@
     (enforce-guard (at 'guard (read ledger sender))))
 
   (defcap CREDIT (receiver:string) true)
+
+  (defcap RESERVE
+    ( account:string
+      amount-kda:decimal)
+    " Reserve event for kpenny reservation"
+    @event
+    true)
 
   (defcap FUND () true)
 
@@ -55,13 +62,13 @@
 
   (defconst MINIMUM_PRECISION:integer 14)
 
-  (defconst CONVERSION_RATE:decimal 1000000.0)
+  (defconst RESERVATION_RATE:decimal 1000000.0)
 
   (defconst KPENNY_BANK:string 'kpenny-bank)
 
-  (defconst SWAP_DEADLINE (time "2021-03-15T00:00:00Z"))
+  (defconst SWAP_DEADLINE (time (read-msg "swap-deadline")))
 
-  (defconst FINAL_DEADLINE (time "2021-03-30T00:00:00Z"))
+  (defconst FINAL_DEADLINE (time (read-msg "final-deadline")))
 
   (defun kpenny-bank-guard () (create-module-guard 'kpenny-admin))
 
@@ -114,37 +121,39 @@
         (credit account guard amount))
   )
 
-  (defun convert:string (account:string amount-kda:decimal)
+  (defun reserve:string (account:string amount-kda:decimal)
     (enforce-guard (before-date SWAP_DEADLINE))
     (coin.transfer account KPENNY_BANK amount-kda)
     (let
       ( (tx-id (hash {"account": account, "amount": amount-kda, "salt": (at "block-time" (chain-data))}))
-        (amount-kpenny (* amount-kda CONVERSION_RATE))
+        (amount-kpenny (* amount-kda RESERVATION_RATE))
         (g (at 'guard (coin.details account)))
       )
-      (insert conversions (format "{}-{}" [account, tx-id])
-        { "account"        : account
-        , "amount-kda"     : amount-kda
-        , "amount-kpenny"  : amount-kpenny
-        })
-      (with-capability (FUND)
-        (fund account amount-kpenny g))
+      ; (insert reservations (format "{}-{}" [account, tx-id])
+      ;   { "account"        : account
+      ;   , "amount-kda"     : amount-kda
+      ;   , "amount-kpenny"  : amount-kpenny
+      ;   })
+      (with-capability (RESERVE account amount-kda)
+        (with-capability (FUND)
+          (fund account amount-kpenny g))
+      )
+
     )
   )
 
   (defun redeem-one:string (account:string)
     (require-capability (REDEEM))
     (with-read ledger account
-      { "balance" := amount-kpenny,
-        "guard" := g
+      { "balance" := amount-kpenny
       }
-      (if (= amount-kpenny 0.0)
-        "Account's kpenny balance is 0.0"
-        (coin.transfer-create KPENNY_BANK account g (/ amount-kpenny CONVERSION_RATE))
+      (let ((amount-kda (/ amount-kpenny RESERVATION_RATE)))
+        (coin.transfer KPENNY_BANK account (floor amount-kda (coin.precision)))
+        (update ledger account {
+          "balance" : 0.0
+        })
       )
-      (update ledger account {
-        "balance": 0.0
-      }))
+    )
   )
 
   (defun redeem-all:string ()
@@ -216,9 +225,9 @@
         })
       ))
 
-  (defun read-conversions (account:string)
-    (select conversions (where 'account (= account)))
-  )
+  ; (defun read-reservations (account:string)
+  ;   (select reservations (where 'account (= account)))
+  ; )
 
   (defpact transfer-crosschain:string
     ( sender:string
@@ -234,7 +243,7 @@
 
 (if (read-msg 'upgrade)
   ["upgrade"]
-  [ (create-table conversions)
+  [ (create-table reservations)
     (create-table ledger)
     (init)
   ]

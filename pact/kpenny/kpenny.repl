@@ -5,7 +5,9 @@
 (begin-tx)
 (env-data {
   'ns: "swap",
-  'upgrade: false })
+  'upgrade: false,
+  'swap-deadline: "2021-03-15T00:00:00Z",
+  'final-deadline: "2021-03-15T00:00:00Z" })
 (load "kpenny.pact")
 (commit-tx)
 
@@ -51,11 +53,11 @@
 
 (expect "Convert 15.0 kda to kpenny for Bob"
   "Write succeeded"
-  (swap.kpenny.convert "Bob" 15.0)
+  (swap.kpenny.reserve "Bob" 15.0)
 )
 
 (expect "Kpenny credited for bob"
-  (* 15.0 swap.kpenny.CONVERSION_RATE) (swap.kpenny.get-balance "Bob"))
+  (* 15.0 swap.kpenny.RESERVATION_RATE) (swap.kpenny.get-balance "Bob"))
 
 (commit-tx)
 
@@ -70,17 +72,17 @@
 
 (expect "Convert 1.0 kda to kpenny for Bob"
   "Write succeeded"
-  (swap.kpenny.convert "Bob" 1.0)
+  (swap.kpenny.reserve "Bob" 1.0)
 )
 
 (expect "Kpenny credited for bob"
-  (* 16.0 swap.kpenny.CONVERSION_RATE) (swap.kpenny.get-balance "Bob"))
+  (* 16.0 swap.kpenny.RESERVATION_RATE) (swap.kpenny.get-balance "Bob"))
 
-(expect "Past conversions are queried"
-  [{"account": "Bob", "amount-kda": 15.0, "amount-kpenny": 15000000.0 }
-  ,{"account": "Bob", "amount-kda": 1.0, "amount-kpenny": 1000000.0 } ]
-  (swap.kpenny.read-conversions "Bob")
-)
+; (expect "Past conversions are queried"
+;   [{"account": "Bob", "amount-kda": 15.0, "amount-kpenny": 15000000.0 }
+;   ,{"account": "Bob", "amount-kda": 1.0, "amount-kpenny": 1000000.0 } ]
+;   (swap.kpenny.read-reservations "Bob")
+; )
 (commit-tx)
 
 ;;swap tests
@@ -166,6 +168,7 @@
 (swap.kpenny.get-balance "FUNDER_ACCT")
 
 (swap.kpenny.redeem-all)
+
 (expect "kpenny balance after redeem for Bob"
   0.0 (swap.kpenny.get-balance "Bob"))
 
