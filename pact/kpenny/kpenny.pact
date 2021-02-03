@@ -36,7 +36,10 @@
 
   (defcap FUND () true)
 
-  (defcap REDEEM () true)
+  (defcap REDEEM (account:string)
+    (enforce-guard (at-after-date FINAL_DEADLINE))
+    (enforce-guard (at 'guard (read ledger account)))
+  )
 
   (defcap TRANSFER:bool
     ( sender:string
@@ -130,11 +133,11 @@
         (amount-kpenny (* amount-kda RESERVATION_RATE))
         (g (at 'guard (coin.details account)))
       )
-      ; (insert reservations (format "{}-{}" [account, tx-id])
-      ;   { "account"        : account
-      ;   , "amount-kda"     : amount-kda
-      ;   , "amount-kpenny"  : amount-kpenny
-      ;   })
+      (insert reservations (format "{}-{}" [account, tx-id])
+        { "account"        : account
+        , "amount-kda"     : amount-kda
+        , "amount-kpenny"  : amount-kpenny
+        })
       (with-capability (RESERVE account amount-kda)
         (with-capability (FUND)
           (fund account amount-kpenny g))
@@ -143,29 +146,24 @@
     )
   )
 
-  (defun redeem-one:string (account:string)
-    (require-capability (REDEEM))
-    (with-read ledger account
-      { "balance" := amount-kpenny
-      }
-      (let ((amount-kda (/ amount-kpenny RESERVATION_RATE)))
-        (if (or (<= amount-kpenny 0.0) (swap.tokens.get))
-
-        )
-        (coin.transfer KPENNY_BANK account (floor amount-kda (coin.precision)))
-        (update ledger account {
-          "balance" : 0.0
-        })
-      )
-    )
-  )
-
-  (defun redeem-all:string ()
-    (enforce-guard (at-after-date FINAL_DEADLINE))
-    (with-capability (REDEEM)
-      (with-capability (GOVERNANCE)
-        (map (redeem-one) (keys ledger))))
-  )
+  (defun redeem:string (account:string redeem-account:string redeem-guard:guard)
+    (with-capability (REDEEM account)
+      (with-read ledger account
+        { "balance" := amount-kpenny
+        }
+        (let ((amount-kda (floor (/ amount-kpenny RESERVATION_RATE) (coin.precision))))
+          (coin.transfer-create KPENNY_BANK redeem-account redeem-guard amount-kda)
+          (update ledger account {
+            "balance" : 0.0
+          })
+          {
+            "account": account,
+            "balance": amount-kpenny,
+            "redeem-account": redeem-account,
+            "redeem-guard": redeem-guard,
+            "redeem-kda": amount-kda
+          }
+          ))))
 
   (defun precision:integer ()
     MINIMUM_PRECISION)
@@ -227,9 +225,9 @@
         })
       ))
 
-  ; (defun read-reservations (account:string)
-  ;   (select reservations (where 'account (= account)))
-  ; )
+  (defun read-reservations (account:string)
+    (select reservations (where 'account (= account)))
+  )
 
   (defpact transfer-crosschain:string
     ( sender:string

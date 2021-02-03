@@ -7,9 +7,10 @@
   'ns: "swap",
   'upgrade: false,
   'swap-deadline: "2021-03-15T00:00:00Z",
-  'final-deadline: "2021-03-15T00:00:00Z" })
+  'final-deadline: "2021-03-30T00:00:00Z" })
 (load "kpenny.pact")
 (commit-tx)
+
 
 
 (begin-tx)
@@ -78,11 +79,11 @@
 (expect "Kpenny credited for bob"
   (* 16.0 swap.kpenny.RESERVATION_RATE) (swap.kpenny.get-balance "Bob"))
 
-; (expect "Past conversions are queried"
-;   [{"account": "Bob", "amount-kda": 15.0, "amount-kpenny": 15000000.0 }
-;   ,{"account": "Bob", "amount-kda": 1.0, "amount-kpenny": 1000000.0 } ]
-;   (swap.kpenny.read-reservations "Bob")
-; )
+(expect "Past conversions are queried"
+  [{"account": "Bob", "amount-kda": 15.0, "amount-kpenny": 15000000.0 }
+  ,{"account": "Bob", "amount-kda": 1.0, "amount-kpenny": 1000000.0 } ]
+  (swap.kpenny.read-reservations "Bob")
+)
 (commit-tx)
 
 ;;swap tests
@@ -138,13 +139,17 @@
 (env-sigs [
   { 'key: ""
   , 'caps:
-    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
-  , (coin.TRANSFER "kpenny-bank"
-      (at 'account (swap.exchange.get-pair swap.kpenny test.abc)) 0.0001)]
-  }, {
-    'key: "bob",
-    'caps: [(swap.kpenny.DEBIT "Bob")]
-  }])
+    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)]
+  },
+  { 'key: "bob"
+  , 'caps: [(swap.kpenny.REDEEM "Bob")]
+  }
+])
+
+(env-data
+  { 'bob: ["bob"]
+})
+
 
 (expect "kpenny balance before redemption"
   15999990.0 (swap.kpenny.get-balance "Bob"))
@@ -160,14 +165,12 @@
 
 (expect-failure
   "Chain time must be after 2021-03-30T00:00:00Z"
-  (swap.kpenny.redeem-all)
+  (swap.kpenny.redeem "Bob" "Bob" (read-keyset 'Bob))
 )
 
 (env-chain-data { 'block-time: (time "2021-03-30T00:00:01Z" )})
 
-(swap.kpenny.get-balance "FUNDER_ACCT")
-
-(swap.kpenny.redeem-all)
+(swap.kpenny.redeem "Bob" "Bob" (read-keyset 'bob))
 
 (expect "kpenny balance after redeem for Bob"
   0.0 (swap.kpenny.get-balance "Bob"))
@@ -175,20 +178,18 @@
 (expect "kda balance after redeem for Bob"
   1999.99999 (coin.get-balance "Bob"))
 
-(expect "kpenny balance after redeem for unremoved liquidity token"
-  0.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
-
-(expect "kda balance before redeem for unremoved liquidity token"
-  0.00001 (coin.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+(expect "kpenny balance for unremoved liquidity token"
+  10.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
 
 (expect "kda balance for kpenny-bank"
-  0.0 (coin.get-balance 'kpenny-bank))
+  0.00001 (coin.get-balance 'kpenny-bank))
 
 (rollback-tx)
 
 ;;Redeem after removing liquidty
 (begin-tx)
 (use swap.exchange)
+(env-chain-data { 'block-time: (time "2021-03-14T00:00:01Z" )})
 (env-sigs [
   { 'key: "bob"
   , 'caps:
@@ -198,10 +199,9 @@
         (at 'account (get-pair test.abc swap.kpenny)) 40.0)
      (swap.tokens.TRANSFER "swap.kpenny:test.abc" "Bob"
         (at 'account (get-pair test.abc swap.kpenny)) 19.9)
+     (swap.kpenny.REDEEM "Bob")
     ]
   }])
-
-(env-chain-data { 'block-time: (time "2021-03-29T00:00:00Z" )})
 
 (remove-liquidity
     swap.kpenny
@@ -216,14 +216,12 @@
 
 (env-sigs [
   { 'key: ""
-  , 'caps:
-    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
-  , (coin.TRANSFER "kpenny-bank"
-      (at 'account (swap.exchange.get-pair swap.kpenny test.abc)) 0.0001)]
-  }, {
-    'key: "bob",
-    'caps: [(swap.kpenny.DEBIT "Bob")]
-  }])
+  , 'caps: [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)]
+  },
+  { 'key: "bob",
+    'caps: [(swap.kpenny.REDEEM 'Bob)]
+  }
+  ])
 
 (expect "kpenny balance before redemption"
   15999999.95 (swap.kpenny.get-balance "Bob"))
@@ -239,7 +237,7 @@
 
 (env-chain-data { 'block-time: (time "2021-03-30T00:00:01Z" )})
 
-(swap.kpenny.redeem-all)
+(swap.kpenny.redeem "Bob" "Bob" (read-keyset 'bob))
 
 (expect "kpenny balance after redeem for Bob"
   0.0 (swap.kpenny.get-balance "Bob"))
@@ -247,83 +245,74 @@
 (expect "kda balance after redeem for Bob"
   1999.99999995 (coin.get-balance "Bob"))
 
-(expect "kpenny balance after redeem for unremoved liquidity token"
-  0.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
-
-(expect "kda balance before redeem for unremoved liquidity token"
-  0.00000005 (coin.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
-
-(expect "kda balance for kpenny-bank"
-  0.0 (coin.get-balance 'kpenny-bank))
-
 (rollback-tx)
 
-;;ERROR CASE TO FIX: Redeem fails if account name exists on coin account
+;; precision test for redeem
+
 (begin-tx)
 (use swap.exchange)
-
-(env-sigs [
-  { 'key: "bob"
-  , 'caps:
-    [(swap.kpenny.TRANSFER "Bob"
-        (at 'account (get-pair test.abc swap.kpenny)) 10.0)
-     (test.abc.TRANSFER "Bob"
-        (at 'account (get-pair test.abc swap.kpenny)) 40.0)
-     (swap.tokens.TRANSFER "swap.kpenny:test.abc" "Bob"
-        (at 'account (get-pair test.abc swap.kpenny)) 19.9)
-    ]
-  }])
-
-(env-chain-data { 'block-time: (time "2021-03-29T00:00:00Z" )})
-
-(remove-liquidity
-    swap.kpenny
-    test.abc
-    19.9
-    0.0
-    0.0
-    "Bob"
-    "Bob"
-    (read-keyset 'bob)
-)
-
+(env-data
+  { 'bob: ["bob"]
+  , 'alice: ["alice"]
+  })
 (env-sigs [
   { 'key: ""
-  , 'caps:
-    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
-  , (coin.TRANSFER "kpenny-bank"
-      (at 'account (swap.exchange.get-pair swap.kpenny test.abc)) 0.0001)]
-  }, {
-    'key: "bob",
-    'caps: [(swap.kpenny.DEBIT "Bob")]
-  }])
+  , 'caps: [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
+            (coin.TRANSFER "kpenny-bank" "Alice" (/ 0.10001 swap.kpenny.RESERVATION_RATE))
+  ]
+  },
+  { 'key: "bob",
+    'caps: [
+      (swap.kpenny.TRANSFER "Bob" "Alice" 0.10001)
+      (swap.kpenny.REDEEM 'Bob)]
+  }
+  { 'key: "alice",
+    'caps: [(swap.kpenny.REDEEM 'Alice)]
+  }
+  ])
 
-(expect "kpenny balance before redemption"
-  15999999.95 (swap.kpenny.get-balance "Bob"))
+(env-chain-data { 'block-time: (time "2021-03-14T00:00:01Z" )})
 
-(expect "kda balance before redemption"
-  1984.0 (coin.get-balance "Bob"))
+(expect "transfer kpenny to Alice"
+  "Write succeeded"
+  (swap.kpenny.transfer-create "Bob" "Alice" (read-keyset 'alice) 0.00000000000001))
 
 (expect "kpenny balance before redeem for unremoved liquidity token"
-  0.05 (swap.kpenny.get-balance
-    (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+  15999989.99999999999999 (swap.kpenny.get-balance "Bob"))
 
 (expect "kda balance for kpenny-bank before redemption"
   16.0 (coin.get-balance 'kpenny-bank))
 
-(expect "create pair token on coin contract with a wrong guard"
-  "Write succeeded"
-  (coin.create-account
-    (at 'account (swap.exchange.get-pair swap.kpenny test.abc))
-    (read-keyset 'bob)))
-
 (env-chain-data { 'block-time: (time "2021-03-30T00:00:01Z" )})
 
-(expect-failure
-  "pair account name exists on coin contract with a different guard"
-  "account guards do not match"
-  (swap.kpenny.redeem-all))
+(expect "Redeem Bob's balance floored at coin.precision"
+  { "account": "Bob",
+    "balance": 15999989.99999999999999,
+    "redeem-account": "Bob",
+    "redeem-kda": 15.999989999999,
+    "redeem-guard": (read-keyset 'bob)
+  }
+  (swap.kpenny.redeem "Bob" "Bob" (read-keyset 'bob))
+)
+
+(expect "kpenny balance after redeem for Bob"
+  0.0 (swap.kpenny.get-balance "Bob"))
+
+(expect "kda balance after redeem for Bob"
+  1999.999989999999 (coin.get-balance "Bob"))
 
 (rollback-tx)
+
+;; test upgradeability
+(begin-tx)
+(env-data
+  { 'swap-ns-user: []
+  , 'swap-ns-admin: []
+  , 'ns: "swap"
+  , 'upgrade: true
+  , 'swap-deadline: "2021-03-15T00:00:00Z"
+  , 'final-deadline: "2021-03-30T00:00:00Z" })
+(load "kpenny.pact")
+(commit-tx)
 
 ;;Deadline Test
