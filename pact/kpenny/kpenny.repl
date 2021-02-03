@@ -11,8 +11,6 @@
 (load "kpenny.pact")
 (commit-tx)
 
-
-
 (begin-tx)
 (env-data
   { 'bob: ["bob"]
