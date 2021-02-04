@@ -285,8 +285,8 @@ export const PactProvider = (props) => {
             },
             envData: {
               "user-ks": [keyPair.publicKey],
-              "amountDesired0": amountDesired0,
-              "amountDesired1": amountDesired1,
+              "amountDesired0": reduceBalance(amountDesired0,tokenData[token0.name].precision),
+              "amountDesired1": reduceBalance(amountDesired1,tokenData[token1.name].precision),
               "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
               "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
             },
@@ -341,8 +341,8 @@ export const PactProvider = (props) => {
           },
           envData: {
             "user-ks": account.guard,
-            "amountDesired0": amountDesired0,
-            "amountDesired1": amountDesired1,
+            "amountDesired0": reduceBalance(amountDesired0,tokenData[token0.name].precision),
+            "amountDesired1": reduceBalance(amountDesired1,tokenData[token1.name].precision),
             "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
             "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
           },
@@ -386,8 +386,8 @@ export const PactProvider = (props) => {
         ttl: 600,
         envData: {
           "user-ks": account.guard,
-          "amountDesired0": amountDesired0,
-          "amountDesired1": amountDesired1,
+          "amountDesired0": reduceBalance(amountDesired0,tokenData[token0.name].precision),
+          "amountDesired1": reduceBalance(amountDesired1,tokenData[token0.name].precision),
           "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
           "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
         }
@@ -448,7 +448,7 @@ export const PactProvider = (props) => {
           },
           envData: {
             "user-ks": account.guard,
-            "liquidity": liquidity
+            "liquidity": reduceBalance(liquidity,PRECISION),
           },
           meta: Pact.lang.mkMeta("kswap-free-gas", chainId ,GAS_PRICE,3000,creationTime(), 600),
         };
@@ -489,7 +489,7 @@ export const PactProvider = (props) => {
         ttl: 600,
         envData: {
           "user-ks": account.guard,
-          "liquidity": liquidity
+          "liquidity": reduceBalance(liquidity,PRECISION)
         }
       }
       //alert to sign tx
@@ -737,10 +737,10 @@ export const PactProvider = (props) => {
           },
           envData: {
             "user-ks": account.guard,
-            "token0Amount": token0.amount,
-            "token1Amount": token1.amount,
-            "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.name].precision),
-            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.name].precision)
+            "token0Amount": reduceBalance(token0.amount, tokenData[token0.coin].precision),
+            "token1Amount": reduceBalance(token1.amount, tokenData[token1.coin].precision),
+            "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.coin].precision),
+            "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)
           },
           meta: Pact.lang.mkMeta("", "" ,0,0,0,0),
           networkId: NETWORKID,
@@ -803,8 +803,8 @@ export const PactProvider = (props) => {
           },
           envData: {
             "user-ks": account.guard,
-            "token0Amount": token0.amount,
-            "token1Amount": token1.amount,
+            "token0Amount": reduceBalance(token0.amount, tokenData[token0.coin].precision),
+            "token1Amount": reduceBalance(token1.amount, tokenData[token1.coin].precision),
             "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.coin].precision),
             "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)
           },
@@ -867,8 +867,8 @@ export const PactProvider = (props) => {
         ttl: 600,
         envData: {
           "user-ks": account.guard,
-          "token0Amount": token0.amount,
-          "token1Amount": token1.amount,
+          "token0Amount": reduceBalance(token0.amount, tokenData[token0.coin].precision),
+          "token1Amount": reduceBalance(token1.amount, tokenData[token1.coin].precision),
           "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision),
           "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.coin].precision)
         }
