@@ -4,3 +4,4 @@ export const ROUTE_POOL = '/pool';
 export const ROUTE_WRAP = '/wrap';
 export const ROUTE_STATS = '/stats';
 export const ROUTE_STATIC = '/bountyswap';
+export const ROUTE_KPENNY = '/kpenny';
