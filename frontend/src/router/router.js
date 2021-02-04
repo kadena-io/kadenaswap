@@ -6,7 +6,8 @@ import SwapContainer from '../containers/SwapContainer';
 import WrapContainer from '../containers/WrapContainer';
 import StatsContainer from '../containers/StatsContainer';
 import StaticContainer from '../containers/StaticContainer';
-import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP, ROUTE_STATS, ROUTE_STATIC } from './routes';
+import KpennyContainer from '../containers/KpennyContainer';
+import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP, ROUTE_STATS, ROUTE_STATIC, ROUTE_KPENNY } from './routes';
 
 export default () => {
   return (
@@ -19,6 +20,7 @@ export default () => {
           <Route exact path={ROUTE_WRAP} component={WrapContainer} />
           <Route exact path={ROUTE_STATS} component={StatsContainer} />
           <Route exact path={ROUTE_STATIC} component={StaticContainer} />
+          <Route exact path={ROUTE_KPENNY} component={KpennyContainer} />
         </Switch>
       </Layout>
     </Router>

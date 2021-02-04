@@ -1013,6 +1013,121 @@ export const PactProvider = (props) => {
     return false
   }
 
+
+//------------------------------------------------------------------------------------------------------------------------
+//                  START KPENNY FUNCTIONS ONLY
+//------------------------------------------------------------------------------------------------------------------------
+
+const kpennyReserveLocal = async (amtKda) => {
+  try {
+    let privKey = signing.key
+    if (signing.method === 'pk+pw') {
+      const pw = await pwPrompt();
+      privKey = await decryptKey(pw)
+    }
+    if (privKey.length !== 64) {
+      return -1
+    }
+    const ct = creationTime();
+    const pactCode = `(kswap.kpenny.reserve ${JSON.stringify(account.account)} (read-decimal 'amt))`
+    const cmd = {
+        pactCode: pactCode,
+        keyPairs: {
+          publicKey: account.guard.keys[0],
+          secretKey: privKey,
+          clist: [
+            { name:
+              "kswap.gas-station.GAS_PAYER",
+              args: ["free-gas", {int: 1}, 1.0]
+            },
+            { name:
+              `coin.TRANSFER`,
+              args: [
+                account.account,
+                "kpenny-bank",
+                reduceBalance(amtKda, 12),
+              ]
+            },
+          ]
+        },
+        envData: {
+          "amt": amtKda
+        },
+        networkId: NETWORKID,
+        meta: Pact.lang.mkMeta("kswap-free-gas", chainId, GAS_PRICE, 3000, ct, 600),
+    }
+    console.log(cmd)
+    setCmd(cmd);
+    let data = await Pact.fetch.local(cmd, network);
+    console.log(data)
+    setLocalRes(data);
+    return data;
+  } catch (e) {
+    console.log(e)
+    setLocalRes({});
+    return -1
+  }
+}
+
+const kpennyReserveWallet = async (amtKda) => {
+  try {
+    const pactCode = `(kswap.kpenny.reserve ${JSON.stringify(account.account)} (read-decimal 'amt))`
+    const signCmd = {
+      pactCode: pactCode,
+      caps: [
+        Pact.lang.mkCap(
+          "Gas Station",
+          "free gas",
+          "kswap.gas-station.GAS_PAYER",
+          ["free-gas", {int: 1}, 1.0]
+        ),
+        Pact.lang.mkCap(
+          "transfer capability",
+          "trasnsfer token in",
+          `coin.TRANSFER`,
+          [
+            account.account,
+            "kpenny-bank",
+            reduceBalance(amtKda, 12)
+          ]
+        ),
+      ],
+      sender: "kswap-free-gas",
+      gasLimit: 3000,
+      chainId: chainId,
+      ttl: 600,
+      envData: {
+        "amt": amtKda
+      },
+    }
+    //alert to sign tx
+    walletLoading();
+    console.log(signCmd)
+    const cmd = await Pact.wallet.sign(signCmd);
+    //close alert programmatically
+    swal.close()
+    setWalletSuccess(true)
+    const res = await Pact.wallet.sendSigned(cmd, network);
+    console.log(res)
+    //this is a small hack to get the polling header widget to work
+    setLocalRes({ reqKey: res.requestKeys[0] })
+    setPolling(true)
+    pollingNotif(res.requestKeys[0]);
+    await listen(res.requestKeys[0]);
+    setPolling(false)
+  } catch (e) {
+    //wallet error alert
+    if (e.message.includes('Failed to fetch')) walletError()
+    else walletSigError()
+    console.log(e)
+  }
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                  END KPENNY FUNCTIONS ONLY
+//------------------------------------------------------------------------------------------------------------------------
+
+
   return (
     <PactContext.Provider
       value={{
@@ -1084,7 +1199,9 @@ export const PactProvider = (props) => {
         pw,
         setPw,
         storeTtl,
-        tokenData
+        tokenData,
+        kpennyReserveLocal,
+        kpennyReserveWallet
       }}
     >
       {props.children}
