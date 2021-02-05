@@ -36,7 +36,7 @@ const StaticContainer = ({ data }) => {
           2. Download
           <a
             style={{ marginLeft: 3}}
-            href="https://github.com/zelcash/ZelCore/releases/tag/v4.6.0-beta-build-2524"
+            href="https://github.com/zelcash/ZelCore/releases/tag/v4.7.1-beta-build-2567"
             target="_blank"
           >
             Zelcore Wallet

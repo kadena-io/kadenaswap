@@ -95,6 +95,7 @@ const KpennyContainer = ({ data }) => {
               pact.kpennyReserveWallet(amount)
               setLoading(false)
             }
+            setAmount("");
           }}
         >
           {getButtonLabel()}
