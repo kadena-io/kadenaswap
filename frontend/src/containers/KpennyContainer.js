@@ -63,12 +63,22 @@ const KpennyContainer = ({ data }) => {
             setAmount(value)
           }}
         />
+        <>
+         <RowContainer>
+           <Label>Price</Label>
+           <span>1000000 KPY per KDA</span>
+         </RowContainer>
+       </>
         {(getButtonLabel() === "RESERVE"
           ?
             <>
              <RowContainer>
+               <Label>send</Label>
+               <span>{amount} KDA</span>
+              </RowContainer>
+              <RowContainer>
                <Label>recieve</Label>
-               <span>{amount * 1000000} Kpenny</span>
+               <span>{amount * 1000000} KPY</span>
              </RowContainer>
            </>
           :
