@@ -387,7 +387,7 @@ export const PactProvider = (props) => {
         envData: {
           "user-ks": account.guard,
           "amountDesired0": reduceBalance(amountDesired0,tokenData[token0.name].precision),
-          "amountDesired1": reduceBalance(amountDesired1,tokenData[token0.name].precision),
+          "amountDesired1": reduceBalance(amountDesired1,tokenData[token1.name].precision),
           "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
           "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
         },

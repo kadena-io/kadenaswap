@@ -18,5 +18,15 @@
     "name": "coin:free.flux",
     "token0": "KDA",
     "token1": "FLUX"
+  },
+  "kswap.kpenny:kswap.abc": {
+    "name": "kswap.kpenny:kswap.abc",
+    "token0": "KPENNY",
+    "token1": "ABC"
+  },
+  "kswap.kpenny:kswap.xyz": {
+    "name": "kswap.kpenny:kswap.xyz",
+    "token0": "KPENNY",
+    "token1": "XYZ"
   }
 }
