@@ -1,4 +1,4 @@
-export const reduceBalance = (balance, prec=3) => {
+export const reduceBalance = (balance, prec=6) => {
   if (balance) {
     if (balance.int) balance=balance.int;
     if (balance.decimal) balance=balance.decimal;

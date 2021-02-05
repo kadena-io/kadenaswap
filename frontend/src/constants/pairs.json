@@ -21,12 +21,12 @@
   },
   "kswap.kpenny:kswap.abc": {
     "name": "kswap.kpenny:kswap.abc",
-    "token0": "KPENNY",
+    "token0": "KPY",
     "token1": "ABC"
   },
   "kswap.kpenny:kswap.xyz": {
     "name": "kswap.kpenny:kswap.xyz",
-    "token0": "KPENNY",
+    "token0": "KPY",
     "token1": "XYZ"
   }
 }
