@@ -390,7 +390,8 @@ export const PactProvider = (props) => {
           "amountDesired1": reduceBalance(amountDesired1,tokenData[token0.name].precision),
           "amountMinimum0": reduceBalance(amountDesired0*(1-parseFloat(slippage)),tokenData[token0.name].precision),
           "amountMinimum1": reduceBalance(amountDesired1*(1-parseFloat(slippage)),tokenData[token1.name].precision)
-        }
+        },
+        signingPubKey: account.guard.keys[0]
       }
       //alert to sign tx
       walletLoading();
@@ -490,7 +491,8 @@ export const PactProvider = (props) => {
         envData: {
           "user-ks": account.guard,
           "liquidity": reduceBalance(liquidity,PRECISION)
-        }
+        },
+        signingPubKey: account.guard.keys[0]
       }
       //alert to sign tx
       walletLoading();
@@ -871,7 +873,8 @@ export const PactProvider = (props) => {
           "token1Amount": reduceBalance(token1.amount, tokenData[token1.coin].precision),
           "token0AmountWithSlippage": reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision),
           "token1AmountWithSlippage": reduceBalance(token1.amount*(1-parseFloat(slippage)), tokenData[token1.coin].precision)
-        }
+        },
+        signingPubKey: account.guard.keys[0]
       }
       //alert to sign tx
       walletLoading();
@@ -1099,6 +1102,8 @@ const kpennyReserveWallet = async (amtKda) => {
       envData: {
         "amt": amtKda
       },
+      signingPubKey: account.guard.keys[0]
+
     }
     //alert to sign tx
     walletLoading();
