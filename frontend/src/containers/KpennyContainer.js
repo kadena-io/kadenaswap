@@ -65,7 +65,7 @@ const KpennyContainer = ({ data }) => {
         />
         <>
          <RowContainer>
-           <Label>Price</Label>
+           <Label>Rate</Label>
            <span>1000000 KPY per KDA</span>
          </RowContainer>
        </>
