@@ -152,6 +152,7 @@
         { "balance" := amount-kpenny
         }
         (let ((amount-kda (floor (/ amount-kpenny RESERVATION_RATE) (coin.precision))))
+          (install-capability (coin.TRANSFER KPENNY_BANK redeem-account amount-kda))
           (coin.transfer-create KPENNY_BANK redeem-account redeem-guard amount-kda)
           (update ledger account {
             "balance" : 0.0

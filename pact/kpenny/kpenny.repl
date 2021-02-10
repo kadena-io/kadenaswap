@@ -135,10 +135,6 @@
 (begin-tx)
 
 (env-sigs [
-  { 'key: ""
-  , 'caps:
-    [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)]
-  },
   { 'key: "bob"
   , 'caps: [(swap.kpenny.REDEEM "Bob")]
   }
@@ -213,9 +209,6 @@
 )
 
 (env-sigs [
-  { 'key: ""
-  , 'caps: [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)]
-  },
   { 'key: "bob",
     'caps: [(swap.kpenny.REDEEM 'Bob)]
   }
@@ -254,11 +247,6 @@
   , 'alice: ["alice"]
   })
 (env-sigs [
-  { 'key: ""
-  , 'caps: [(coin.TRANSFER "kpenny-bank" "Bob" 16.0)
-            (coin.TRANSFER "kpenny-bank" "Alice" (/ 0.10001 swap.kpenny.RESERVATION_RATE))
-  ]
-  },
   { 'key: "bob",
     'caps: [
       (swap.kpenny.TRANSFER "Bob" "Alice" 0.10001)
