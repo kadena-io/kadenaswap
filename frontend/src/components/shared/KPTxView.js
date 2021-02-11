@@ -78,7 +78,7 @@ const Value = styled.span`
 `;
 
 
-const KPTxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1, createTokenPair, amtKda}) => {
+const KPTxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, token1, createTokenPair, amtKda, isRedeem}) => {
   const pact = useContext(PactContext);
 
   const [loading, setLoading] = useState(false)
@@ -93,13 +93,13 @@ const KPTxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, to
           <SpaceBetweenRow>
             <Label>Send</Label>
             <Value>
-              {`${amtKda} KDA`}
+              {isRedeem ? `${amtKda * 100000000} KPY` : `${amtKda} KDA`}
             </Value>
           </SpaceBetweenRow>
           <SpaceBetweenRow style={{ padding: '16px 0px' }}>
             <Label>Receive</Label>
             <Value>
-              {`${(amtKda * 1000000)} Kpenny`}
+              {isRedeem ? `${(amtKda)} KDA` : `${(amtKda * 1000000)} KPY`}
             </Value>
           </SpaceBetweenRow>
           <SpaceBetweenRow>

@@ -28,71 +28,57 @@ const Label = styled.span`
   text-transform: capitalize;
 `;
 
-const KpennyContainer = ({ data }) => {
+const KpennyRedeemContainer = ({ data }) => {
 
   const pact = React.useContext(PactContext);
 
+  const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [showTxModal, setShowTxModal] = useState(false);
 
+  useEffect(() => {
+    if (pact.tokenData["KPY"].balance) setBalance(pact.tokenData["KPY"].balance);
+  }, [pact])
+
   const getButtonLabel = () => {
     if (!pact.account.account) return 'Connect your KDA wallet';
     if (!pact.hasWallet()) return 'Set signing method in wallet';
-    if (!amount) return 'Enter an amount';
-    if (amount > pact.account.balance) return `Insufficient KDA balance`
-    return 'RESERVE';
+    if (balance === 0) return `You Don't own KPY`
+    return 'REDEEM';
   };
 
   return (
     <Container>
       <KPTxView
         show={showTxModal}
-        amtKda={amount}
+        amtKda={(balance ? balance / 1000000 : 0)}
         onClose={() => setShowTxModal(false)}
-        isRedeem={false}
+        isRedeem={true}
       />
-      <FormContainer title="Reserve your Kpenny"  containerStyle={{ maxWidth: 500 }}>
-        <Input
-          // error={isNaN(fromValues.amount)}
-          // leftLabel={`from ${fromNote}`}
-          // rightLabel={`balance: ${reduceBalance(fromValues.balance) ?? '-'}`}
-          placeholder="enter amount of KDA"
-          numberOnly
-          value={amount}
-          onChange={async (e, { value }) => {
-            setAmount(value)
-          }}
-        />
+      <FormContainer title="Redeem from Kpenny"  containerStyle={{ maxWidth: 500 }}>
         <>
+          <RowContainer>
+            <Label>Balance</Label>
+            <span>{balance} KPY</span>
+          </RowContainer>
          <RowContainer>
            <Label>Rate</Label>
-           <span>1000000 KPY per KDA</span>
+           <span>0.0000001 KDA per KPY</span>
+         </RowContainer>
+         <RowContainer>
+           <Label>Recieve</Label>
+           <span>{balance / 1000000} KDA</span>
          </RowContainer>
        </>
-        {(getButtonLabel() === "RESERVE"
-          ?
-            <>
-             <RowContainer>
-               <Label>send</Label>
-               <span>{amount} KDA</span>
-              </RowContainer>
-              <RowContainer>
-               <Label>recieve</Label>
-               <span>{amount * 1000000} KPY</span>
-             </RowContainer>
-           </>
-          :
-            <></>
-        )}
         <Button
           buttonStyle={{ marginTop: 24, marginRight: 0 }}
-          disabled={getButtonLabel() !== "RESERVE" || isNaN(amount)}
+          disabled={getButtonLabel() !== "REDEEM"}
           loading={loading}
           onClick={async () => {
             setLoading(true)
             if (pact.signing.method !== 'sign') {
-              const res = await pact.kpennyReserveLocal(amount)
+              const res = await pact.kpennyRedeemLocal()
               if (res === -1) {
                 setLoading(false)
                 //error alert
@@ -103,7 +89,7 @@ const KpennyContainer = ({ data }) => {
                 setLoading(false)
               }
             } else {
-              pact.kpennyReserveWallet(amount)
+              pact.kpennyRedeemWallet()
               setLoading(false)
             }
             setAmount("");
@@ -116,4 +102,4 @@ const KpennyContainer = ({ data }) => {
   );
 };
 
-export default KpennyContainer;
+export default KpennyRedeemContainer;
