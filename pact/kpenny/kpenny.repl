@@ -166,8 +166,10 @@
 
 (commit-tx)
 
+;;
+;;Test swaps
+;;
 
-;;swap tests
 (begin-tx)
 (use swap.exchange)
 
@@ -202,7 +204,11 @@
 
 (rollback-tx)
 
-;;redeem without removing liquidity - bob's kpenny is locked in pool
+;;
+;;Test Redeem
+;;
+
+;;1. Redeem without removing liquidity - bob's kpenny is locked in pool
 
 (begin-tx)
 
@@ -276,9 +282,8 @@
 
 (rollback-tx)
 
-;;
-;;Redeem after removing liquidity
-;;
+;; 2. Redeem after removing liquidity - ideal case
+
 (begin-tx)
 
 (use swap.exchange)
@@ -340,6 +345,61 @@
 
 (expect "kpenny-bank's kda balance"
   0.00000005 (coin.get-balance 'kpenny-bank))
+
+(rollback-tx)
+
+;;3. Redeem to a different account
+
+(begin-tx)
+
+(use swap.exchange)
+
+(env-chain-data { 'block-time: (time T.REDEEM_PERIOD )})
+
+(env-sigs [
+  { 'key: "bob"
+  , 'caps: [(swap.kpenny.REDEEM "Bob")]
+  }
+])
+
+(env-data
+  { 'bob: ["bob"],
+    'bob1: ["bob1"]
+})
+
+(expect "bob's kpenny balance before redemption"
+  15999990.0 (swap.kpenny.get-balance "Bob"))
+
+(expect "bob's kda balance before redemption"
+  1984.0 (coin.get-balance "Bob"))
+
+(expect "kpenny-bank's kda balance before redemption"
+  16.0 (coin.get-balance 'kpenny-bank))
+
+(expect
+  "Redeem bob's kpenny to bob1 coin account"
+  {
+    "account": "Bob",
+    "balance": 15999990.0,
+    "redeem-account": "Bob1",
+    "redeem-guard": (read-keyset 'bob1),
+    "redeem-kda": 15.999990
+  }
+  (swap.kpenny.redeem "Bob" "Bob1" (read-keyset 'bob1)))
+
+(expect "bob's kpenny balance after redeem"
+  0.0 (swap.kpenny.get-balance "Bob"))
+
+(expect "bob's kda balance stay the same"
+  1984.0 (coin.get-balance "Bob"))
+
+(expect "coin account Bob1 is created and credited"
+  {
+    "account": "Bob1",
+    "guard": (read-keyset 'bob1),
+    "balance": 15.99999
+  }
+  (coin.details "Bob1"))
 
 (rollback-tx)
 
