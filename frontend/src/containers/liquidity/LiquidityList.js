@@ -89,6 +89,7 @@ const LiquidityList = (props) => {
       <FormContainer title="Your Liquidity">
         <RightContainer>
           <Button
+             disabled
              buttonStyle={{ marginLeft: 24 }}
              onClick={() => props.selectCreatePair()}>
              Create a pair
