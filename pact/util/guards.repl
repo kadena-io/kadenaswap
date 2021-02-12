@@ -1,0 +1,10 @@
+(env-data
+ { 'util-ns-users: ["util-ns-user"]
+ , 'util-ns-admin: ["util-ns-admin"]
+ })
+(env-keys ["util-ns-user", "util-ns-admin"])
+
+(begin-tx)
+(load "ns.pact")
+(load "guards.pact")
+(commit-tx)
