@@ -83,7 +83,7 @@
 
 
   (defun fund:string (account:string amount:decimal)
-    (with-capability (CREDIT account)
+    (with-capability (GOVERNANCE)
       (credit account
         (at 'guard (read ledger account))
         amount))
