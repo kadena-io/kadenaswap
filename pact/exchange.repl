@@ -85,13 +85,13 @@
 
 (test-capability (coin.COINBASE))
 (coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
-(test-capability (test.abc.CREDIT "Bob"))
-(test.abc.credit "Bob" (read-keyset 'bob) 2000.0)
-(test-capability (test.xyz.CREDIT "Bob"))
-(test.xyz.credit "Bob" (read-keyset 'bob) 600.0)
+(test.abc.create-account "Bob" (read-keyset 'bob))
+(test.abc.fund "Bob" 2000.0)
+(test.xyz.create-account "Bob" (read-keyset 'bob))
+(test.xyz.fund "Bob" 600.0)
 (coin.coinbase "Alice" (read-keyset 'alice) 10000.0)
-(test-capability (test.abc.CREDIT "Alice"))
-(test.abc.credit "Alice" (read-keyset 'alice) 20000.0)
+(test.abc.create-account "Alice" (read-keyset 'alice))
+(test.abc.fund "Alice" 20000.0)
 (commit-tx)
 
 

@@ -81,13 +81,12 @@
         { "guard" : new-guard }))
     )
 
-
   (defun fund:string (account:string amount:decimal)
     (with-capability (GOVERNANCE)
-      (credit account
-        (at 'guard (read ledger account))
-        amount))
-    )
+      (with-capability (CREDIT account)
+        (credit account
+          (at 'guard (read ledger account))
+          amount))))
 
   (defun precision:integer ()
     MINIMUM_PRECISION)
