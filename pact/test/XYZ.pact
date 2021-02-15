@@ -2,7 +2,7 @@
 (module xyz GOVERNANCE
 
   (implements fungible-v2)
-  (use swap.fungible-util)
+  (use fungible-util)
 
   (defschema entry
     balance:decimal
@@ -79,7 +79,7 @@
       (update ledger account
         { "guard" : new-guard }))
     )
-    
+
   (defun fund:string (account:string amount:decimal)
     (with-capability (GOVERNANCE)
       (with-capability (CREDIT account)

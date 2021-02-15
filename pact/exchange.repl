@@ -22,9 +22,7 @@
 (load "swap-callable.pact")
 (load "exchange.pact")
 
-
-(define-namespace 'test (sig-keyset) (sig-keyset))
-(env-data { 'ns: "test", 'upgrade: false })
+(env-data { 'ns: "swap", 'upgrade: false })
 (load "test/ABC.pact")
 (load "test/XYZ.pact")
 (commit-tx)
@@ -57,22 +55,22 @@
 ;; test pair canonicity
 (use swap.exchange)
 (expect "canonical pair keys match"
-  (get-pair-key test.abc coin)
-  (get-pair-key coin test.abc))
+  (get-pair-key swap.abc coin)
+  (get-pair-key coin swap.abc))
 (expect "pair does not exist yet" false
-  (pair-exists test.abc coin))
+  (pair-exists swap.abc coin))
 
-(create-pair coin test.abc "")
-(create-pair coin test.xyz "")
+(create-pair coin swap.abc "")
+(create-pair coin swap.xyz "")
 (expect "create-pair (2) events" ;; TODO reverse
   [ { "name": "swap.exchange.CREATE_PAIR"
-    , "params": [ coin test.abc "coin:test.abc"
-                  (at 'account (get-pair test.abc coin))]
+    , "params": [ coin swap.abc "coin:swap.abc"
+                  (at 'account (get-pair swap.abc coin))]
     , "module-hash": (at 'hash (describe-module "swap.exchange"))
     }
     { "name": "swap.exchange.CREATE_PAIR"
-    , "params": [ coin test.xyz "coin:test.xyz"
-                  (at 'account (get-pair test.xyz coin))]
+    , "params": [ coin swap.xyz "coin:swap.xyz"
+                  (at 'account (get-pair swap.xyz coin))]
     , "module-hash": (at 'hash (describe-module "swap.exchange"))
     }
   ]
@@ -85,13 +83,13 @@
 
 (test-capability (coin.COINBASE))
 (coin.coinbase "Bob" (read-keyset 'bob) 1000.0)
-(test.abc.create-account "Bob" (read-keyset 'bob))
-(test.abc.fund "Bob" 2000.0)
-(test.xyz.create-account "Bob" (read-keyset 'bob))
-(test.xyz.fund "Bob" 600.0)
+(swap.abc.create-account "Bob" (read-keyset 'bob))
+(swap.abc.fund "Bob" 2000.0)
+(swap.xyz.create-account "Bob" (read-keyset 'bob))
+(swap.xyz.fund "Bob" 600.0)
 (coin.coinbase "Alice" (read-keyset 'alice) 10000.0)
-(test.abc.create-account "Alice" (read-keyset 'alice))
-(test.abc.fund "Alice" 20000.0)
+(swap.abc.create-account "Alice" (read-keyset 'alice))
+(swap.abc.fund "Alice" 20000.0)
 (commit-tx)
 
 
@@ -104,8 +102,8 @@
 (env-sigs [
   { 'key: "bob"
   , 'caps:
-    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 10.0)
-     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 40.0)
+    [(coin.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) 10.0)
+     (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) 40.0)
     ]
   }])
 
@@ -116,7 +114,7 @@
   , "amount1": 40.0 }
   (add-liquidity
     coin
-    test.abc
+    swap.abc
     10.0
     40.0
     10.0
@@ -128,24 +126,24 @@
 
 (expect "add-liquidity events"
   [ { "name": "coin.TRANSFER"
-    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 10.0]
+    , "params": ["Bob" (at 'account (get-pair swap.abc coin)) 10.0]
     , "module-hash": (at 'hash (describe-module "coin"))
     }
-    { "name": "test.abc.TRANSFER"
-    , "params": ["Bob" (at 'account (get-pair test.abc coin)) 40.0]
-    , "module-hash": (at 'hash (describe-module "test.abc"))
+    { "name": "swap.abc.TRANSFER"
+    , "params": ["Bob" (at 'account (get-pair swap.abc coin)) 40.0]
+    , "module-hash": (at 'hash (describe-module "swap.abc"))
     }
     { "name": "swap.tokens.MINT"
-    , "params": [ (get-pair-key coin test.abc)
+    , "params": [ (get-pair-key coin swap.abc)
                   LOCK_ACCOUNT 0.1]
     , "module-hash": (at 'hash (describe-module "swap.tokens"))
     }
     { "name": "swap.tokens.MINT"
-    , "params": [(get-pair-key coin test.abc) "Bob" 19.9]
+    , "params": [(get-pair-key coin swap.abc) "Bob" 19.9]
     , "module-hash": (at 'hash (describe-module "swap.tokens"))
     }
     { "name": "swap.exchange.UPDATE"
-    , "params": [(get-pair-key coin test.abc) 10.0 40.0]
+    , "params": [(get-pair-key coin swap.abc) 10.0 40.0]
     , "module-hash": (at 'hash (describe-module "swap.exchange"))
     }
   ]
@@ -153,24 +151,24 @@
 
 (expect "token liquidity for bob"
   19.9
-  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
+  (swap.tokens.get-balance (get-pair-key coin swap.abc) "Bob")
 )
 (expect "minimum liquidity locked"
   MINIMUM_LIQUIDITY
-  (swap.tokens.get-balance (get-pair-key coin test.abc) LOCK_ACCOUNT)
+  (swap.tokens.get-balance (get-pair-key coin swap.abc) LOCK_ACCOUNT)
 )
 (expect "total supply for pair token"
   20.0
-  (swap.tokens.total-supply (get-pair-key coin test.abc))
+  (swap.tokens.total-supply (get-pair-key coin swap.abc))
 )
 (expect "kda debited for bob"
   990.0 (coin.get-balance "Bob"))
 (expect "abc debited for bob"
-  1960.0 (test.abc.get-balance "Bob"))
+  1960.0 (swap.abc.get-balance "Bob"))
 (expect "kda credited for pair"
-  10.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
+  10.0 (coin.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "abc credited for pair"
-  40.0 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+  40.0 (swap.abc.get-balance (at 'account (get-pair coin swap.abc))))
 
 (rollback-tx)
 
@@ -181,8 +179,8 @@
 (env-sigs [
   { 'key: "bob"
   , 'caps:
-    [(coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 20.0)
-     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) 80.0)
+    [(coin.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) 20.0)
+     (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) 80.0)
     ]
   }])
 
@@ -190,7 +188,7 @@
   "add-liquidity precision enforcement, user-supplied, A"
   (add-liquidity
     coin
-    test.abc
+    swap.abc
     8.9999999999999
     33.00
     10.0
@@ -204,7 +202,7 @@
   "add-liquidity precision enforcement, user-supplied, B"
   (add-liquidity
     coin
-    test.abc
+    swap.abc
     9.0
     33.33333333333333333
     10.0
@@ -222,7 +220,7 @@
     ,"amount1": 33.0 }
     (add-liquidity
       coin
-      test.abc
+      swap.abc
       9.0
       33.00
       10.0
@@ -239,7 +237,7 @@
     , "amount1": 32.0 }
     (add-liquidity
       coin
-      test.abc
+      swap.abc
       9.0 ;; computes 8.727272...
       32.0
       1.0
@@ -263,11 +261,11 @@
     (env-sigs
       [ { 'key: "bob"
         , 'caps:
-          [ (coin.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) amount0)
-            (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc coin)) amount1)
+          [ (coin.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) amount0)
+            (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) amount1)
           ]}])
     (with-applied-env
-      (add-liquidity coin test.abc
+      (add-liquidity coin swap.abc
         amount0 amount1 amount0 amount1
         "Bob" "Bob" (read-keyset "bob")
         ))
@@ -278,11 +276,11 @@
     (env-sigs
       [ { 'key: "bob"
         , 'caps:
-          [ (coin.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 10.0)
-            (test.xyz.TRANSFER "Bob" (at 'account (get-pair test.xyz coin)) 40.0)
+          [ (coin.TRANSFER "Bob" (at 'account (get-pair swap.xyz coin)) 10.0)
+            (swap.xyz.TRANSFER "Bob" (at 'account (get-pair swap.xyz coin)) 40.0)
           ]}])
     (with-applied-env
-      (add-liquidity coin test.xyz
+      (add-liquidity coin swap.xyz
         amount0 amount1 amount0 amount1
         "Bob" "Bob" (read-keyset "bob")
         ))
@@ -304,15 +302,15 @@
   { 'key: "bob"
   , 'caps:
     [(swap.tokens.TRANSFER
-      (get-pair-key coin test.abc)
+      (get-pair-key coin swap.abc)
       "Bob"
-      (at 'account (get-pair coin test.abc))
+      (at 'account (get-pair coin swap.abc))
       141.321356237309)
     ]}])
 (expect "remove-liquidity result"
   { "amount0": 29.9
   , "amount1": 29.9 }
-  (remove-liquidity test.abc coin
+  (remove-liquidity swap.abc coin
     29.9
     29.9
     29.9
@@ -323,49 +321,49 @@
 
 (expect "remove-liquidity events" ;; TODO reverse
   [ { "name": "swap.tokens.TRANSFER"
-    , "params": [ (get-pair-key coin test.abc) "Bob"
-                  (at 'account (get-pair coin test.abc)) 29.9]
+    , "params": [ (get-pair-key coin swap.abc) "Bob"
+                  (at 'account (get-pair coin swap.abc)) 29.9]
     , "module-hash": (at 'hash (describe-module "swap.tokens"))
     }
     { "name": "swap.tokens.BURN"
-    , "params": [ (get-pair-key coin test.abc)
-                  (at 'account (get-pair coin test.abc)) 29.9]
+    , "params": [ (get-pair-key coin swap.abc)
+                  (at 'account (get-pair coin swap.abc)) 29.9]
     , "module-hash": (at 'hash (describe-module "swap.tokens"))
     }
     { "name": "coin.TRANSFER"
-    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 29.9]
+    , "params": [(at 'account (get-pair coin swap.abc)) "Bob" 29.9]
     , "module-hash": (at 'hash (describe-module "coin"))
     }
-    { "name": "test.abc.TRANSFER"
-    , "params": [(at 'account (get-pair coin test.abc)) "Bob" 29.9]
-    , "module-hash": (at 'hash (describe-module "test.abc"))
+    { "name": "swap.abc.TRANSFER"
+    , "params": [(at 'account (get-pair coin swap.abc)) "Bob" 29.9]
+    , "module-hash": (at 'hash (describe-module "swap.abc"))
     }
     { "name": "swap.exchange.UPDATE"
-    , "params": [(get-pair-key coin test.abc) 0.1 0.1]
+    , "params": [(get-pair-key coin swap.abc) 0.1 0.1]
     , "module-hash": (at 'hash (describe-module "swap.exchange"))
   } ]
   (env-events true))
 
 (expect "token liquidity for bob"
   0.0
-  (swap.tokens.get-balance (get-pair-key coin test.abc) "Bob")
+  (swap.tokens.get-balance (get-pair-key coin swap.abc) "Bob")
 )
 (expect "minimum liquidity locked"
   MINIMUM_LIQUIDITY
-  (swap.tokens.get-balance (get-pair-key coin test.abc) LOCK_ACCOUNT)
+  (swap.tokens.get-balance (get-pair-key coin swap.abc) LOCK_ACCOUNT)
 )
 (expect "total supply for pair at minimum"
   MINIMUM_LIQUIDITY
-  (swap.tokens.total-supply (get-pair-key coin test.abc))
+  (swap.tokens.total-supply (get-pair-key coin swap.abc))
 )
 (expect "kda credited for bob"
   999.9 (coin.get-balance "Bob"))
 (expect "abc credited for bob"
-  1999.9 (test.abc.get-balance "Bob"))
+  1999.9 (swap.abc.get-balance "Bob"))
 (expect "kda debited for pair"
-  0.1 (coin.get-balance (at 'account (get-pair coin test.abc))))
+  0.1 (coin.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "abc debited for pair"
-  0.1 (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+  0.1 (swap.abc.get-balance (at 'account (get-pair coin swap.abc))))
 
 (rollback-tx)
 
@@ -374,7 +372,7 @@
 (fixture.setup-abc 30.0 30.0)
 (expect-failure "remove-liquidity insufficient A"
   "insufficient A amount"
-  (remove-liquidity test.abc coin
+  (remove-liquidity swap.abc coin
     29.9
     30.0
     29.9
@@ -390,7 +388,7 @@
 (fixture.setup-abc 30.0 30.0)
 (expect-failure "remove-liquidity insufficient B"
   "insufficient B amount"
-  (remove-liquidity test.abc coin
+  (remove-liquidity swap.abc coin
     29.9
     29.9
     30.0
@@ -406,7 +404,7 @@
 (fixture.setup-abc 30.0 30.0)
 (expect-failure "remove-liquidity enforce user precision"
   "precision violation" ;; from swap.tokens
-  (remove-liquidity test.abc coin
+  (remove-liquidity swap.abc coin
     29.999999999999999999
     29.9
     30.0
@@ -423,7 +421,7 @@
 (expect "remove-liquidity handle computed precision"
   { "amount0": 0.220503975941  ;; would be 0.22050397594156010548...
   , "amount1": 0.80851457845238 }
-  (remove-liquidity test.abc coin
+  (remove-liquidity swap.abc coin
     0.422232967869
     0.01
     0.01
@@ -456,17 +454,17 @@
       { 'key: "alice"
       , 'caps:
         [ (coin.TRANSFER "Alice"
-          (at 'account (get-pair test.abc coin))
+          (at 'account (get-pair swap.abc coin))
           swapAmount)
         ]}])
     (with-applied-env
       (coin.transfer "Alice"
-        (at 'account (get-pair test.abc coin))
+        (at 'account (get-pair swap.abc coin))
         swapAmount))
     (swap swap.noop-callable
       "Alice"
       (read-keyset "alice")
-      test.abc
+      swap.abc
       expectedOutputAmount
       coin)
   )
@@ -482,19 +480,19 @@
       { 'key: "alice"
       , 'caps:
         [ (coin.TRANSFER "Alice"
-          (at 'account (get-pair test.abc coin))
+          (at 'account (get-pair swap.abc coin))
           inputAmount)
         ]}])
     (with-applied-env
       (coin.transfer "Alice"
-        (at 'account (get-pair test.abc coin))
+        (at 'account (get-pair swap.abc coin))
         inputAmount))
     (swap swap.noop-callable
       "Alice"
       (read-keyset "alice")
       coin
       outputAmount
-      test.abc)
+      swap.abc)
   )
 )
 
@@ -578,16 +576,16 @@
 (env-sigs [
   { 'key: "alice"
   , 'caps:
-    [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 100.0)]
+    [(coin.TRANSFER "Alice" (at 'account (get-pair swap.abc coin)) 100.0)]
   }])
 
 (env-gasmodel 'table)
 (env-gaslimit 30000)
 (expect "swap exact in"
   [ { "token": "coin", "amount": 8.0 }
-    { "token": "test.abc", "amount": 6.30082157151885 }
+    { "token": "swap.abc", "amount": 6.30082157151885 }
   ]
-  (swap-exact-in 8.0 6.3 [coin test.abc]
+  (swap-exact-in 8.0 6.3 [coin swap.abc]
     "Alice" "Alice" (read-keyset 'alice) ))
 (expect "swap gas" 1663 (env-gas))
 (env-gasmodel 'fixed 0)
@@ -595,31 +593,31 @@
 (expect "kda debited for alice"
   9992.0 (coin.get-balance "Alice"))
 (expect "abc credited for alice"
-  20006.30082157151885 (test.abc.get-balance "Alice"))
+  20006.30082157151885 (swap.abc.get-balance "Alice"))
 (expect "kda credited for pair"
-  38.0 (coin.get-balance (at 'account (get-pair coin test.abc))))
+  38.0 (coin.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "abc debited for pair"
   23.69917842848115
-  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+  (swap.abc.get-balance (at 'account (get-pair coin swap.abc))))
 
 (expect "swap-exact-in events"
   [ { "module-hash": (at 'hash (describe-module "coin"))
     , "name": "coin.TRANSFER"
-    , "params": ["Alice" (at 'account (get-pair test.abc coin)) 8.0]
+    , "params": ["Alice" (at 'account (get-pair swap.abc coin)) 8.0]
     }
-    { "module-hash": (at 'hash (describe-module "test.abc"))
-    , "name": "test.abc.TRANSFER"
-    , "params": [ (at 'account (get-pair test.abc coin))
+    { "module-hash": (at 'hash (describe-module "swap.abc"))
+    , "name": "swap.abc.TRANSFER"
+    , "params": [ (at 'account (get-pair swap.abc coin))
                   "Alice" 6.30082157151885]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.SWAP"
-    , "params": [ (at 'account (get-pair test.abc coin))
-                  "Alice" 8.0 coin 6.30082157151885 test.abc]
+    , "params": [ (at 'account (get-pair swap.abc coin))
+                  "Alice" 8.0 coin 6.30082157151885 swap.abc]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.UPDATE"
-    , "params": [ (get-pair-key coin test.abc)
+    , "params": [ (get-pair-key coin swap.abc)
                   38.0 23.69917842848115]
     }
   ]
@@ -637,69 +635,69 @@
 (env-sigs [
   { 'key: "alice"
   , 'caps:
-    [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 30.0)
+    [(swap.abc.TRANSFER "Alice" (at 'account (get-pair swap.abc coin)) 30.0)
     ]
   }])
 
 (expect "swap exact in 3-way"
-  [ { "token": "test.abc", "amount": 8.0}
+  [ { "token": "swap.abc", "amount": 8.0}
     { "token": "coin", "amount": 6.300821571518}
-    { "token": "test.xyz", "amount": 15.43287143388036}
+    { "token": "swap.xyz", "amount": 15.43287143388036}
   ]
-  (swap-exact-in 8.0 15.4 [test.abc coin test.xyz]
+  (swap-exact-in 8.0 15.4 [swap.abc coin swap.xyz]
     "Alice" "Alice" (read-keyset 'alice) ))
 
 (expect "abc debited for alice"
-  19992.0 (test.abc.get-balance "Alice"))
+  19992.0 (swap.abc.get-balance "Alice"))
 (expect "abc credited for coin:abc"
   38.0
-  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+  (swap.abc.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "kda debited for coin:abc"
   23.699178428482
-  (coin.get-balance (at 'account (get-pair coin test.abc))))
+  (coin.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "kda credited for coin:xyz"
   16.300821571518
-  (coin.get-balance (at 'account (get-pair coin test.xyz))))
+  (coin.get-balance (at 'account (get-pair coin swap.xyz))))
 (expect "xyz debited for coin:xyz"
   24.56712856611964
-  (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
+  (swap.xyz.get-balance (at 'account (get-pair coin swap.xyz))))
 (expect "xyz credited for alice"
-  15.43287143388036 (test.xyz.get-balance "Alice"))
+  15.43287143388036 (swap.xyz.get-balance "Alice"))
 
 (expect "swap-exact-in 3-way events"
-  [ { "module-hash": (at 'hash (describe-module "test.abc"))
-    , "name": "test.abc.TRANSFER"
-    , "params": ["Alice" (at 'account (get-pair test.abc coin)) 8.0]
+  [ { "module-hash": (at 'hash (describe-module "swap.abc"))
+    , "name": "swap.abc.TRANSFER"
+    , "params": ["Alice" (at 'account (get-pair swap.abc coin)) 8.0]
     }
     { "module-hash": (at 'hash (describe-module "coin"))
     , "name": "coin.TRANSFER"
-    , "params": [ (at 'account (get-pair test.abc coin))
-                  (at 'account (get-pair test.xyz coin)) 6.300821571518]
+    , "params": [ (at 'account (get-pair swap.abc coin))
+                  (at 'account (get-pair swap.xyz coin)) 6.300821571518]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.SWAP"
-    , "params": [ (at 'account (get-pair test.abc coin))
-                  (at 'account (get-pair test.xyz coin))
-                  8.0 test.abc 6.300821571518 coin]
+    , "params": [ (at 'account (get-pair swap.abc coin))
+                  (at 'account (get-pair swap.xyz coin))
+                  8.0 swap.abc 6.300821571518 coin]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.UPDATE"
-    , "params": [ (get-pair-key coin test.abc)
+    , "params": [ (get-pair-key coin swap.abc)
                   23.699178428482 38.0]
     }
-    { "module-hash": (at 'hash (describe-module "test.xyz"))
-    , "name": "test.xyz.TRANSFER"
-    , "params": [ (at 'account (get-pair test.xyz coin))
+    { "module-hash": (at 'hash (describe-module "swap.xyz"))
+    , "name": "swap.xyz.TRANSFER"
+    , "params": [ (at 'account (get-pair swap.xyz coin))
                   "Alice" 15.43287143388036]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.SWAP"
-    , "params": [ (at 'account (get-pair test.xyz coin)) "Alice"
-                  6.300821571518 coin 15.43287143388036 test.xyz]
+    , "params": [ (at 'account (get-pair swap.xyz coin)) "Alice"
+                  6.300821571518 coin 15.43287143388036 swap.xyz]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.UPDATE"
-    , "params": [ (get-pair-key coin test.xyz)
+    , "params": [ (get-pair-key coin swap.xyz)
                   16.300821571518 24.56712856611964]
     }
   ]
@@ -721,11 +719,11 @@
  (map (at 'in)
   (compute-in
     [ { 'token-out: coin
-      , 'token-in: test.abc
+      , 'token-in: swap.abc
       , 'out: 0.0
       , 'in: 0.001
       , 'idx: 2
-      , 'pair: (get-pair coin test.abc)
+      , 'pair: (get-pair coin swap.abc)
       , 'path: []
       }] coin)))
 
@@ -740,25 +738,25 @@
 (env-sigs [
   { 'key: "alice"
   , 'caps:
-    [(coin.TRANSFER "Alice" (at 'account (get-pair test.abc coin)) 100.0)
+    [(coin.TRANSFER "Alice" (at 'account (get-pair swap.abc coin)) 100.0)
     ]
   }])
 
 (expect "swap exact out"
   [ { "token": "coin", "amount": 0.001003010031 }
-    { "token": "test.abc", "amount": 0.001 }
+    { "token": "swap.abc", "amount": 0.001 }
   ]
-  (swap-exact-out 0.001 0.002 [coin test.abc]
+  (swap-exact-out 0.001 0.002 [coin swap.abc]
     "Alice" "Alice" (read-keyset 'alice) ))
 (expect "kda debited for alice"
   9999.998996989969 (coin.get-balance "Alice"))
 (expect "abc credited for alice"
-  20000.001 (test.abc.get-balance "Alice"))
+  20000.001 (swap.abc.get-balance "Alice"))
 (expect "kda credited for pair"
-  1000.001003010031 (coin.get-balance (at 'account (get-pair coin test.abc))))
+  1000.001003010031 (coin.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "abc debited for pair"
   999.999
-  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+  (swap.abc.get-balance (at 'account (get-pair coin swap.abc))))
 
 (rollback-tx)
 
@@ -772,35 +770,35 @@
 (env-sigs [
   { 'key: "alice"
   , 'caps:
-    [(test.abc.TRANSFER "Alice" (at 'account (get-pair test.abc coin))
+    [(swap.abc.TRANSFER "Alice" (at 'account (get-pair swap.abc coin))
       28.78004347733101)]}])
 
 (expect "swap exact out 3-way TODO"
-  [ { "token": "test.abc", "amount": 7.55088351629628 }
+  [ { "token": "swap.abc", "amount": 7.55088351629628 }
    { "token": "coin", "amount": 6.018054162488 }
-   { "token": "test.xyz", "amount": 15.0 }
+   { "token": "swap.xyz", "amount": 15.0 }
   ]
-  (swap.exchange.swap-exact-out 15.0 100.0 [test.abc coin test.xyz]
+  (swap.exchange.swap-exact-out 15.0 100.0 [swap.abc coin swap.xyz]
     "Alice" "Alice" (read-keyset 'alice) ))
 
 
 (expect "abc debited for alice"
-  19992.44911648370372 (test.abc.get-balance "Alice"))
+  19992.44911648370372 (swap.abc.get-balance "Alice"))
 (expect "abc credited for coin:abc"
   37.55088351629628
-  (test.abc.get-balance (at 'account (get-pair coin test.abc))))
+  (swap.abc.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "kda debited for coin:abc"
   23.981945837512
-  (coin.get-balance (at 'account (get-pair coin test.abc))))
+  (coin.get-balance (at 'account (get-pair coin swap.abc))))
 (expect "kda credited for coin:xyz"
   16.018054162488
-  (coin.get-balance (at 'account (get-pair coin test.xyz))))
+  (coin.get-balance (at 'account (get-pair coin swap.xyz))))
 (expect "xyz debited for coin:xyz"
   25.0
-  (test.xyz.get-balance (at 'account (get-pair coin test.xyz))))
+  (swap.xyz.get-balance (at 'account (get-pair coin swap.xyz))))
 (expect "xyz credited for alice TODO"
   15.0
-  (test.xyz.get-balance "Alice"))
+  (swap.xyz.get-balance "Alice"))
 
 (rollback-tx)
 
@@ -836,37 +834,37 @@
   { 'key: "alice"
   , 'caps:
     [(coin.TRANSFER "Alice"
-     (at 'account (get-pair test.abc coin))
+     (at 'account (get-pair swap.abc coin))
       8.0)]}])
 
 (expect "swap+callback success"
-  { "token": "test.abc"
+  { "token": "swap.abc"
   , "amount": 6.30082157151885
   }
   (swap
   optimistic-transfer
   "Alice" (read-keyset 'alice)
-  test.abc 6.30082157151885
+  swap.abc 6.30082157151885
   coin))
 
 (expect "callback events"
-  [ { "module-hash": (at 'hash (describe-module "test.abc"))
-    , "name": "test.abc.TRANSFER"
-    , "params": [ (at 'account (get-pair coin test.abc)) "Alice"
+  [ { "module-hash": (at 'hash (describe-module "swap.abc"))
+    , "name": "swap.abc.TRANSFER"
+    , "params": [ (at 'account (get-pair coin swap.abc)) "Alice"
                   6.30082157151885]
     }
     { "module-hash": (at 'hash (describe-module "coin"))
     ,"name": "coin.TRANSFER"
-    ,"params": ["Alice" (at 'account (get-pair coin test.abc)) 8.0]
+    ,"params": ["Alice" (at 'account (get-pair coin swap.abc)) 8.0]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     ,"name": "swap.exchange.SWAP"
-    ,"params": [ (at 'account (get-pair coin test.abc)) "Alice"
-                 8.0 coin 6.30082157151885 test.abc]
+    ,"params": [ (at 'account (get-pair coin swap.abc)) "Alice"
+                 8.0 coin 6.30082157151885 swap.abc]
     }
     { "module-hash": (at 'hash (describe-module "swap.exchange"))
     , "name": "swap.exchange.UPDATE"
-    , "params": ["coin:test.abc" 38.0 23.69917842848115]
+    , "params": ["coin:swap.abc" 38.0 23.69917842848115]
     } ]
   (env-events true))
 
@@ -881,7 +879,7 @@
   { 'key: "alice"
   , 'caps:
     [(coin.TRANSFER "Alice"
-     (at 'account (get-pair test.abc coin))
+     (at 'account (get-pair swap.abc coin))
       8.0)]}])
 
 (expect-failure "swap+callback failure"
@@ -889,6 +887,6 @@
   (swap
   optimistic-transfer
   "Alice" (read-keyset 'alice)
-  test.abc 6.30082157151886
+  swap.abc 6.30082157151886
   coin))
 (rollback-tx)

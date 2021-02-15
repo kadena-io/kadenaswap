@@ -127,13 +127,13 @@
 (use swap.exchange)
 (env-chain-data { 'block-time: (time T.SWAP_PERIOD )})
 
-(create-pair test.abc swap.kpenny "")
+(create-pair swap.abc swap.kpenny "")
 
 (env-sigs [
   { 'key: "bob"
   , 'caps:
-    [(swap.kpenny.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 10.0)
-     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 40.0)
+    [(swap.kpenny.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 10.0)
+     (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 40.0)
     ]
   }])
 
@@ -145,7 +145,7 @@
 
 (add-liquidity
     swap.kpenny
-    test.abc
+    swap.abc
     10.0
     40.0
     10.0
@@ -158,11 +158,11 @@
 (expect "kpenny debited bob"
   15999990.0 (swap.kpenny.get-balance "Bob"))
 (expect "abc debited for bob"
-  1960.0 (test.abc.get-balance "Bob"))
+  1960.0 (swap.abc.get-balance "Bob"))
 (expect "kpenny credited for pair"
-  10.0 (swap.kpenny.get-balance (at 'account (get-pair swap.kpenny test.abc))))
+  10.0 (swap.kpenny.get-balance (at 'account (get-pair swap.kpenny swap.abc))))
 (expect "abc credited for pair"
-  40.0 (test.abc.get-balance (at 'account (get-pair swap.kpenny test.abc))))
+  40.0 (swap.abc.get-balance (at 'account (get-pair swap.kpenny swap.abc))))
 
 (commit-tx)
 
@@ -179,8 +179,8 @@
   { 'key: "bob"
   , 'caps:
     [
-     (swap.kpenny.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 0.25718180181571)
-     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 1.0)
+     (swap.kpenny.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 0.25718180181571)
+     (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 1.0)
     ]
   }])
 
@@ -195,11 +195,11 @@
     "amount": 0.25718180181571
   },
   {
-    "token": "test.abc",
+    "token": "swap.abc",
     "amount": 1.0}
   ]
   (swap-exact-out
-    1.0 4.0 [swap.kpenny test.abc]
+    1.0 4.0 [swap.kpenny swap.abc]
     "Bob" "Bob" (read-keyset 'bob ) ))
 
 (rollback-tx)
@@ -253,7 +253,7 @@
   1999.99999 (coin.get-balance "Bob"))
 
 (expect "kpenny balance for unremoved liquidity token"
-  10.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+  10.0 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny swap.abc))))
 
 (expect "kpenny-bank's kda balance"
   0.00001 (coin.get-balance 'kpenny-bank))
@@ -262,15 +262,15 @@
   { 'key: "bob"
   , 'caps:
     [
-     (swap.tokens.TRANSFER "swap.kpenny:test.abc" "Bob"
-        (at 'account (get-pair test.abc swap.kpenny)) 19.9)
+     (swap.tokens.TRANSFER "swap.kpenny:swap.abc" "Bob"
+        (at 'account (get-pair swap.abc swap.kpenny)) 19.9)
     ]
   }])
 
 (expect-failure "cannot remove liquidity due to final deadline"
   (remove-liquidity
       swap.kpenny
-      test.abc
+      swap.abc
       19.9
       0.0
       0.0
@@ -294,8 +294,8 @@
   { 'key: "bob"
   , 'caps:
     [
-     (swap.tokens.TRANSFER "swap.kpenny:test.abc" "Bob"
-        (at 'account (get-pair test.abc swap.kpenny)) 19.9)
+     (swap.tokens.TRANSFER "swap.kpenny:swap.abc" "Bob"
+        (at 'account (get-pair swap.abc swap.kpenny)) 19.9)
      (swap.kpenny.REDEEM "Bob")
     ]
   }])
@@ -311,7 +311,7 @@
   }
   (remove-liquidity
     swap.kpenny
-    test.abc
+    swap.abc
     19.9
     0.0
     0.0
@@ -341,7 +341,7 @@
   1999.99999995 (coin.get-balance "Bob"))
 
 (expect "leftover kpenny balance for removed liquidity token"
-  0.05 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny test.abc))))
+  0.05 (swap.kpenny.get-balance (at 'account (swap.exchange.get-pair swap.kpenny swap.abc))))
 
 (expect "kpenny-bank's kda balance"
   0.00000005 (coin.get-balance 'kpenny-bank))
@@ -514,8 +514,8 @@
 (env-sigs [
   { 'key: "bob"
   , 'caps:
-    [(swap.kpenny.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 20.0)
-     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 50.0)
+    [(swap.kpenny.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 20.0)
+     (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 50.0)
      (swap.kpenny.REDEEM "Bob")
     ]
   }
@@ -528,7 +528,7 @@
   , "amount1": 40.0 }
   (add-liquidity
     swap.kpenny
-    test.abc
+    swap.abc
     10.0
     40.0
     10.0
@@ -548,11 +548,11 @@
     "amount": 0.25392633596994
   },
   {
-    "token": "test.abc",
+    "token": "swap.abc",
     "amount": 1.0}
   ]
   (swap-exact-out
-    1.0 4.0 [swap.kpenny test.abc]
+    1.0 4.0 [swap.kpenny swap.abc]
     "Bob" "Bob" (read-keyset 'bob ) ))
 
 (expect-failure
@@ -572,8 +572,8 @@
 (env-sigs [
   { 'key: "bob"
   , 'caps:
-    [(swap.kpenny.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 20.0)
-     (test.abc.TRANSFER "Bob" (at 'account (get-pair test.abc swap.kpenny)) 50.0)
+    [(swap.kpenny.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 20.0)
+     (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc swap.kpenny)) 50.0)
      (swap.kpenny.REDEEM "Bob")
     ]
   }
@@ -582,7 +582,7 @@
 (expect-failure "add-liquidity fails after final deadline"
   (add-liquidity
     swap.kpenny
-    test.abc
+    swap.abc
     10.0
     40.0
     10.0
@@ -598,7 +598,7 @@
 (expect-failure
   "Swap kpenny with abc succeeds fails after swap"
   (swap-exact-out
-    1.0 4.0 [swap.kpenny test.abc]
+    1.0 4.0 [swap.kpenny swap.abc]
     "Bob" "Bob" (read-keyset 'bob ) ))
 
 (expect
