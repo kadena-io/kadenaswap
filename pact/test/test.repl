@@ -20,13 +20,69 @@
 ;; test upgradeability
 (begin-tx)
 
-(define-namespace 'swap-ns-user (sig-keyset) (sig-keyset))
-(define-namespace 'swap-ns-admin (sig-keyset) (sig-keyset))
+(define-keyset 'swap-ns-user (sig-keyset))
+(define-keyset 'swap-ns-admin (sig-keyset))
 (env-data { 'ns: "test", 'upgrade: true })
 (load "ABC.pact")
 (load "XYZ.pact")
 (rollback-tx)
 
+;;
+;;test fund
+;;
+(begin-tx)
+
+(use test.abc)
+(use test.xyz)
+
+(env-data
+  { 'governance: ["governance"],
+    'bob: ["bob"]
+  })
+
+(define-keyset 'swap-ns-admin (read-keyset 'governance))
+(test.abc.create-account 'bob (read-keyset 'bob))
+(test.xyz.create-account 'bob (read-keyset 'bob))
+
+;;fund fails without goveranance key
+(expect-failure
+  "Governance keyset failure"
+  "Keyset failure (keys-all): 'swap-ns-admin"
+  (test.abc.fund 'bob 10.0))
+
+(expect-failure
+  "Governance keyset failure"
+  "Keyset failure (keys-all): 'swap-ns-admin"
+  (test.xyz.fund 'bob 10.0))
+
+;;fund succeeds with goveranance key
+(env-sigs [
+  { 'key: "governance"
+  , 'caps:
+    []
+  }])
+
+(expect
+  "Fund succeeds"
+  "Write succeeded"
+  (test.abc.fund 'bob 10.0))
+
+(expect
+  "Fund succeeds"
+  "Write succeeded"
+  (test.xyz.fund 'bob 10.0))
+
+(expect
+  "bob account is credited"
+  10.0
+  (test.abc.get-balance 'bob))
+
+(expect
+  "bob account is credited"
+  10.0
+  (test.xyz.get-balance 'bob))
+
+(rollback-tx)
 
 (begin-tx)
 (load "../root/coin.pact")
