@@ -2,7 +2,7 @@
 (module kpenny GOVERNANCE
 
   (implements fungible-v2)
-  (use swap.fungible-util)
+  (use fungible-util)
   (use util.guards)
 
   (defschema reservation
