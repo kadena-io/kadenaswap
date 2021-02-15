@@ -5,14 +5,12 @@
 (commit-tx)
 
 (begin-tx)
-(define-namespace 'test (sig-keyset) (sig-keyset))
 (define-namespace 'swap (sig-keyset) (sig-keyset))
 (define-keyset 'swap-ns-user (sig-keyset))
 (define-keyset 'swap-ns-admin (sig-keyset))
 
-(env-data { 'ns: "swap" })
+(env-data { 'ns: "swap", 'upgrade: false })
 (load "../fungible-util.pact")
-(env-data { 'ns: "test", 'upgrade: false })
 (load "ABC.pact")
 (load "XYZ.pact")
 (commit-tx)
@@ -22,7 +20,7 @@
 
 (define-keyset 'swap-ns-user (sig-keyset))
 (define-keyset 'swap-ns-admin (sig-keyset))
-(env-data { 'ns: "test", 'upgrade: true })
+(env-data { 'ns: "swap", 'upgrade: true })
 (load "ABC.pact")
 (load "XYZ.pact")
 (rollback-tx)
@@ -32,8 +30,8 @@
 ;;
 (begin-tx)
 
-(use test.abc)
-(use test.xyz)
+(use swap.abc)
+(use swap.xyz)
 
 (env-data
   { 'governance: ["governance"],
@@ -41,19 +39,19 @@
   })
 
 (define-keyset 'swap-ns-admin (read-keyset 'governance))
-(test.abc.create-account 'bob (read-keyset 'bob))
-(test.xyz.create-account 'bob (read-keyset 'bob))
+(swap.abc.create-account 'bob (read-keyset 'bob))
+(swap.xyz.create-account 'bob (read-keyset 'bob))
 
 ;;fund fails without goveranance key
 (expect-failure
   "Governance keyset failure"
   "Keyset failure (keys-all): 'swap-ns-admin"
-  (test.abc.fund 'bob 10.0))
+  (swap.abc.fund 'bob 10.0))
 
 (expect-failure
   "Governance keyset failure"
   "Keyset failure (keys-all): 'swap-ns-admin"
-  (test.xyz.fund 'bob 10.0))
+  (swap.xyz.fund 'bob 10.0))
 
 ;;fund succeeds with goveranance key
 (env-sigs [
@@ -65,22 +63,22 @@
 (expect
   "Fund succeeds"
   "Write succeeded"
-  (test.abc.fund 'bob 10.0))
+  (swap.abc.fund 'bob 10.0))
 
 (expect
   "Fund succeeds"
   "Write succeeded"
-  (test.xyz.fund 'bob 10.0))
+  (swap.xyz.fund 'bob 10.0))
 
 (expect
   "bob account is credited"
   10.0
-  (test.abc.get-balance 'bob))
+  (swap.abc.get-balance 'bob))
 
 (expect
   "bob account is credited"
   10.0
-  (test.xyz.get-balance 'bob))
+  (swap.xyz.get-balance 'bob))
 
 (rollback-tx)
 
@@ -103,16 +101,16 @@
 
 (begin-tx)
 (use fungible-v2-test)
-(test-capability (test.abc.CREDIT FUNDER_ACCT))
-(test.abc.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
+(test-capability (swap.abc.CREDIT FUNDER_ACCT))
+(swap.abc.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
 (commit-tx)
 
-(fungible-v2-test.suite test.abc fungible-test-helper-default "transfer-crosschain-tests")
+(fungible-v2-test.suite swap.abc fungible-test-helper-default "transfer-crosschain-tests")
 
 (begin-tx)
 (use fungible-v2-test)
-(test-capability (test.xyz.CREDIT FUNDER_ACCT))
-(test.xyz.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
+(test-capability (swap.xyz.CREDIT FUNDER_ACCT))
+(swap.xyz.credit FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE)
 (commit-tx)
 
-(fungible-v2-test.suite test.xyz fungible-test-helper-default "transfer-crosschain-tests")
+(fungible-v2-test.suite swap.xyz fungible-test-helper-default "transfer-crosschain-tests")
