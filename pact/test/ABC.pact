@@ -2,7 +2,7 @@
 (module abc GOVERNANCE
 
   (implements fungible-v2)
-  (use swap.fungible-util)
+  (use fungible-util)
 
   (defschema entry
     balance:decimal
