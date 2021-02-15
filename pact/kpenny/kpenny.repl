@@ -140,8 +140,8 @@
 (expect "add-liquidity"
   { "liquidity": 19.9
   , "supply": 20.0
-  , "amount0": 10.0
-  , "amount1": 40.0 }
+  , "amount0": 40.0
+  , "amount1": 10.0 }
 
 (add-liquidity
     swap.kpenny
@@ -294,7 +294,7 @@
   { 'key: "bob"
   , 'caps:
     [
-     (swap.tokens.TRANSFER "swap.kpenny:swap.abc" "Bob"
+     (swap.tokens.TRANSFER "swap.abc:swap.kpenny" "Bob"
         (at 'account (get-pair swap.abc swap.kpenny)) 19.9)
      (swap.kpenny.REDEEM "Bob")
     ]
@@ -306,8 +306,8 @@
 
 (expect "remove liquidity between swap deadline and final deadline"
   {
-    "amount0": 9.95,
-    "amount1": 39.8
+    "amount0": 39.8,
+    "amount1": 9.95
   }
   (remove-liquidity
     swap.kpenny
@@ -524,8 +524,8 @@
 (expect "add-liquidity succeeds"
   { "liquidity": 20.0
   , "supply": 40.0
-  , "amount0": 10.0
-  , "amount1": 40.0 }
+  , "amount0": 40.0
+  , "amount1": 10.0 }
   (add-liquidity
     swap.kpenny
     swap.abc
