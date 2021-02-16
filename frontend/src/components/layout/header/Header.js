@@ -186,7 +186,7 @@ const Header = () => {
         <Label
           style={{ padding: '10px 16px', color:"white", fontSize: 16 }}
         >
-          Bountyswap live on chain 2
+          Bountyswap live on chain 1
         </Label>
         </Item>
         {pact?.account.account ? (
