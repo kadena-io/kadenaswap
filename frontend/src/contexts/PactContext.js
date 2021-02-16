@@ -21,10 +21,10 @@ const savedNetwork = localStorage.getItem('network');
 const savedSlippage = localStorage.getItem('slippage');
 const savedSigning = localStorage.getItem('signing');
 const savedTtl = localStorage.getItem('ttl');
-const chainId = "0";
+const chainId = "2";
 const PRECISION = 12;
-const NETWORKID = 'testnet04';
-const network = `https://api.testnet.chainweb.com/chainweb/0.0/${NETWORKID}/chain/${chainId}/pact`;
+const NETWORKID = 'mainnet01';
+const network = `https://api.chainweb.com/chainweb/0.0/${NETWORKID}/chain/${chainId}/pact`;
 
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 const GAS_PRICE = 0.000000000001;
