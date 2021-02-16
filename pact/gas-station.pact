@@ -20,6 +20,7 @@
     (enforce (= "exec" (at "tx-type" (read-msg))) "Inside an exec")
     (enforce (= 1 (length (at "exec-code" (read-msg)))) "Tx of only one pact function")
     (enforce (= "(kswap." (take 7 (at 0 (at "exec-code" (read-msg))))) "only kswap namespace")
+    (enforce (= 0.000000000001 (at "gas-price" (chain-data))) "Must use minimum gas limit")
     (compose-capability (ALLOW_GAS))
   )
 
@@ -34,4 +35,5 @@
     (require-capability (ALLOW_GAS))
   )
 )
+
 ; (coin.transfer-create "swap-ns-admin" "kswap-free-gas" (kswap.gas-station.create-gas-payer-guard) 5.0)
