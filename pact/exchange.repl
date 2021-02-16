@@ -9,12 +9,12 @@
 (load "root/ns.pact")
 
 (env-data
-  { 'swap-ns-user: []
-  , 'swap-ns-admin: []
+  { 'swap-ns-user: ["swap-user"]
+  , 'swap-ns-admin: ["swap-admin"]
   , 'ns: "swap"
   , 'upgrade: false
   })
-(env-keys ["operate"])
+(env-keys ["operate", "swap-user", "swap-admin"])
 
 (load "ns.pact")
 (load "fungible-util.pact")
@@ -30,10 +30,12 @@
 ;; test upgradeability
 (begin-tx)
 (env-data
-  { 'swap-ns-user: []
-  , 'swap-ns-admin: []
+  { 'swap-ns-user: ["swap-user"]
+  , 'swap-ns-admin: ["swap-admin"]
   , 'ns: "swap"
   , 'upgrade: true })
+(env-keys ["operate", "swap-user", "swap-admin"])
+
 (load "ns.pact")
 (load "fungible-util.pact")
 (load "tokens.pact")
@@ -51,6 +53,7 @@
    fungible-test-helper-default "transfer-crosschain-tests")
 
 (begin-tx)
+(env-sigs [])
 
 ;; test pair canonicity
 (use swap.exchange)
@@ -59,6 +62,15 @@
   (get-pair-key coin swap.abc))
 (expect "pair does not exist yet" false
   (pair-exists swap.abc coin))
+
+;; test governance on create-pair
+(expect-failure
+  "create pair fails without governance"
+  "Keyset failure (keys-all): 'swap-ns-admin"
+  (create-pair coin swap.abc "")
+)
+
+(env-keys ["swap-admin"])
 
 (create-pair coin swap.abc "")
 (create-pair coin swap.xyz "")

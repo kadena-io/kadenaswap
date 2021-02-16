@@ -20,6 +20,7 @@
   'swap-deadline: SWAP_DEADLINE,
   'final-deadline: FINAL_DEADLINE})
 
+(env-keys ["swap-user", "swap-admin"])
 (load "kpenny.pact")
 (commit-tx)
 
@@ -127,6 +128,7 @@
 (use swap.exchange)
 (env-chain-data { 'block-time: (time T.SWAP_PERIOD )})
 
+(env-keys ["swap-admin"])
 (create-pair swap.abc swap.kpenny "")
 
 (env-sigs [
