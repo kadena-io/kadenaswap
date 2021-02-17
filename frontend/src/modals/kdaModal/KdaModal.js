@@ -75,7 +75,7 @@ export default function Account(props) {
       <Modal.Content image>
         <Modal.Description>
           <Header style={{ marginBottom: 24 }}>
-            <span style={{ fontSize: 24, fontFamily: 'neue-bold', color: '#3a4750' }}>Your KDA Account (chain 2)</span>
+            <span style={{ fontSize: 24, fontFamily: 'neue-bold', color: '#3a4750' }}>Your KDA Account (chain 1)</span>
           </Header>
           <Input
             placeholder="Enter Account"
