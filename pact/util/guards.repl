@@ -7,4 +7,5 @@
 (begin-tx)
 (load "ns.pact")
 (load "guards.pact")
+(load "guards1.pact")
 (commit-tx)

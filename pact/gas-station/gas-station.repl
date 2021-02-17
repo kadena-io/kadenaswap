@@ -1,0 +1,180 @@
+(begin-tx)
+(env-data
+ { 'ns-admin-keyset: ["admin"]
+ , 'ns-operate-keyset: ["operate"]
+ , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
+(load "../root/fungible-v2.pact")
+(load "../root/coin.pact")
+(load "../root/ns.pact")
+(load "../root/gas-payer-v1.pact")
+(env-data
+ { 'util-ns-users: ["util-ns-user"]
+ , 'util-ns-admin: ["util-ns-admin"]
+ })
+(env-keys ["util-ns-user", "util-ns-admin"])
+
+(load "../util/ns.pact")
+(load "../util/guards1.pact")
+
+(env-data {
+  'swap-ns-user: ["swap-user"]
+, 'swap-ns-admin: ["swap-admin"]
+, 'ns: "swap"
+, 'upgrade: false
+})
+
+(env-keys ["operate", "swap-admin", "swap-user"])
+(load "../ns.pact")
+(load "gas-station.pact")
+(commit-tx)
+
+(begin-tx)
+(env-keys [])
+(use swap.gas-station)
+
+(test-capability (coin.COINBASE))
+(coin.coinbase GAS_STATION
+  (util.guards1.guard-any
+    [
+      (create-gas-payer-guard)
+      (keyset-ref-guard 'swap-ns-admin)
+    ]) 10.0)
+(commit-tx)
+
+;; SUCCESS CASE
+(begin-tx)
+(use swap.gas-station)
+
+(env-chain-data {
+  "gas-price":  0.000000000001
+  })
+(env-data {
+  "tx-type": "exec"
+, "exec-code": ["(kswap.some-function)"]
+  })
+
+(test-capability (coin.GAS))
+(test-capability (GAS_PAYER "user" 1 1.0))
+(expect
+  "buy gas succeeds"
+  "Write succeeded"
+  (coin.buy-gas "kswap-free-gas" 1.0))
+(commit-tx)
+
+;;FAILING CASES
+(begin-tx)
+(use swap.gas-station)
+
+(env-chain-data {
+  "gas-price":  0.000000000001
+  })
+
+;;mismatching namespace
+(env-data {
+  "tx-type": "exec"
+, "exec-code": ["(swap.some-function)"]
+  })
+
+(test-capability (coin.GAS))
+(expect-failure
+  "GAS_PAYER Cap not granted"
+  "only kswap namespace"
+  (test-capability (GAS_PAYER "user" 1 1.0)))
+
+(expect-failure
+  "buy-gas fails"
+  "None of the guards passed"
+  (coin.buy-gas "kswap-free-gas" 1.0))
+
+;;mismatching tx-type
+(env-data {
+  "tx-type": "cont"
+, "exec-code": ["(kswap.some-function)"]
+  })
+
+(expect-failure
+  "GAS_PAYER Cap not granted"
+  "Inside an exec"
+  (test-capability (GAS_PAYER "user" 1 1.0)))
+
+(expect-failure
+  "buy-gas fails"
+  "None of the guards passed"
+  (coin.buy-gas "kswap-free-gas" 1.0))
+
+;;more than one code
+(env-data {
+  "tx-type": "exec"
+, "exec-code": ["(kswap.some-function)", "(swap.another)"]
+  })
+
+(expect-failure
+  "GAS_PAYER Cap not granted"
+  "Tx of only one pact function"
+  (test-capability (GAS_PAYER "user" 1 1.0)))
+
+(expect-failure
+  "buy-gas fails"
+  "None of the guards passed"
+  (coin.buy-gas "kswap-free-gas" 1.0))
+
+;;high gas price
+(env-chain-data {
+  "gas-price":  0.000000000002
+  })
+(env-data {
+  "tx-type": "exec"
+, "exec-code": ["(kswap.some-function)"]
+})
+
+(expect-failure
+  "GAS_PAYER Cap not granted"
+  "Gas Price must be smaller than or equal to 0.000000000001"
+  (test-capability (GAS_PAYER "user" 1 1.0)))
+
+(expect-failure
+  "buy-gas fails"
+  "None of the guards passed"
+  (coin.buy-gas "kswap-free-gas" 1.0))
+
+(commit-tx)
+
+;;BUY GAS FAILING CASE SUCCEEDS WITH ADMIN KEY
+(begin-tx)
+(use swap.gas-station)
+
+(env-chain-data {
+  "gas-price":  0.000000000002
+  })
+
+(env-data {
+  "tx-type": "cont"
+, "exec-code": ["(swap.some-function)", "(+ 1 2)"]
+  })
+
+(test-capability (coin.GAS))
+(expect-failure
+  "GAS_PAYER Cap not granted"
+  "Inside an exec"
+  (test-capability (GAS_PAYER "user" 1 1.0)))
+
+(expect-failure
+  "buy-gas fails"
+  "None of the guards passed"
+  (coin.buy-gas "kswap-free-gas" 1.0))
+
+;;insert admin key
+(env-keys ["swap-admin"])
+(expect
+  "buy-gas succeeds without GAS_PAYER"
+  "Write succeeded"
+  (coin.buy-gas "kswap-free-gas" 1.0))
+
+;;rotate succeeds
+(env-sigs [{
+  "key": "swap-admin",
+  "caps": [(coin.ROTATE "kswap-free-gas")]
+  }])
+(coin.rotate "kswap-free-gas" (keyset-ref-guard 'swap-ns-admin))
+
+(commit-tx)
