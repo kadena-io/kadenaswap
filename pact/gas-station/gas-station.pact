@@ -1,11 +1,14 @@
-(namespace 'kswap)
+(namespace (read-msg 'ns))
+
 (module gas-station GOVERNANCE
   (defcap GOVERNANCE ()
     (enforce-guard (keyset-ref-guard 'swap-ns-admin)))
 
   (implements gas-payer-v1)
   (use coin)
+  (use util.guards1)
 
+  (defconst GAS_STATION "kswap-free-gas")
   (defschema gas
     balance:decimal
     guard:guard)
@@ -20,10 +23,20 @@
     (enforce (= "exec" (at "tx-type" (read-msg))) "Inside an exec")
     (enforce (= 1 (length (at "exec-code" (read-msg)))) "Tx of only one pact function")
     (enforce (= "(kswap." (take 7 (at 0 (at "exec-code" (read-msg))))) "only kswap namespace")
+    (enforce-below-or-at-gas-price 0.000000000001)
     (compose-capability (ALLOW_GAS))
   )
 
   (defcap ALLOW_GAS () true)
+
+  (defun init ()
+    (coin.create-account GAS_STATION
+      (guard-any
+        [
+          (create-gas-payer-guard)
+          (keyset-ref-guard 'swap-ns-admin)
+        ]))
+  )
 
   (defun create-gas-payer-guard:guard ()
     (create-user-guard (gas-payer-guard))
@@ -34,4 +47,11 @@
     (require-capability (ALLOW_GAS))
   )
 )
-; (coin.transfer-create "swap-ns-admin" "kswap-free-gas" (kswap.gas-station.create-gas-payer-guard) 5.0)
+
+(if (read-msg 'upgrade)
+  ["upgrade"]
+  [
+    (init)
+  ]
+)
+(coin.details "kswap-free-gas")
