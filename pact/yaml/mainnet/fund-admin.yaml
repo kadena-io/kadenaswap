@@ -1,0 +1,33 @@
+code:
+  (kswap.abc.create-account "ea721e66b21c14486f51cf7ed99065b7972d2ac41d85e0abd0680e639f16cd90" (read-keyset 'ks1))
+  (kswap.xyz.create-account "ea721e66b21c14486f51cf7ed99065b7972d2ac41d85e0abd0680e639f16cd90" (read-keyset 'ks1))
+  (kswap.abc.fund "ea721e66b21c14486f51cf7ed99065b7972d2ac41d85e0abd0680e639f16cd90" 10000000000.0)
+  (kswap.xyz.fund "ea721e66b21c14486f51cf7ed99065b7972d2ac41d85e0abd0680e639f16cd90" 10000000.0)
+  (kswap.abc.create-account "3d0f7b9ef2954aba3411e5ce2bf21e5678b03a25a65ba829e42bd22262b72d36" (read-keyset 'ks2))
+  (kswap.xyz.create-account "3d0f7b9ef2954aba3411e5ce2bf21e5678b03a25a65ba829e42bd22262b72d36" (read-keyset 'ks2))
+  (kswap.abc.fund "3d0f7b9ef2954aba3411e5ce2bf21e5678b03a25a65ba829e42bd22262b72d36" 10000000.0)
+  (kswap.xyz.fund "3d0f7b9ef2954aba3411e5ce2bf21e5678b03a25a65ba829e42bd22262b72d36" 10000000000.0)
+  (let (
+    (a (kswap.abc.details "ea721e66b21c14486f51cf7ed99065b7972d2ac41d85e0abd0680e639f16cd90"))
+    (b (kswap.xyz.details "ea721e66b21c14486f51cf7ed99065b7972d2ac41d85e0abd0680e639f16cd90"))
+    (c (kswap.abc.details "3d0f7b9ef2954aba3411e5ce2bf21e5678b03a25a65ba829e42bd22262b72d36"))
+    (d (kswap.xyz.details "3d0f7b9ef2954aba3411e5ce2bf21e5678b03a25a65ba829e42bd22262b72d36"))
+  ) [a b c d]
+  ))
+signers:
+  - public: 8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358
+networkId: mainnet01
+data:
+  ks1:
+    keys:
+      - ea721e66b21c14486f51cf7ed99065b7972d2ac41d85e0abd0680e639f16cd90
+  ks2:
+    keys:
+      - 3d0f7b9ef2954aba3411e5ce2bf21e5678b03a25a65ba829e42bd22262b72d36
+nonce: Fund admin accounts on chain 1
+publicMeta:
+  chainId: "1"
+  sender: "8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358"
+  gasLimit: 150000
+  gasPrice: 0.000000000001
+  ttl: 150000
