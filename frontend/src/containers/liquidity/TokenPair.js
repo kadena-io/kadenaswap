@@ -36,10 +36,10 @@ const TokenPair = (props) => {
               <List.Item>
                 {`Your pool tokens: ${extractDecimal(balance)}`}
                 <List.Content>
-                Pooled {token0.code}: {reduceBalance(pooledAmount[0],12)}
+                Pooled {token0}: {reduceBalance(pooledAmount[0],12)}
                 </List.Content>
                 <List.Content>
-                Pooled {token1.code}: {reduceBalance(pooledAmount[1],12)}
+                Pooled {token1}: {reduceBalance(pooledAmount[1],12)}
                 </List.Content>
                 <List.Content>
                 {`Your pool share: ${reduceBalance(extractDecimal(balance)/extractDecimal(supply)*100)}%`}

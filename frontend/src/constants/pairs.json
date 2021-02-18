@@ -1,23 +1,8 @@
 {
-  "coin:kswap.abc": {
-    "name": "coin:kswap.abc",
-    "token0": "KDA",
-    "token1": "ABC"
-  },
-  "coin:kswap.xyz": {
-    "name": "coin:kswap.xyz",
-    "token0": "KDA",
-    "token1": "XYZ"
-  },
   "kswap.abc:kswap.xyz": {
     "name": "kswap.abc:kswap.xyz",
     "token0": "ABC",
     "token1": "XYZ"
-  },
-  "coin:free.flux": {
-    "name": "coin:free.flux",
-    "token0": "KDA",
-    "token1": "FLUX"
   },
   "kswap.kpenny:kswap.abc": {
     "name": "kswap.kpenny:kswap.abc",

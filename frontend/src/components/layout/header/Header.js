@@ -120,6 +120,7 @@ const Header = () => {
         <Item to={ROUTE_POOL}>pool</Item>
         <Item to={ROUTE_WRAP}>wrap</Item>
         <Item to={ROUTE_STATS}>stats</Item>
+
       </LeftContainer>
       <RightContainer>
       {/*
@@ -182,7 +183,11 @@ const Header = () => {
         />
         */}
         <Item className="mobile-none" to="#">
-
+        <Label
+          style={{ padding: '10px 16px', color:"white", fontSize: 16 }}
+        >
+          Bountyswap live on chain 1
+        </Label>
         </Item>
         {pact?.account.account ? (
           <AccountInfo
@@ -209,11 +214,6 @@ const Header = () => {
             </Item>
           </>
         )}
-        <Label
-          style={{ padding: '10px 16px', color:"white", fontSize: 16 }}
-        >
-          Testnet
-        </Label>
         {pact?.account.account && (
           <Item to="#" onClick={pact.logout}>
             <PowerIcon></PowerIcon>
