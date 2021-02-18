@@ -913,10 +913,34 @@ export const PactProvider = (props) => {
     }
   }
 
+  const wait = async (timeout) => {
+    return new Promise(resolve => {
+        setTimeout(resolve, timeout);
+    });
+  }
+
   const listen = async (reqKey) => {
-    const res = await Pact.fetch.listen({listen: reqKey}, network);
-    setSendRes(res);
-    if (res.result.status === 'success') {
+    //check kadena tx status every 10 seconds until we get a response (success or fail)
+    var time = 240;
+    var pollRes;
+    while (time > 0) {
+      await wait(5000);
+      pollRes = await Pact.fetch.poll({requestKeys: [reqKey]}, network);
+      if (Object.keys(pollRes).length === 0) {
+        console.log('no return poll');
+        console.log(pollRes)
+        time = time - 5
+      } else {
+        console.log(pollRes);
+        time = 0;
+      }
+    }
+    setSendRes(pollRes);
+    console.log(reqKey)
+    console.log(pollRes)
+    console.log(pollRes[reqKey])
+    console.log(pollRes[reqKey].result)
+    if (pollRes[reqKey].result.status === 'success') {
       notificationContext.showNotification({
               title: 'Transaction Success!',
               message: 'Check it out in the block explorer',
@@ -924,7 +948,7 @@ export const PactProvider = (props) => {
               onClose: async () => {
                 await toast.dismiss(toastId)
                 await window.open(
-                  `https://explorer.chainweb.com/testnet/tx/${res.reqKey}`,
+                  `https://explorer.chainweb.com/testnet/tx/${reqKey}`,
                   "_blank",
                   'noopener,noreferrer'
                 );
@@ -943,7 +967,7 @@ export const PactProvider = (props) => {
               onClose: async () => {
                 await toast.dismiss(toastId)
                 await window.open(
-                  `https://explorer.chainweb.com/testnet/tx/${res.reqKey}`,
+                  `https://explorer.chainweb.com/testnet/tx/${reqKey}`,
                   "_blank",
                   'noopener,noreferrer'
                 );
@@ -1311,3 +1335,48 @@ export const PactConsumer = PactContext.Consumer;
 export const withPactContext = (Component) => (props) => (
   <PactConsumer>{(providerProps) => <Component {...props} sessionContextProps={providerProps} />}</PactConsumer>
 );
+
+//ORIGINAL LISTEN
+// const listen = async (reqKey) => {
+//   const res = await Pact.fetch.listen({listen: reqKey}, network);
+//   setSendRes(res);
+//   if (res.result.status === 'success') {
+//     notificationContext.showNotification({
+//             title: 'Transaction Success!',
+//             message: 'Check it out in the block explorer',
+//             type: STATUSES.SUCCESS,
+//             onClose: async () => {
+//               await toast.dismiss(toastId)
+//               await window.open(
+//                 `https://explorer.chainweb.com/testnet/tx/${res.reqKey}`,
+//                 "_blank",
+//                 'noopener,noreferrer'
+//               );
+//               window.location.reload()
+//             },
+//             onOpen: async (value) => {
+//               await toast.dismiss(toastId.current)
+//             }
+//           }
+//     )
+//   } else {
+//     notificationContext.showNotification({
+//             title: 'Transaction Failure!',
+//             message: 'Check it out in the block explorer',
+//             type: STATUSES.ERROR,
+//             onClose: async () => {
+//               await toast.dismiss(toastId)
+//               await window.open(
+//                 `https://explorer.chainweb.com/testnet/tx/${res.reqKey}`,
+//                 "_blank",
+//                 'noopener,noreferrer'
+//               );
+//               window.location.reload()
+//             },
+//             onOpen: async (value) => {
+//               await toast.dismiss(toastId.current)
+//             }
+//           }
+//     )
+//   }
+// }
