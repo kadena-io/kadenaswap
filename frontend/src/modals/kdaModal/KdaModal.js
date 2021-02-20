@@ -90,7 +90,16 @@ export default function Account(props) {
             }}
             rightLabel={
               <>
-              
+              <div style={{}}>
+                Please download
+                <a
+                  style={{ marginLeft: 3}}
+                  href="https://github.com/ZelCore-io/ZelCore/releases/tag/v4.9.0-beta-build-2615"
+                  target="_blank"
+                >
+                  Latest version
+                </a>
+              </div>
               <Button
                 onClick={async () => {
                   setLoading(true);
@@ -112,6 +121,7 @@ export default function Account(props) {
               >
                 get zelcore accounts
               </Button>
+
               </>
             }
           />
