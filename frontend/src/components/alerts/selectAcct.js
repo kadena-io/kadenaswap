@@ -2,7 +2,7 @@ import swal from '@sweetalert/with-react'
 import './alert.css'
 import reduceToken from '../../utils/reduceToken';
 
-export default async (accts, sa1, sa2, sa3) => {
+export default async (accts, sa1, sa2, sa3, isAcct) => {
   var value;
   //Create and append select list
   var selectList = document.createElement("select");
@@ -22,7 +22,10 @@ export default async (accts, sa1, sa2, sa3) => {
   }
   return swal({
     text: "Choose Public Key you intend to use",
-    title: "Select Account",
+    title: `Select Account`,
+    buttons: {
+      confirm: true,
+    },
     content: {
       element: selectList
     }

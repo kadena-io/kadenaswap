@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Header, Modal, Menu, Icon, Message } from 'semantic-ui-react';
 import styled from 'styled-components/macro';
 import Input from '../../components/shared/Input';
@@ -55,6 +55,7 @@ export default function Account(props) {
     return false;
   };
 
+
   const resetValues = () => {
     setLocked(false);
     setPk('');
@@ -88,6 +89,17 @@ export default function Account(props) {
               await pact.setVerifiedAccount(value);
             }}
             rightLabel={
+              <>
+              <div style={{}}>
+                Please download
+                <a
+                  style={{ marginLeft: 3}}
+                  href="https://github.com/ZelCore-io/ZelCore/releases/tag/v4.9.0-beta-build-2615"
+                  target="_blank"
+                >
+                  Latest version
+                </a>
+              </div>
               <Button
                 onClick={async () => {
                   setLoading(true);
@@ -95,6 +107,9 @@ export default function Account(props) {
                   const accts = await getAccounts();
                   swal.close()
                   if (accts.status === 'success') {
+                    setAcct(accts.data[0]);
+                    setTemp(accts.data[0]);
+                    await pact.setVerifiedAccount(accts.data[0]);
                     await selectAcct(accts.data, setAcct, setTemp, pact.setVerifiedAccount);
                   } else {
                     walletError()
@@ -106,6 +121,8 @@ export default function Account(props) {
               >
                 get zelcore accounts
               </Button>
+
+              </>
             }
           />
           {pact.account.account ? (
