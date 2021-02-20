@@ -382,6 +382,7 @@ export const PactProvider = (props) => {
         ],
         sender: "kswap-free-gas",
         gasLimit: 3000,
+        gasPrice: GAS_PRICE,
         chainId: chainId,
         ttl: 600,
         envData: {
@@ -487,6 +488,7 @@ export const PactProvider = (props) => {
         ],
         sender: "kswap-free-gas",
         gasLimit: 3000,
+        gasPrice: GAS_PRICE,
         chainId: chainId,
         ttl: 600,
         envData: {
@@ -867,6 +869,7 @@ export const PactProvider = (props) => {
         ],
         sender: "kswap-free-gas",
         gasLimit: 3000,
+        gasPrice: GAS_PRICE,
         chainId: chainId,
         ttl: 600,
         envData: {
@@ -1124,6 +1127,7 @@ const kpennyReserveWallet = async (amtKda) => {
       ],
       sender: "kswap-free-gas",
       gasLimit: 3000,
+      gasPrice: GAS_PRICE,
       chainId: chainId,
       ttl: 600,
       envData: {
@@ -1215,6 +1219,7 @@ const kpennyRedeemWallet = async () => {
       caps: [],
       sender: account.account,
       gasLimit: 3000,
+      gasPrice: GAS_PRICE,
       chainId: chainId,
       ttl: 600,
       envData: {

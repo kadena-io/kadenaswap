@@ -89,6 +89,8 @@ export default function Account(props) {
               await pact.setVerifiedAccount(value);
             }}
             rightLabel={
+              <>
+              
               <Button
                 onClick={async () => {
                   setLoading(true);
@@ -110,6 +112,7 @@ export default function Account(props) {
               >
                 get zelcore accounts
               </Button>
+              </>
             }
           />
           {pact.account.account ? (

@@ -36,21 +36,31 @@ const StaticContainer = ({ data }) => {
           2. Download
           <a
             style={{ marginLeft: 3}}
-            href="https://github.com/zelcash/ZelCore/releases/tag/v4.7.1-beta-build-2567"
+            href="https://github.com/ZelCore-io/ZelCore/releases/tag/v4.9.0-beta-build-2615"
             target="_blank"
           >
             Zelcore Wallet
           </a>
         </span>
         <span style={{ marginLeft: 30, marginBottom: 20}}>
-          3.
-          <s style={{ marginRight: 5, marginLeft: 3}}>Reserve kPenny</s>
-          Coming Soon!
+          3. Reserve
+          <a
+            style={{ marginLeft: 3}}
+            href="https://kadenaswap.chainweb.com/kpenny-reserve"
+            target="_blank"
+          >
+            KPenny
+          </a>
         </span>
         <span style={{ marginLeft: 30, marginBottom: 20}}>
-          4.
-          <s style={{ marginRight: 5, marginLeft: 3}}>Bountyswap</s>
-          Coming Soon!
+          4. Trade on
+          <a
+            style={{ marginLeft: 3}}
+            href="https://kadenaswap.chainweb.com/"
+            target="_blank"
+          >
+            Bountyswap
+          </a>
         </span>
       </FormContainer>
     </Container>
