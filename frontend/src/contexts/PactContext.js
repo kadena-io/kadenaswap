@@ -738,7 +738,15 @@ export const PactProvider = (props) => {
             publicKey: account.guard.keys[0],
             secretKey: privKey,
             clist: [
-              {name: `${token0.address}.TRANSFER`, args: [account.account, pair,  reduceBalance(isSwapIn ? token0.amount : token0.amount*(1+parseFloat(slippage), tokenData[token0.name].precision))]},
+              { name: `${token0.address}.TRANSFER`,
+                args: [
+                  account.account,
+                  pair,
+                  isSwapIn
+                    ? reduceBalance(token0.amount, tokenData[token0.coin].precision)
+                    : reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)
+                ]
+              },
             ]
           },
           envData: {
@@ -802,7 +810,9 @@ export const PactProvider = (props) => {
                 args: [
                   account.account,
                   pair,
-                  reduceBalance(isSwapIn ? token0.amount : token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision),
+                  isSwapIn
+                    ? reduceBalance(token0.amount, tokenData[token0.coin].precision)
+                    : reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)
                 ]
               },
             ]
@@ -840,7 +850,7 @@ export const PactProvider = (props) => {
           (read-keyset 'user-ks)
         )`
       const outPactCode = `(kswap.exchange.swap-exact-out
-          (read-decimal 'token1Amount}
+          (read-decimal 'token1Amount)
           (read-decimal 'token0AmountWithSlippage)
           [${token0.address} ${token1.address}]
           ${JSON.stringify(account.account)}
@@ -863,7 +873,9 @@ export const PactProvider = (props) => {
             [
               account.account,
               pair.account,
-              reduceBalance(isSwapIn ? token0.amount : reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)),
+              isSwapIn
+                ? reduceBalance(token0.amount, tokenData[token0.coin].precision)
+                : reduceBalance(token0.amount*(1+parseFloat(slippage)), tokenData[token0.coin].precision)
             ]
           ),
         ],
