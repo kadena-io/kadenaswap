@@ -300,6 +300,12 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
               </span>
             </RowContainer>
           </Message>
+          {pact.localRes.result.error.message.includes('insufficient')
+          ?
+            <span style={{wordBreak: "break-all"}}>
+              TIP: Try setting a higher slippage amount
+            </span>
+          : <></>}
         </TransactionsDetails>
         <Button
           onClick={() => {

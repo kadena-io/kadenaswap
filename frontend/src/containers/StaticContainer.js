@@ -62,6 +62,16 @@ const StaticContainer = ({ data }) => {
             Bountyswap
           </a>
         </span>
+        <span style={{ marginLeft: 30, marginBottom: 20}}>
+          5. Still confused?
+          <a
+            style={{ marginLeft: 3}}
+            href="https://www.youtube.com/watch?v=Mv-UtypPsZ4&feature=youtu.be"
+            target="_blank"
+          >
+            Watch this tutorial
+          </a>
+        </span>
       </FormContainer>
     </Container>
   );

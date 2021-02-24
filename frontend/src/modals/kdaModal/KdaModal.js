@@ -121,7 +121,16 @@ export default function Account(props) {
               >
                 get zelcore accounts
               </Button>
-
+              <div style={{}}>
+                Still Confused? Watch
+                <a
+                  style={{ marginLeft: 3}}
+                  href="https://www.youtube.com/watch?v=Mv-UtypPsZ4&feature=youtu.be"
+                  target="_blank"
+                >
+                  The tutorial
+                </a>
+              </div>
               </>
             }
           />
