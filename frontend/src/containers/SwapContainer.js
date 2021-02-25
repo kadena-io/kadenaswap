@@ -142,7 +142,6 @@ const SwapContainer = () => {
 
   const onTokenClick = async ({ crypto }) => {
     let balance;
-    console.log(pact.account)
     if (crypto.code === 'coin') {
       if (pact.account){
         balance = pact.account.balance

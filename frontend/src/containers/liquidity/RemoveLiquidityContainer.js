@@ -97,7 +97,7 @@ const RemoveLiquidityContainer = (props) => {
           disabled={isNaN(amount) || reduceBalance(amount)===0}
           onClick={async () => {
             if (pact.signing.method !== 'sign') {
-              const res = await pact.removeLiquidityLocal(pact.tokenData[token0].code, pact.tokenData[token1].code, reduceBalance(pooled));
+              const res = await pact.removeLiquidityLocal(pact.tokenData[token0].code, pact.tokenData[token1].code, reduceBalance(pooled, pact.PRECISION));
               if (res === -1) {
                 setLoading(false)
                 alert('Incorrect password. If forgotten, you can reset it with your private key')
