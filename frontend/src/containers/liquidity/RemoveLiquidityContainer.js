@@ -107,7 +107,7 @@ const RemoveLiquidityContainer = (props) => {
                 setLoading(false)
               }
             } else {
-              pact.removeLiquidityWallet(pact.tokenData[token0].code, pact.tokenData[token1].code, reduceBalance(pooled));
+              pact.removeLiquidityWallet(pact.tokenData[token0].code, pact.tokenData[token1].code, reduceBalance(pooled, pact.PRECISION));
             }
           }
         }>
