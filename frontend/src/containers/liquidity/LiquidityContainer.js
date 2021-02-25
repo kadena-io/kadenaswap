@@ -94,8 +94,16 @@ const LiquidityContainer = (props) => {
 
   const onTokenClick = async ({ crypto }) => {
     let balance;
-    let acct = await pact.getTokenAccount(crypto.code, pact.account.account, tokenSelectorType === 'from')
-    balance = pact.getCorrectBalance(acct.balance)
+    if (crypto.code === 'coin') {
+      if (pact.account){
+        balance = pact.account.balance
+      }
+    } else {
+      let acct = await pact.getTokenAccount(crypto.code, pact.account.account, tokenSelectorType === 'from')
+      if (acct){
+        balance = pact.getCorrectBalance(acct.balance)
+      }
+    }
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: crypto.precision }));
     if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, precision: crypto.precision }));
   };

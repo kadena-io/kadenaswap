@@ -143,10 +143,14 @@ const SwapContainer = () => {
   const onTokenClick = async ({ crypto }) => {
     let balance;
     if (crypto.code === 'coin') {
-      balance = pact.account.balance
+      if (pact.account){
+        balance = pact.account.balance
+      }
     } else {
       let acct = await pact.getTokenAccount(crypto.code, pact.account.account, tokenSelectorType === 'from')
-      balance = pact.getCorrectBalance(acct.balance)
+      if (acct){
+        balance = pact.getCorrectBalance(acct.balance)
+      }
     }
     if (tokenSelectorType === 'from') setFromValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, address: crypto.code, precision: crypto.precision }));
     if (tokenSelectorType === 'to') setToValues((prev) => ({ ...prev, balance: balance, coin: crypto.name, address: crypto.code, precision: crypto.precision }));
