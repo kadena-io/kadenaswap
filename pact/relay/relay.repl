@@ -1,0 +1,13 @@
+(begin-tx)
+(load "../root/fungible-v2.pact")
+(load "../root/coin.pact")
+(define-namespace 'test (sig-keyset) (sig-keyset))
+(env-data
+  { 'ns: 'test
+  , 'relay-admin-keyset: ['admin]
+  , 'upgrade: false
+  , 'relay-coin-account: 'relay-bank
+  })
+(define-keyset 'relay-admin-keyset)
+(env-keys ['admin])
+(load "relay.pact")

@@ -1,6 +1,9 @@
 
 (namespace (read-msg 'ns))
-(module relay 'relay-admin-keyset
+(module relay GOVERNANCE
+
+  (defcap GOVERNANCE ()
+    (enforce-guard (keyset-ref-guard 'relay-admin-keyset)))
 
   (defschema header
     ;; difficulty:string     ;; "0xbfabcdbd93dda"
@@ -28,17 +31,70 @@
 
   (deftable entries:{entry})
 
+  (defschema staked
+    token:module{fungible-v2}
+    account:string
+    total:decimal
+    reward-pool:decimal
+    reward:decimal
+  )
+
+  (deftable stakes:{staked})
+
   (defcap REWARD ()
     @event true)
 
   (defcap ADD (hash number signer-count signer)
     @event true)
 
-  (defun entry-key (header:{eth-header})
+  (defcap STAKE (signer:string amount:decimal)
+    @event true)
+
+  (defcap STAKED (token:string total:decimal)
+    @event true)
+
+  (defun init-staking
+    ( token:module{fungible-v2}
+      account:string
+      reward:decimal
+    )
+    (with-capability (GOVERNANCE)
+      (insert stakes (token-key token)
+        { 'token:token
+        , 'account:account
+        , 'total:0.0
+        , 'reward-pool:0.0
+        , 'reward: reward
+        })))
+
+  (defun fund-reward
+    ( token:module{fungible-v2}
+      from:string
+      amount:decimal
+    )
+    (enforce (>= amount 0.0) "zero amount")
+    (let ((key (token-key token)))
+      (with-read stakes key
+        {'reward-pool:= pooled, 'account:= account }
+        (update stakes key {'reward-pool: (+ pooled amount)})
+        (token::transfer from account amount)))
+  )
+
+  (defun update-reward
+    ( token:module{fungible-v2}
+      reward:decimal
+    )
+    (with-capability (GOVERNANCE)
+      (enforce (>= reward 0.0) "zero reward")
+      (update stakes (token-key token) {'reward: reward }))
+  )
+
+
+  (defun entry-key (header:{header})
     (format "{}:{}" [(at 'number header) (at 'hash header)])
   )
 
-  (defun validate-header:bool (cand:object{eth-header} min-weight:decimal)
+  (defun validate-header:bool (cand:object{header} min-weight:decimal)
     (with-read entries (entry-key header)
       { 'header:= header, 'weight:= weight }
       (enforce (>= weight min-weight) "Minimum weight not met")
@@ -48,7 +104,8 @@
 
   (defun add (signer:string header:object{header})
     (with-read signers signer
-      { 'guard: guard, 'stake: stake }
+      { 'guard:= guard, 'stake:= stake }
+      (enforce-guard guard)
       (let ((key (entry-key header)))
         (with-default-read entries key
           { 'header: header, 'signers: [], 'weight: 0.0 }
@@ -75,8 +132,39 @@
     ""
   )
 
-  (defun stake (signer:string amount:decimal)
-    1
+  (defun stake
+    ( token:module{fungible-v2}
+      signer:string
+      guard:guard
+      amount:decimal
+    )
+    (let ((key (token-key token)))
+      (with-read stakes key
+        {'account:= account, 'total:= total }
+        (enforce (>= amount 0.0) "zero amount")
+        (token::transfer signer account amount)
+        (let ((updated-total (+ total amount)))
+          (with-capability (STAKED key updated-total)
+            (update stakes key {'total: updated-total})))))
+    (with-default-read signers signer
+      {'guard: guard, 'stake: 0.0 }
+      {'guard:= stored-guard, 'stake:= stake }
+      (enforce (= guard stored-guard) "guard mismatch")
+      (with-capability (STAKE signer amount)
+        (write signers signer
+          { 'guard: guard, 'stake: (+ stake amount)})))
   )
 
+  (defun token-key (token:module{fungible-v2})
+    (format "{}" [token]))
+
+)
+
+(if (read-msg 'upgrade)
+  ["upgrade"]
+  [ (create-table signers)
+    (create-table entries)
+    (create-table stakes)
+    (init-staking coin (read-msg 'relay-coin-account) 1.0)
+  ]
 )
