@@ -1105,7 +1105,6 @@ const kpennyReserveLocal = async (amtKda) => {
     console.log(cmd)
     setCmd(cmd);
     let data = await Pact.fetch.local(cmd, network);
-    console.log(data)
     setLocalRes(data);
     return data;
   } catch (e) {
