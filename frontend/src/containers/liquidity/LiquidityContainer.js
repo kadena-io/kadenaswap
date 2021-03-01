@@ -228,8 +228,9 @@ const LiquidityContainer = (props) => {
           }
         } else {
           setLoading(true)
-          pact.addLiquidityWallet(pact.tokenData[fromValues.coin], pact.tokenData[toValues.coin], fromValues.amount, toValues.amount);
           setShowReview(false)
+          const res = await pact.addLiquidityWallet(pact.tokenData[fromValues.coin], pact.tokenData[toValues.coin], fromValues.amount, toValues.amount);
+          setShowTxModal(true)
           setLoading(false)
           setFromValues({account: null, guard: null, balance: null, amount: '', coin: ""});
           setToValues({account: null, guard: null, balance: null, amount: '', coin: ""})
