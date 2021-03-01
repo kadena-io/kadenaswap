@@ -64,7 +64,6 @@ export const PactProvider = (props) => {
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState((savedTtl ? savedTtl : 600));
   const [balances, setBalances] = useState(false);
-  const [signedTx, setSignedTx] = useState({});
 
   //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
@@ -511,13 +510,6 @@ export const PactProvider = (props) => {
       data = await parseRes(data);
       setLocalRes(data);
       return data;
-      // const res = await Pact.wallet.sendSigned(cmd, network);
-      // //this is a small hack to get the polling header widget to work
-      // setLocalRes({ reqKey: res.requestKeys[0] })
-      // setPolling(true)
-      // pollingNotif(res.requestKeys[0]);
-      // await listen(res.requestKeys[0]);
-      // setPolling(false)
     } catch (e) {
       //wallet error alert
       if (e.message.includes('Failed to fetch')) walletError()
@@ -913,14 +905,6 @@ export const PactProvider = (props) => {
       data = await parseRes(data);
       setLocalRes(data);
       return data;
-      // const res = await Pact.wallet.sendSigned(cmd, network);
-      // console.log(res)
-      // //this is a small hack to get the polling header widget to work
-      // setLocalRes({ reqKey: res.requestKeys[0] })
-      // setPolling(true)
-      // pollingNotif(res.requestKeys[0]);
-      // await listen(res.requestKeys[0]);
-      // setPolling(false)
     } catch (e) {
       //wallet error alert
       if (e.message.includes('Failed to fetch')) walletError()
@@ -939,7 +923,6 @@ export const PactProvider = (props) => {
       } else {
         data = await Pact.wallet.sendSigned(cmd, network)
       }
-      console.log(data)
       pollingNotif(data.requestKeys[0]);
       await listen(data.requestKeys[0]);
       setPolling(false)
@@ -1386,8 +1369,7 @@ var parseRes = async function (raw) {
         kpennyReserveLocal,
         kpennyReserveWallet,
         kpennyRedeemWallet,
-        kpennyRedeemLocal,
-        signedTx
+        kpennyRedeemLocal
       }}
     >
       {props.children}
