@@ -2,8 +2,12 @@
 (namespace (read-msg 'ns))
 (module relay GOVERNANCE
 
+  (use util.guards)
+
   (defcap GOVERNANCE ()
     (enforce-guard (keyset-ref-guard 'relay-admin-keyset)))
+
+  (defconst DAY:integer (* 24 (* 60 60)))
 
   (defschema header
     ;; difficulty:string     ;; "0xbfabcdbd93dda"
@@ -17,9 +21,13 @@
     ;; transactions-root:string ;; "0xf98631e290e88f58a46b7032f025969039aa9b5696498efc76baf436fa69b262"
   )
 
+  ;; stake is single-token
   (defschema signer
     guard:guard
     stake:decimal
+    pool:string
+    start:time
+    lockup:integer
   )
 
   (deftable signers:{signer})
@@ -31,40 +39,45 @@
 
   (deftable entries:{entry})
 
-  (defschema staked
+  ;; invariant: balance = stakes+rewards
+  (defschema pool
     token:module{fungible-v2}
     account:string
-    total:decimal
-    reward-pool:decimal
+    stakes:decimal
+    rewards:decimal
     reward:decimal
+    min-lockup:integer
   )
 
-  (deftable stakes:{staked})
+  (deftable pools:{pool})
 
   (defcap REWARD ()
     @event true)
 
-  (defcap ADD (hash number signer-count signer)
+  (defcap ADD ( hash:string number:integer signer-count:integer
+                signer:string weight:decimal)
     @event true)
 
-  (defcap STAKE (signer:string amount:decimal)
+  (defcap STAKE (signer:string amount:decimal lockup:integer)
     @event true)
 
   (defcap STAKED (token:string total:decimal)
     @event true)
 
-  (defun init-staking
+  (defun init-pool
     ( token:module{fungible-v2}
       account:string
       reward:decimal
+      min-lockup:integer
     )
     (with-capability (GOVERNANCE)
-      (insert stakes (token-key token)
+      (insert pools (token-key token)
         { 'token:token
         , 'account:account
-        , 'total:0.0
-        , 'reward-pool:0.0
+        , 'stakes:0.0
+        , 'rewards:0.0
         , 'reward: reward
+        , 'min-lockup: min-lockup
         })))
 
   (defun fund-reward
@@ -74,9 +87,9 @@
     )
     (enforce (>= amount 0.0) "zero amount")
     (let ((key (token-key token)))
-      (with-read stakes key
-        {'reward-pool:= pooled, 'account:= account }
-        (update stakes key {'reward-pool: (+ pooled amount)})
+      (with-read pools key
+        {'rewards:= rewards, 'account:= account }
+        (update pools key {'rewards: (+ rewards amount)})
         (token::transfer from account amount)))
   )
 
@@ -86,7 +99,7 @@
     )
     (with-capability (GOVERNANCE)
       (enforce (>= reward 0.0) "zero reward")
-      (update stakes (token-key token) {'reward: reward }))
+      (update pools (token-key token) {'reward: reward }))
   )
 
 
@@ -104,27 +117,46 @@
 
   (defun add (signer:string header:object{header})
     (with-read signers signer
-      { 'guard:= guard, 'stake:= stake }
+      { 'guard:= guard, 'pool:= pool
+      , 'stake:= stake, 'start:= start, 'lockup:= lockup }
       (enforce-guard guard)
       (let ((key (entry-key header)))
         (with-default-read entries key
           { 'header: header, 'signers: [], 'weight: 0.0 }
           { 'header:= stored, 'signers:= ss, 'weight:= weight }
           (enforce (= header stored) "Mismatched headers")
-          (if (contains signer ss) "Already added"
+          (enforce (not (contains signer ss)) "Already added")
+          (let ((new-weight
+                  (compute-weight pool weight stake start lockup)))
             (with-capability
               (ADD (at 'hash header) (at 'number header)
-                   (+ 1 (length ss)) signer)
+                   (+ 1 (length ss)) signer new-weight)
               (write entries key {
                 'header: stored,
                 'signers: (+ [signer] ss),
-                'weight: (compute-weight weight signer ss) })
+                'weight: new-weight }))
               (with-capability (REWARD)
-                (reward signer)))))))
+                (reward signer))))))
   )
 
-  (defun compute-weight:decimal (weight:decimal signer:string ss:[string])
-    1.0
+  (defun compute-weight:decimal
+    ( pool:string
+      current-weight:decimal
+      stake:decimal
+      start:time
+      lockup:integer
+    )
+    (with-read pools pool
+      {'stakes:= stakes, 'reward:= reward }
+      (enforce (> stakes 0.0) "No stakes")
+      (let*
+        ( (total (+ stakes reward))
+          (remaining (- lockup (diff-days start (chain-time))))
+          (scaled-stake
+            (* stake (/ (- lockup remaining) lockup)))
+          (weight (/ scaled-stake total))
+        )
+        weight))
   )
 
   (defun reward (signer:string)
@@ -137,23 +169,37 @@
       signer:string
       guard:guard
       amount:decimal
+      lockup:integer
     )
-    (let ((key (token-key token)))
-      (with-read stakes key
-        {'account:= account, 'total:= total }
-        (enforce (>= amount 0.0) "zero amount")
+    (let ((key (token-key token))
+          (now (chain-time)))
+      (with-read pool key
+        {'account:= account, 'staked:= staked, 'min-lockup:= min-lockup }
+        (enforce (>= amount 0.0) "negative amount")
         (token::transfer signer account amount)
-        (let ((updated-total (+ total amount)))
-          (with-capability (STAKED key updated-total)
-            (update stakes key {'total: updated-total})))))
-    (with-default-read signers signer
-      {'guard: guard, 'stake: 0.0 }
-      {'guard:= stored-guard, 'stake:= stake }
-      (enforce (= guard stored-guard) "guard mismatch")
-      (with-capability (STAKE signer amount)
-        (write signers signer
-          { 'guard: guard, 'stake: (+ stake amount)})))
+        (let ((updated-staked (+ staked amount)))
+          (with-capability (STAKED key updated-staked)
+            (update pools key {'staked: updated-staked})))
+        (with-default-read signers signer
+          { 'guard: guard, 'stake: 0.0,
+            'start: now, 'lockup: lockup }
+          { 'guard:= stored-guard, 'stake:= stake,
+            'start:= start, 'lockup:= plockup }
+          (enforce (= guard stored-guard) "guard mismatch")
+          (enforce (>= lockup min-lockup) "insufficient lockup")
+          (let* ((in-lockup (< (diff-days now start) plockup))
+                 (new-start (if in-lockup start now)))
+            (if in-lockup (enforce (>= lockup plockup) "invalid lockup reduction")
+              true)
+            (with-capability (STAKE signer amount lockup)
+              (write signers signer
+                { 'guard: guard, 'stake: (+ stake amount), 'pool: key
+                , 'start: new-start, 'lockup: lockup
+                }))))))
   )
+
+  (defun diff-days:integer (a:time b:time)
+    (/ (diff-time a b) DAY))
 
   (defun token-key (token:module{fungible-v2})
     (format "{}" [token]))
@@ -164,7 +210,7 @@
   ["upgrade"]
   [ (create-table signers)
     (create-table entries)
-    (create-table stakes)
-    (init-staking coin (read-msg 'relay-coin-account) 1.0)
+    (create-table pools)
+    (init-pool coin (read-msg 'relay-coin-account) 1.0 60)
   ]
 )

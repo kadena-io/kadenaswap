@@ -1,6 +1,10 @@
+(load "../util/guards.repl")
 (begin-tx)
 (load "../root/fungible-v2.pact")
 (load "../root/coin.pact")
+(commit-tx)
+(begin-tx)
+(env-keys [])
 (define-namespace 'test (sig-keyset) (sig-keyset))
 (env-data
   { 'ns: 'test
