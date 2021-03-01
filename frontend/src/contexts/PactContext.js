@@ -404,13 +404,12 @@ export const PactProvider = (props) => {
       //close alert programmatically
       swal.close()
       setWalletSuccess(true)
-      const res = await Pact.wallet.sendSigned(cmd, network);
-      //this is a small hack to get the polling header widget to work
-      setLocalRes({ reqKey: res.requestKeys[0] })
-      setPolling(true)
-      pollingNotif(res.requestKeys[0]);
-      await listen(res.requestKeys[0]);
-      setPolling(false)
+      //set signedtx
+      setCmd(cmd);
+      let data = await fetch(`${network}/api/v1/local`, mkReq(cmd))
+      data = await parseRes(data);
+      setLocalRes(data);
+      return data;
     } catch (e) {
       //wallet error alert
       if (e.message.includes('Failed to fetch')) walletError()
@@ -507,13 +506,18 @@ export const PactProvider = (props) => {
       //close alert programmatically
       swal.close()
       setWalletSuccess(true)
-      const res = await Pact.wallet.sendSigned(cmd, network);
-      //this is a small hack to get the polling header widget to work
-      setLocalRes({ reqKey: res.requestKeys[0] })
-      setPolling(true)
-      pollingNotif(res.requestKeys[0]);
-      await listen(res.requestKeys[0]);
-      setPolling(false)
+      setCmd(cmd);
+      let data = await fetch(`${network}/api/v1/local`, mkReq(cmd))
+      data = await parseRes(data);
+      setLocalRes(data);
+      return data;
+      // const res = await Pact.wallet.sendSigned(cmd, network);
+      // //this is a small hack to get the polling header widget to work
+      // setLocalRes({ reqKey: res.requestKeys[0] })
+      // setPolling(true)
+      // pollingNotif(res.requestKeys[0]);
+      // await listen(res.requestKeys[0]);
+      // setPolling(false)
     } catch (e) {
       //wallet error alert
       if (e.message.includes('Failed to fetch')) walletError()
