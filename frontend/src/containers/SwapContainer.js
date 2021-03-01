@@ -276,11 +276,16 @@ const SwapContainer = () => {
                 setLoading(false)
               }
             } else {
-              pact.swapWallet(
+              const res = await pact.swapWallet(
                 { amount: fromValues.amount, address: fromValues.address, coin: fromValues.coin },
                 { amount: toValues.amount, address: toValues.address, coin: toValues.coin },
                 (fromNote === "(estimated)" ? false : true)
               )
+              setShowTxModal(true)
+              if (res?.result?.status === 'success') {
+                setFromValues({ amount: '', balance: '', coin: '', address: '', precision: 0 });
+                setToValues({ amount: '', balance: '', coin: '', address: '', precision: 0 })
+              }
               setLoading(false)
             }
 

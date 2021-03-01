@@ -13,6 +13,7 @@ import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
 import { reduceBalance, extractDecimal } from '../utils/reduceBalance'
 import tokenData from '../constants/cryptoCurrencies';
+const fetch = require("node-fetch");
 
 export const PactContext = createContext();
 const savedAcct = localStorage.getItem('acct');
@@ -63,6 +64,8 @@ export const PactProvider = (props) => {
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState((savedTtl ? savedTtl : 600));
   const [balances, setBalances] = useState(false);
+  const [signedTx, setSignedTx] = useState({});
+
   //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
   // const [toastIds, setToastIds] = useState({})
@@ -896,19 +899,24 @@ export const PactProvider = (props) => {
       }
       //alert to sign tx
       walletLoading();
-      console.log(signCmd)
       const cmd = await Pact.wallet.sign(signCmd);
       //close alert programmatically
       swal.close()
       setWalletSuccess(true)
-      const res = await Pact.wallet.sendSigned(cmd, network);
-      console.log(res)
-      //this is a small hack to get the polling header widget to work
-      setLocalRes({ reqKey: res.requestKeys[0] })
-      setPolling(true)
-      pollingNotif(res.requestKeys[0]);
-      await listen(res.requestKeys[0]);
-      setPolling(false)
+      //set signedtx
+      setCmd(cmd);
+      let data = await fetch(`${network}/api/v1/local`, mkReq(cmd))
+      data = await parseRes(data);
+      setLocalRes(data);
+      return data;
+      // const res = await Pact.wallet.sendSigned(cmd, network);
+      // console.log(res)
+      // //this is a small hack to get the polling header widget to work
+      // setLocalRes({ reqKey: res.requestKeys[0] })
+      // setPolling(true)
+      // pollingNotif(res.requestKeys[0]);
+      // await listen(res.requestKeys[0]);
+      // setPolling(false)
     } catch (e) {
       //wallet error alert
       if (e.message.includes('Failed to fetch')) walletError()
@@ -921,7 +929,13 @@ export const PactProvider = (props) => {
   const swapSend = async () => {
     setPolling(true)
     try {
-      const data = await Pact.fetch.send(cmd, network)
+      let data
+      if (cmd.pactCode){
+        data = await Pact.fetch.send(cmd, network)
+      } else {
+        data = await Pact.wallet.sendSigned(cmd, network)
+      }
+      console.log(data)
       pollingNotif(data.requestKeys[0]);
       await listen(data.requestKeys[0]);
       setPolling(false)
@@ -1264,6 +1278,30 @@ const kpennyRedeemWallet = async () => {
   }
 }
 
+
+var mkReq = function(cmd) {
+  return {
+    headers: {
+      "Content-Type": "application/json"
+    },
+    method: "POST",
+    body: JSON.stringify(cmd)
+  };
+};
+
+var parseRes = async function (raw) {
+  const rawRes = await raw;
+  const res = await rawRes;
+  if (res.ok){
+     const resJSON = await rawRes.json();
+     return resJSON;
+   } else {
+     const resTEXT = await rawRes.text();
+     return resTEXT;
+   }
+};
+
+
 //------------------------------------------------------------------------------------------------------------------------
 //                  END KPENNY FUNCTIONS ONLY
 //------------------------------------------------------------------------------------------------------------------------
@@ -1344,7 +1382,8 @@ const kpennyRedeemWallet = async () => {
         kpennyReserveLocal,
         kpennyReserveWallet,
         kpennyRedeemWallet,
-        kpennyRedeemLocal
+        kpennyRedeemLocal,
+        signedTx
       }}
     >
       {props.children}
