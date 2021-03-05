@@ -53,9 +53,9 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (fromValues.amount.length < 5) {
-            throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) }))
+            throttle(500, setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) }))
           } else {
-            debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, fromValues.precision) }))
+            debounce(500, setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) }))
           }
         }
       }
@@ -73,9 +73,10 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (toValues.amount.length < 5) {
-            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
+            console.log(pact.computeIn(toValues.amount))
+            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
           } else {
-            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
+            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
           }
         }
       }
@@ -88,11 +89,11 @@ const SwapContainer = () => {
   useEffect(() => {
     if (!isNaN(pact.ratio)) {
       if (fromValues.amount !== "" && toValues.amount === "") {
-        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) })
+        setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) })
       } if (fromValues.amount === "" && toValues.amount !== "") {
-        setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) })
+        setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) })
       } if (fromValues.amount !== "" && toValues.amount !== "")  {
-        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) })
+        setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) })
       }
     }
   }, [pact.ratio])
