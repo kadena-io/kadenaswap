@@ -25,6 +25,7 @@ const savedTtl = localStorage.getItem('ttl');
 const chainId = "1";
 const PRECISION = 12;
 const NETWORKID = 'mainnet01';
+const FEE = 0.003
 const network = `https://api.chainweb.com/chainweb/0.0/${NETWORKID}/chain/${chainId}/pact`;
 
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
@@ -462,8 +463,9 @@ export const PactProvider = (props) => {
         return data;
       } catch (e) {
         setLocalRes({});
-        return -1
-        console.log(e)
+        if (e.message.includes('Failed to fetch')) walletError()
+        else walletSigError();
+        return -1;
       }
   }
 
@@ -512,6 +514,7 @@ export const PactProvider = (props) => {
       return data;
     } catch (e) {
       //wallet error alert
+      setLocalRes({});
       if (e.message.includes('Failed to fetch')) walletError()
       else walletSigError()
       console.log(e)
@@ -834,7 +837,6 @@ export const PactProvider = (props) => {
       console.log(e)
       setLocalRes({});
       return -1
-
     }
   }
 
@@ -907,6 +909,7 @@ export const PactProvider = (props) => {
       return data;
     } catch (e) {
       //wallet error alert
+      setLocalRes({});
       if (e.message.includes('Failed to fetch')) walletError()
       else walletSigError()
       console.log(e)
@@ -1102,7 +1105,6 @@ const kpennyReserveLocal = async (amtKda) => {
         networkId: NETWORKID,
         meta: Pact.lang.mkMeta("kswap-free-gas", chainId, GAS_PRICE, 3000, ct, 600),
     }
-    console.log(cmd)
     setCmd(cmd);
     let data = await Pact.fetch.local(cmd, network);
     setLocalRes(data);
@@ -1292,6 +1294,25 @@ var parseRes = async function (raw) {
 //                  END KPENNY FUNCTIONS ONLY
 //------------------------------------------------------------------------------------------------------------------------
 
+//COMPUTE_OUT
+
+var computeOut = function (amountIn) {
+  let reserveOut = Number(pairReserve['token1']);
+  let reserveIn = Number(pairReserve['token0']);
+  let numerator = Number((amountIn * (1-FEE)) * reserveOut);
+  let denominator = Number(reserveIn + (amountIn * (1-FEE)))
+  return numerator / denominator;
+};
+
+//COMPUTE_IN
+var computeIn = function (amountOut) {
+  let reserveOut = Number(pairReserve['token1']);
+  let reserveIn = Number(pairReserve['token0']);
+  let numerator = Number(reserveIn * amountOut)
+  let denominator = Number((reserveOut-amountOut) *(1-FEE))
+  // round up the last digit
+  return numerator / denominator; 
+};
 
   return (
     <PactContext.Provider
@@ -1368,7 +1389,9 @@ var parseRes = async function (raw) {
         kpennyReserveLocal,
         kpennyReserveWallet,
         kpennyRedeemWallet,
-        kpennyRedeemLocal
+        kpennyRedeemLocal,
+        computeIn,
+        computeOut
       }}
     >
       {props.children}
