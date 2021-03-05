@@ -96,7 +96,9 @@ const SlippagePopupContent = () => {
             numberOnly
             value={slp}
             onChange={(e, { value }) => {
-              setSlp(value);
+              if (value >= 0 && value <= 100){
+                setSlp(value);
+              }
             }}
           />
           %
@@ -111,7 +113,9 @@ const SlippagePopupContent = () => {
             numberOnly
             value={tl}
             onChange={(e, { value }) => {
-              setTl(value);
+              if (value >= 0){
+                setTl(value);
+              }
             }}
           />
         </ContainerInputTypeNumber>
