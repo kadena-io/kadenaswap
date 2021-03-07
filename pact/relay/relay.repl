@@ -11,7 +11,12 @@
   , 'relay-admin-keyset: ['admin]
   , 'upgrade: false
   , 'relay-coin-account: 'relay-bank
+  , 'lockup: 180
+  , 'bond: 10000
+  , 'activity: 180
+  , 'rate: 0.0008
   })
 (define-keyset 'relay-admin-keyset)
 (env-keys ['admin])
+(load "pool.pact")
 (load "relay.pact")
