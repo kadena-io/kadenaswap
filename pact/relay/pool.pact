@@ -14,12 +14,16 @@
     token:module{fungible-v2}
     account:string
     bonded:decimal
-    reward:decimal
+    service:decimal
     lockup:integer
     bond:decimal
     active:[string]
     activity:integer
+    endorsers:integer
+    denouncers:integer
+    confirm:decimal
     rate:decimal
+    fee:decimal
     guard:guard
   )
   (deftable pools:{pool-schema})
@@ -47,64 +51,80 @@
   (defun pool-guard () (create-module-guard "pool-bank"))
 
   (defun init-pool
-    ( pool-id:string
+    ( pool:string
       token:module{fungible-v2}
       account:string
       lockup:integer
       bond:decimal
       activity:integer
+      endorsers:integer
+      denouncers:integer
+      confirm:decimal
       rate:decimal
+      fee:decimal
       guard:guard
     )
     (with-capability (POOL-ADMIN)
       (token::create-account account (pool-guard))
-      (insert pools pool-id
+      (insert pools pool
         { 'token: token
         , 'account: account
         , 'bonded: 0.0
-        , 'reward: 0.0
+        , 'service: 0.0
         , 'lockup: lockup
         , 'bond: bond
         , 'active: []
         , 'activity: activity
+        , 'endorsers:endorsers
+        , 'denouncers:denouncers
+        , 'confirm:confirm
         , 'rate: rate
+        , 'fee: fee
         , 'guard: guard
         })))
 
   (defun update-pool
-    ( pool-id:string
+    ( pool:string
       lockup:integer
       bond:decimal
       activity:integer
+      endorsers:integer
+      denouncers:integer
+      confirm:decimal
       rate:decimal
+      fee:decimal
     )
     (with-capability (POOL-ADMIN)
-      (update pools pool-id
+      (update pools pool
         { 'lockup: lockup
         , 'bond: bond
         , 'activity: activity
+        , 'endorsers:endorsers
+        , 'denouncers:denouncers
+        , 'confirm:confirm
         , 'rate: rate
+        , 'fee: fee
         })))
 
-  (defun fund-reward
-    ( pool-id:string
+  (defun fund-service
+    ( pool:string
       account:string
       amount:decimal
     )
-    (with-read pools pool-id
+    (with-read pools pool
       { 'token:= token:module{fungible-v2}
-      , 'reward:= reward
+      , 'service:= service
       , 'account:= pool-account }
       (token::transfer account pool-account amount)
-      (update pools pool-id { 'reward: (+ reward amount) }))
+      (update pools pool { 'service: (+ service amount) }))
   )
 
   (defun new-bond:string
-    ( pool-id:string
+    ( pool:string
       account:string
       guard:guard
     )
-    (with-read pools pool-id
+    (with-read pools pool
       { 'token:= token:module{fungible-v2}
       , 'account:= pool-account
       , 'bonded:= bonded
@@ -113,21 +133,21 @@
       , 'active:= active }
       (let*
         ( (date (chain-time))
-          (bond-id (format "{}:{}" [account date]))
+          (bond (format "{}:{}" [account date]))
         )
         (token::transfer account pool-account bond)
-        (insert bonds bond-id
-          { 'pool: pool-id
+        (insert bonds bond
+          { 'pool: pool
           , 'guard: guard
           , 'balance: bond
           , 'date: date
           , 'lockup: lockup
           })
-        (update pools pool-id
+        (update pools pool
           { 'bonded: (+ bonded bond)
-          , 'active: (+ active [bond-id])
+          , 'active: (+ active [bond])
           })
-        bond-id))
+        bond))
   )
 
 
@@ -135,12 +155,12 @@
     (/ (diff-time a b) DAY))
 
   (defun withdraw
-    ( pool-id:string
-      bond-id:string
+    ( pool:string
+      bond:string
       account:string
     )
-    (with-read bonds bond-id
-      { 'pool:= pool-id
+    (with-read bonds bond
+      { 'pool:= pool
       , 'guard:= guard
       , 'date:= date
       , 'lockup:= lockup
@@ -148,54 +168,92 @@
       , 'activity:= activity
       }
       (enforce-guard guard)
-      (with-read pools pool-id
+      (with-read pools pool
         { 'token:= token:module{fungible-v2}
         , 'account:= pool-account
         , 'bonded:= bonded
-        , 'reward:= reward
+        , 'service:= service
         , 'active:= active
         , 'activity:= min-activity
         , 'rate:= rate
         }
         (let* ( (elapsed (diff-days (chain-time) date))
-                (interest (if (< activity min-activity) 0.0
-                            (* balance (* rate elapsed))))
-                (return (+ balance interest))
+                (servicing (if (< activity min-activity) 0.0
+                               (* balance (* rate elapsed))))
+                (total (+ balance servicing))
               )
           (enforce (> elapsed lockup) "Lockup in force")
-          (install-capability (token::TRANSFER pool-account account return))
-          (token::transfer pool-account account return)
-          (update pools pool-id
+          (install-capability (token::TRANSFER pool-account account total))
+          (token::transfer pool-account account total)
+          (update pools pool
             { 'bonded: (- bonded balance)
-            , 'reward: (- reward interest)
-            , 'active: (- active [bond-id])
+            , 'service: (- service servicing)
+            , 'active: (- active [bond])
             }))))
   )
 
-  (defun reward
-    ( bond-id:string
-      amount:decimal )
-    (with-read bonds bond-id
-      { 'pool:= pool-id
+  (defun pay-fee
+    ( bond:string )
+    (with-read bonds bond
+      { 'pool:= pool
       , 'balance:= balance
       , 'activity:= activity
       }
-      (with-read pools pool-id
+      (with-read pools pool
         { 'token:= token:module{fungible-v2}
         , 'bonded:= bonded
-        , 'reward:= reward
+        , 'service:= service
         , 'guard:= guard
+        , 'fee:=amount
         }
         (enforce-guard guard)
-        (update bonds bond-id
+        (update bonds bond
           { 'balance: (+ balance amount)
           , 'activity: (+ activity 1)
           })
-        (update pools pool-id
+        (update pools pool
           { 'bonded: (+ bonded amount)
-          , 'reward: (- reward amount)
+          , 'service: (- service amount)
           })))
   )
+
+  (defun pick-active (pool:string endorse:bool)
+    "Pick a random selection of COUNT bonders from POOL using tx hash as seed"
+    (with-read pools pool
+      { 'active:=active, 'endorsers:= endorsers, 'denouncers:= denouncers }
+      (let ((count (if endorse endorsers denouncers)))
+        (enforce
+          (>= (length active) count)
+          "Not enough active bonders")
+        (at 'picks
+          (fold (pick)
+            { 'hash: (tx-hash)
+            , 'cands: active
+            , 'picks: []
+            }
+            (make-list count 0)))))
+  )
+
+
+  (defschema picks
+    "Structure for holding random picks"
+    hash:string
+    cands:[string]
+    picks:[integer])
+
+  (defun pick:object{picks} (p:object{picks} x_)
+    " Accumulator to pick a random candidate using hash value, \
+    \ and re-hash hash value."
+    (let* ((h0 (at 'hash p))
+           (cs (at 'cands p))
+           (count (length cs))
+           (p (mod (str-to-int 64 h0) count)))
+      { 'hash: (hash h0)
+      , 'cands: (+ (take p cs)
+                   (take (- (+ p 1) count) cs))
+      , 'picks: (+ [(at p cs)] (at 'picks p)) }))
+
+
 
 )
 

@@ -14,7 +14,11 @@
   , 'lockup: 180
   , 'bond: 10000
   , 'activity: 180
+  , 'endorsers: 3
+  , 'denouncers: 5
+  , 'confirm: 0.5
   , 'rate: 0.0008
+  , 'fee: 30.0
   })
 (define-keyset 'relay-admin-keyset)
 (env-keys ['admin])
