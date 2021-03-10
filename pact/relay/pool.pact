@@ -45,8 +45,13 @@
   (defun get-bond:object{bond-schema} (id:string)
     (read bonds id))
 
-  (defcap POOL-ADMIN ()
+  (defcap POOL_ADMIN ()
     (compose-capability (GOVERNANCE)))
+
+  (defcap WITHDRAW (bond:string)
+    @managed
+    (enforce-guard (at 'guard (get-bond bond)))
+  )
 
   (defun pool-guard () (create-module-guard "pool-bank"))
 
@@ -64,7 +69,7 @@
       fee:decimal
       guard:guard
     )
-    (with-capability (POOL-ADMIN)
+    (with-capability (POOL_ADMIN)
       (token::create-account account (pool-guard))
       (insert pools pool
         { 'token: token
@@ -94,7 +99,7 @@
       rate:decimal
       fee:decimal
     )
-    (with-capability (POOL-ADMIN)
+    (with-capability (POOL_ADMIN)
       (update pools pool
         { 'lockup: lockup
         , 'bond: bond
@@ -119,6 +124,21 @@
       (update pools pool { 'service: (+ service amount) }))
   )
 
+  (defun withdraw-service
+    ( pool:string
+      account:string
+      amount:decimal )
+    (with-capability (POOL_ADMIN)
+      (with-read pools pool
+        { 'token:=token:module{fungible-v2}
+        , 'service:=service
+        , 'account:=pool-account
+        }
+        (install-capability (token::TRANSFER pool-account account amount))
+        (token::transfer pool-account account amount)
+        (update pools pool { 'service:(- service amount)})))
+  )
+
   (defun new-bond:string
     ( pool:string
       account:string
@@ -129,22 +149,23 @@
       , 'account:= pool-account
       , 'bonded:= bonded
       , 'lockup:= lockup
-      , 'bond:= bond
+      , 'bond:= bond-amount
       , 'active:= active }
       (let*
         ( (date (chain-time))
-          (bond (format "{}:{}" [account date]))
+          (bond (format "{}:{}" [account (format-time "%F" date)]))
         )
-        (token::transfer account pool-account bond)
+        (token::transfer account pool-account bond-amount)
         (insert bonds bond
           { 'pool: pool
           , 'guard: guard
-          , 'balance: bond
+          , 'balance: bond-amount
           , 'date: date
           , 'lockup: lockup
+          , 'activity: 0
           })
         (update pools pool
-          { 'bonded: (+ bonded bond)
+          { 'bonded: (+ bonded bond-amount)
           , 'active: (+ active [bond])
           })
         bond))
@@ -152,44 +173,43 @@
 
 
   (defun diff-days:integer (a:time b:time)
-    (/ (diff-time a b) DAY))
+    (/ (floor (diff-time a b)) DAY))
 
   (defun withdraw
-    ( pool:string
-      bond:string
+    ( bond:string
       account:string
     )
-    (with-read bonds bond
-      { 'pool:= pool
-      , 'guard:= guard
-      , 'date:= date
-      , 'lockup:= lockup
-      , 'balance:= balance
-      , 'activity:= activity
-      }
-      (enforce-guard guard)
-      (with-read pools pool
-        { 'token:= token:module{fungible-v2}
-        , 'account:= pool-account
-        , 'bonded:= bonded
-        , 'service:= service
-        , 'active:= active
-        , 'activity:= min-activity
-        , 'rate:= rate
+    (with-capability (WITHDRAW bond)
+      (with-read bonds bond
+        { 'pool:= pool
+        , 'guard:= guard
+        , 'date:= date
+        , 'lockup:= lockup
+        , 'balance:= balance
+        , 'activity:= activity
         }
-        (let* ( (elapsed (diff-days (chain-time) date))
-                (servicing (if (< activity min-activity) 0.0
-                               (* balance (* rate elapsed))))
-                (total (+ balance servicing))
-              )
-          (enforce (> elapsed lockup) "Lockup in force")
-          (install-capability (token::TRANSFER pool-account account total))
-          (token::transfer pool-account account total)
-          (update pools pool
-            { 'bonded: (- bonded balance)
-            , 'service: (- service servicing)
-            , 'active: (- active [bond])
-            }))))
+        (with-read pools pool
+          { 'token:= token:module{fungible-v2}
+          , 'account:= pool-account
+          , 'bonded:= bonded
+          , 'service:= service
+          , 'active:= active
+          , 'activity:= min-activity
+          , 'rate:= rate
+          }
+          (let* ( (elapsed (diff-days (chain-time) date))
+                  (servicing (if (< activity min-activity) 0.0
+                                 (* balance (* rate elapsed))))
+                  (total (+ balance servicing))
+                )
+            (enforce (> elapsed lockup) "Lockup in force")
+            (install-capability (token::TRANSFER pool-account account total))
+            (token::transfer pool-account account total)
+            (update pools pool
+              { 'bonded: (- bonded balance)
+              , 'service: (- service servicing)
+              , 'active: (- active [bond])
+              })))))
   )
 
   (defun pay-fee

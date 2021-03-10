@@ -77,9 +77,11 @@
     (int-to-str 10 (at 'number header)))
 
   (defun propose
-    ( header:object{header} pool:string proposer:string )
+    ( header:object{header} proposer:string )
     (let ( (height (get-height header))
-           (hash (at 'hash header)) )
+           (hash (at 'hash header))
+           (pool (at 'pool (pool.get-bond proposer)))
+         )
       (with-default-read heights height
         { 'proposed: "", 'accepted: "", 'inactive: []}
         { 'proposed:= proposed, 'accepted:=accepted, 'inactive:=inactive }
