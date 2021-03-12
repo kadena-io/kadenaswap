@@ -42,7 +42,7 @@ const SwapContainer = () => {
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [fetchingPair, setFetchingPair] = useState(false)
-
+  const [priceImpact, setPriceImpact] = useState("")
   const pact = useContext(PactContext);
 
   useEffect(() => {
@@ -73,7 +73,6 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (toValues.amount.length < 5) {
-            console.log(pact.computeIn(toValues.amount))
             throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
           } else {
             debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
@@ -97,6 +96,14 @@ const SwapContainer = () => {
       }
     }
   }, [pact.ratio])
+
+  useEffect(() => {
+    if (!isNaN(pact.ratio)) {
+      setPriceImpact(pact.computePriceImpact(fromValues.coin, toValues.coin, Number(fromValues.amount), Number(toValues.amount)))
+    } else {
+      setPriceImpact("")
+    }
+  }, [fromValues.coin, toValues.coin, fromValues.amount, toValues.amount, pact.ratio])
 
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
@@ -167,7 +174,7 @@ const SwapContainer = () => {
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
     return 'SWAP';
   };
-
+  console.log("Adjusted Price: " , pact.ratio*(1+priceImpact))
   return (
     <Container>
       <TokenSelector
@@ -237,7 +244,15 @@ const SwapContainer = () => {
   	         <>
               <RowContainer>
                 <Label>price</Label>
-                <span>{`${reduceBalance(pact.ratio)} ${fromValues.coin} per ${toValues.coin}`}</span>
+                <span>{`${reduceBalance(pact.ratio*(1+priceImpact))} ${fromValues.coin} per ${toValues.coin}`}</span>
+              </RowContainer>
+              <RowContainer style={{ marginTop: 5 }}>
+                <Label>Price Impact</Label>
+                <span>{
+                  priceImpact<0.0001
+                    ? "< 0.01%"
+                    : `${reduceBalance(priceImpact*100)}%`
+                  }</span>
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
                 <Label>max slippage</Label>

@@ -2,6 +2,8 @@ import React, { useState, createContext, useEffect, useContext, useReducer } fro
 import Pact from "pact-lang-api";
 import AES from 'crypto-js/aes'
 import CryptoJS from 'crypto-js'
+import toFormat from 'toformat'
+import JSBI from 'jsbi'
 import { NotificationContext, STATUSES } from './NotificationContext';
 import PasswordPopup from '../components/shared/PasswordPopup';
 import { toast } from 'react-toastify';
@@ -13,6 +15,12 @@ import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
 import { reduceBalance, extractDecimal } from '../utils/reduceBalance'
 import tokenData from '../constants/cryptoCurrencies';
+import { Currency } from '../utils/entities/currency'
+import Fraction from '../utils/entities/fraction'
+import CurrencyAmount from '../utils/entities/currencyAmount'
+import Percent from '../utils/entities/percent'
+import Route from '../utils/entities/route'
+import Price from '../utils/entities/price'
 const fetch = require("node-fetch");
 
 export const PactContext = createContext();
@@ -1311,8 +1319,54 @@ var computeIn = function (amountOut) {
   let numerator = Number(reserveIn * amountOut)
   let denominator = Number((reserveOut-amountOut) *(1-FEE))
   // round up the last digit
-  return numerator / denominator; 
+  return numerator / denominator;
 };
+
+/**
+ * Returns the percent difference between the mid price and the execution price, i.e. price impact.
+ * @param midPrice mid price before the trade
+ * @param inputAmount the input amount of the trade
+ * @param outputAmount the output amount of the trade
+ */
+function computePriceImpact(token0, token1, inputAmount, outputAmount) {
+  const inputAmountFraction = new Fraction(getFraction(inputAmount)["numerator"], getFraction(inputAmount)["denominator"]).quotient;
+  const outputAmountFraction = new Fraction(getFraction(inputAmount)["numerator"], getFraction(inputAmount)["denominator"]).quotient;
+
+  const exactQuote = midPrice(token0, token1).raw.multiply(inputAmountFraction)
+  // calculate slippage := (exactQuote - outputAmount) / exactQuote
+  const slippage = exactQuote.subtract(outputAmountFraction).divide(exactQuote)
+  return new Percent(slippage.numerator, slippage.denominator)
+}
+
+function midPrice(token0, token1) {
+
+  const token0Currency = new Currency(tokenData[token0].precision, token0);
+  const token0Reserve = new Fraction(getFraction(pairReserve["token0"])["numerator"], getFraction(pairReserve["token0"])["denominator"]).quotient;
+  const token1Currency = new Currency(tokenData[token1].precision, token1);
+  const token1Reserve = new Fraction(getFraction(pairReserve["token1"])["numerator"], getFraction(pairReserve["token1"])["denominator"]).quotient;
+
+  const prices = [
+    new Price(token0Currency, token1Currency, token0Reserve, token1Reserve),
+    new Price(token1Currency, token0Currency, token1Reserve, token0Reserve)
+  ]
+  return prices.slice(1).reduce((accumulator, currentValue) => accumulator.multiply(currentValue), prices[0])
+}
+
+const getFraction = (decimal) => {
+  for(var denominator = 1; (decimal * denominator) % 1 !== 0; denominator++);
+  return {numerator: decimal * denominator, denominator: denominator};
+}
+
+///SUBTRACT realized LP fee
+// const realizedLPFee = !trade
+//   ? undefined
+//   : ONE_HUNDRED_PERCENT.subtract(
+//       trade.route.pairs.reduce<Fraction>(
+//         (currentFee: Fraction): Fraction => currentFee.multiply(INPUT_FRACTION_AFTER_FEE),
+//         ONE_HUNDRED_PERCENT
+//       )
+//     )
+
 
   return (
     <PactContext.Provider
@@ -1326,6 +1380,7 @@ var computeIn = function (amountOut) {
         getTokenAccount,
         getRatio,
         getRatio1,
+        computePriceImpact,
         supplied,
         setSupplied,
         addLiquidityWallet,
