@@ -11,13 +11,13 @@
   , 'relay-admin-keyset: ['admin]
   , 'upgrade: false
   , 'relay-coin-account: 'relay-bank
-  , 'lockup: 180
+  , 'lockup: 365
   , 'bond: 10000
-  , 'activity: 180
-  , 'endorsers: 3
-  , 'denouncers: 5
+  , 'activity: 365
+  , 'endorsers: 5
+  , 'denouncers: 7
   , 'confirm: 0.5
-  , 'rate: 0.0008
+  , 'rate: 0.000822 ;; 30%
   , 'fee: 30.0
   })
 (define-keyset 'relay-admin-keyset)
@@ -26,20 +26,25 @@
 (load "relay.pact")
 (env-data {'Bob: ["bob"], 'Alice:["alice"], 'Carol:["carol"], 'Admin:["admin"]})
 (test-capability (coin.COINBASE))
-(coin.coinbase "Bob" (read-keyset 'Bob) 30000.0)
-(coin.coinbase "Alice" (read-keyset 'Alice) 20000.0)
+(coin.coinbase "Bob" (read-keyset 'Bob) 150000.0)
+(coin.coinbase "Alice" (read-keyset 'Alice) 30000.0)
 (coin.coinbase "Carol" (read-keyset 'Carol) 10000.0)
 (coin.coinbase "Admin" (read-keyset 'Admin) 100000.0)
 (env-sigs
   [{'key: "admin",'caps: [(coin.TRANSFER "Admin" 'relay-bank 100000.0)]}])
 (test.pool.fund-service test.relay.POOL "Admin" 100000.0)
+(expect "service events"
+   [{"name": "coin.TRANSFER","params": ["Admin" "relay-bank" 100000.0]}
+    {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 0.0 100000.0]}
+   ]
+  (map (remove 'module-hash) (env-events true)))
 (commit-tx)
 
 (begin-tx)
 (env-chain-data { 'block-time: (parse-time "%F" "2021-01-01")})
 (env-sigs [
-  {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 20000.0)]}
-  {'key: "alice",'caps: [(coin.TRANSFER "Alice" 'relay-bank 20000.0)]}
+  {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 30000.0)]}
+  {'key: "alice",'caps: [(coin.TRANSFER "Alice" 'relay-bank 30000.0)]}
   {'key: "carol",'caps: [(coin.TRANSFER "Carol" 'relay-bank 10000.0)]}
 
 ])
@@ -59,13 +64,75 @@
 (expect "new-bond: success Alice 2"
   "Alice:2021-01-02"
   (test.pool.new-bond test.relay.POOL "Alice" (read-keyset 'Alice)))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-03")})
+(expect "new-bond: success Bob 3"
+  "Bob:2021-01-03"
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+(expect "new-bond: success Alice 3"
+  "Alice:2021-01-03"
+  (test.pool.new-bond test.relay.POOL "Alice" (read-keyset 'Alice)))
+(expect "events"
+   [{"name": "coin.TRANSFER","params": ["Bob" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 365]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 10000.0 100000.0]}
+   {"name": "coin.TRANSFER","params": ["Alice" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Alice" 10000.0 365]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 20000.0 100000.0]}
+   {"name": "coin.TRANSFER","params": ["Carol" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Carol" 10000.0 365]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 30000.0 100000.0]}
+   {"name": "coin.TRANSFER","params": ["Bob" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 365]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 40000.0 100000.0]}
+   {"name": "coin.TRANSFER","params": ["Alice" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Alice" 10000.0 365]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 50000.0 100000.0]}
+   {"name": "coin.TRANSFER","params": ["Bob" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 365]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 60000.0 100000.0]}
+   {"name": "coin.TRANSFER","params": ["Alice" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Alice" 10000.0 365]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 70000.0 100000.0]}]
+  (map (remove 'module-hash) (env-events true)))
 (commit-tx)
+
+(begin-tx)
+(env-sigs [
+  {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 100000.0)]}])
+
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-04")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-05")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-06")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-07")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-08")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-09")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-10")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-11")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-12")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(expect "bonded check" 160000.0 (at 'bonded (test.pool.get-pool test.relay.POOL)))
+
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-13")})
+(expect-failure "Reserve exhausted"
+  "Insufficient reserve"
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+
+(rollback-tx)
 
 (begin-tx)
 (env-sigs
   [ {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 10000.0)]}
   , {'key: "carol",'caps: [(coin.TRANSFER "Carol" 'relay-bank 10000.0)]}
   ])
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-01")})
 (expect-failure "new-bond: duplicate"
   "row found"
   (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
@@ -74,13 +141,16 @@
   "Insufficient funds"
   (test.pool.new-bond test.relay.POOL "Carol" (read-keyset 'Carol)))
 
+
 (expect-failure "withdraw: managed"
   "not installed"
   (test.pool.withdraw "Bob:2021-01-01" "Bob"))
+
 (env-sigs [{'key: "nobody",'caps: [(test.pool.WITHDRAW "Bob:2021-01-01")]}])
 (expect-failure "withdraw: bad key"
   "Keyset failure"
   (test.pool.withdraw "Bob:2021-01-01" "Bob"))
+
 (env-sigs
   [ {'key: "bob",'caps: [(test.pool.WITHDRAW "Bob:2021-01-02")]}
   ])
@@ -88,3 +158,22 @@
   "Lockup in force"
   (test.pool.withdraw "Bob:2021-01-02" "Bob"))
 (rollback-tx)
+
+
+(begin-tx)
+(env-sigs
+  [ {'key: "alice",'caps: [(test.relay.BONDER "Alice:2021-01-01")]}
+  ])
+(test.relay.propose
+  { 'hash: "h1", 'number: 1, 'receipts-root: "r1" }
+  "Alice:2021-01-01"
+)
+(expect "propose events"
+  [{"name": "test.relay.PROPOSE"
+  ,"params": [1 "h1" "Alice:2021-01-01"
+    ["Alice:2021-01-01" ;; TODO
+    "Alice:2021-01-03"
+    "Bob:2021-01-01"
+    "Carol:2021-01-01"
+    "Alice:2021-01-02"]]}]
+  (map (remove 'module-hash) (env-events true)))

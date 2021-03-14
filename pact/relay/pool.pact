@@ -53,6 +53,13 @@
     (enforce-guard (at 'guard (get-bond bond)))
   )
 
+  (defcap BOND ( pool:string account:string bonded:decimal lockup:integer )
+    @event true
+  )
+
+  (defcap UPDATE ( pool:string bonded:decimal service:decimal )
+    @event true)
+
   (defun pool-guard () (create-module-guard "pool-bank"))
 
   (defun init-pool
@@ -119,9 +126,12 @@
     (with-read pools pool
       { 'token:= token:module{fungible-v2}
       , 'service:= service
+      , 'bonded:=bonded
       , 'account:= pool-account }
       (token::transfer account pool-account amount)
-      (update pools pool { 'service: (+ service amount) }))
+      (let ((new-service (+ service amount)))
+        (with-capability (UPDATE pool bonded new-service) 1)
+        (update pools pool { 'service: new-service })))
   )
 
   (defun withdraw-service
@@ -132,11 +142,14 @@
       (with-read pools pool
         { 'token:=token:module{fungible-v2}
         , 'service:=service
+        , 'bonded:=bonded
         , 'account:=pool-account
         }
         (install-capability (token::TRANSFER pool-account account amount))
         (token::transfer pool-account account amount)
-        (update pools pool { 'service:(- service amount)})))
+        (let ((new-service (- service amount)))
+          (with-capability (UPDATE pool bonded new-service) 1)
+          (update pools pool { 'service:new-service}))))
   )
 
   (defun new-bond:string
@@ -148,14 +161,17 @@
       { 'token:= token:module{fungible-v2}
       , 'account:= pool-account
       , 'bonded:= bonded
+      , 'service:=service
       , 'lockup:= lockup
       , 'bond:= bond-amount
+      , 'rate:=rate
       , 'active:= active }
       (let*
         ( (date (chain-time))
           (bond (format "{}:{}" [account (format-time "%F" date)]))
         )
         (token::transfer account pool-account bond-amount)
+        (with-capability (BOND pool account bond-amount lockup) 1)
         (insert bonds bond
           { 'pool: pool
           , 'guard: guard
@@ -164,11 +180,15 @@
           , 'lockup: lockup
           , 'activity: 0
           })
-        (update pools pool
-          { 'bonded: (+ bonded bond-amount)
-          , 'active: (+ active [bond])
-          })
-        bond))
+        (let ((new-bonded (+ bonded bond-amount)))
+          (enforce (> service (* 2.0 (* (* rate lockup) new-bonded)))
+            "Insufficient reserve")
+          (with-capability (UPDATE pool new-bonded service) 1)
+          (update pools pool
+            { 'bonded: new-bonded
+            , 'active: (+ active [bond])
+            })
+          bond)))
   )
 
 
@@ -201,13 +221,16 @@
                   (servicing (if (< activity min-activity) 0.0
                                  (* balance (* rate elapsed))))
                   (total (+ balance servicing))
+                  (new-bonded (- bonded balance))
+                  (new-service (- service servicing))
                 )
             (enforce (> elapsed lockup) "Lockup in force")
             (install-capability (token::TRANSFER pool-account account total))
             (token::transfer pool-account account total)
+            (with-capability (UPDATE pool new-bonded new-service) 1)
             (update pools pool
-              { 'bonded: (- bonded balance)
-              , 'service: (- service servicing)
+              { 'bonded: new-bonded
+              , 'service: new-service
               , 'active: (- active [bond])
               })))))
   )
@@ -259,19 +282,19 @@
     "Structure for holding random picks"
     hash:string
     cands:[string]
-    picks:[integer])
+    picks:[string])
 
-  (defun pick:object{picks} (p:object{picks} x_)
+  (defun pick:object{picks} (o:object{picks} x_)
     " Accumulator to pick a random candidate using hash value, \
     \ and re-hash hash value."
-    (let* ((h0 (at 'hash p))
-           (cs (at 'cands p))
+    (let* ((h0 (at 'hash o))
+           (cs (at 'cands o))
            (count (length cs))
            (p (mod (str-to-int 64 h0) count)))
       { 'hash: (hash h0)
       , 'cands: (+ (take p cs)
                    (take (- (+ p 1) count) cs))
-      , 'picks: (+ [(at p cs)] (at 'picks p)) }))
+      , 'picks: (+ [(at p cs)] (at 'picks o)) }))
 
 
 

@@ -33,6 +33,9 @@
   (defconst BLOCK_WITHDRAWN -1)
   (defconst BLOCK_DENOUNCED -2)
 
+  (defconst PICK_ENDORSE true)
+  (defconst PICK_DENOUNCE false)
+
   (defschema proposal-schema
     header:object{header}
     pool:string
@@ -69,11 +72,11 @@
     (enforce-guard (at 'guard (pool.get-bond bond)))
   )
 
-  (defun entry-key (header:{header})
+  (defun entry-key (header:object{header})
     (format "{}:{}" [(at 'number header) (at 'hash header)])
   )
 
-  (defun get-height (header:{header})
+  (defun get-height (header:object{header})
     (int-to-str 10 (at 'number header)))
 
   (defun propose
@@ -89,7 +92,7 @@
                       (not (contains hash inactive)))
                     "Duplicate proposal")
         (enforce (= proposed "") "Already active proposal")
-        (let ((endorsers (pool.pick-active pool)))
+        (let ((endorsers (pool.pick-active pool PICK_ENDORSE)))
           (with-capability
             (PROPOSE (at 'number header) hash proposer endorsers) 1)
           (with-capability (BONDER proposer)
