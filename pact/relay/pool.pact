@@ -3,7 +3,7 @@
 (module pool GOVERNANCE
 
   (defcap GOVERNANCE ()
-    (enforce-guard (keyset-ref-guard 'relay-admin-keyset))
+    (enforce-guard (keyset-ref-guard 'relay-ns-admin))
   )
 
   (defconst DAY:integer (* 24 (* 60 60)))

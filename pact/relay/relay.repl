@@ -8,7 +8,7 @@
 (define-namespace 'test (sig-keyset) (sig-keyset))
 (env-data
   { 'ns: 'test
-  , 'relay-admin-keyset: ['admin]
+  , 'relay-ns-admin: ['admin]
   , 'upgrade: false
   , 'relay-coin-account: 'relay-bank
   , 'lockup: 365
@@ -20,7 +20,7 @@
   , 'rate: 0.000822 ;; 30%
   , 'fee: 30.0
   })
-(define-keyset 'relay-admin-keyset)
+(define-keyset 'relay-ns-admin)
 (env-keys ['admin])
 (load "pool.pact")
 (load "relay.pact")

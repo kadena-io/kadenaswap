@@ -5,7 +5,7 @@
   (use util.guards)
 
   (defcap GOVERNANCE ()
-    (enforce-guard (keyset-ref-guard 'relay-admin-keyset)))
+    (enforce-guard (keyset-ref-guard 'relay-ns-admin)))
 
   (defschema header
     ;; difficulty:string
