@@ -14,7 +14,7 @@
     token:module{fungible-v2}
     account:string
     bonded:decimal
-    service:decimal
+    reserve:decimal
     lockup:integer
     bond:decimal
     active:[string]
@@ -57,7 +57,7 @@
     @event true
   )
 
-  (defcap UPDATE ( pool:string bonded:decimal service:decimal )
+  (defcap UPDATE ( pool:string bonded:decimal reserve:decimal )
     @event true)
 
   (defcap FEE ( pool:string bond:string amount:decimal)
@@ -85,7 +85,7 @@
         { 'token: token
         , 'account: account
         , 'bonded: 0.0
-        , 'service: 0.0
+        , 'reserve: 0.0
         , 'lockup: lockup
         , 'bond: bond
         , 'active: []
@@ -121,38 +121,38 @@
         , 'fee: fee
         })))
 
-  (defun fund-service
+  (defun fund-reserve
     ( pool:string
       account:string
       amount:decimal
     )
     (with-read pools pool
       { 'token:= token:module{fungible-v2}
-      , 'service:= service
+      , 'reserve:= reserve
       , 'bonded:=bonded
       , 'account:= pool-account }
       (token::transfer account pool-account amount)
-      (let ((new-service (+ service amount)))
-        (with-capability (UPDATE pool bonded new-service) 1)
-        (update pools pool { 'service: new-service })))
+      (let ((new-reserve (+ reserve amount)))
+        (with-capability (UPDATE pool bonded new-reserve) 1)
+        (update pools pool { 'reserve: new-reserve })))
   )
 
-  (defun withdraw-service
+  (defun withdraw-reserve
     ( pool:string
       account:string
       amount:decimal )
     (with-capability (POOL_ADMIN)
       (with-read pools pool
         { 'token:=token:module{fungible-v2}
-        , 'service:=service
+        , 'reserve:=reserve
         , 'bonded:=bonded
         , 'account:=pool-account
         }
         (install-capability (token::TRANSFER pool-account account amount))
         (token::transfer pool-account account amount)
-        (let ((new-service (- service amount)))
-          (with-capability (UPDATE pool bonded new-service) 1)
-          (update pools pool { 'service:new-service}))))
+        (let ((new-reserve (- reserve amount)))
+          (with-capability (UPDATE pool bonded new-reserve) 1)
+          (update pools pool { 'reserve:new-reserve}))))
   )
 
   (defun new-bond:string
@@ -164,7 +164,7 @@
       { 'token:= token:module{fungible-v2}
       , 'account:= pool-account
       , 'bonded:= bonded
-      , 'service:=service
+      , 'reserve:=reserve
       , 'lockup:= lockup
       , 'bond:= bond-amount
       , 'rate:=rate
@@ -184,9 +184,9 @@
           , 'activity: 0
           })
         (let ((new-bonded (+ bonded bond-amount)))
-          (enforce (> service (* 2.0 (* (* rate lockup) new-bonded)))
+          (enforce (> reserve (* 2.0 (* (* rate lockup) new-bonded)))
             "Insufficient reserve")
-          (with-capability (UPDATE pool new-bonded service) 1)
+          (with-capability (UPDATE pool new-bonded reserve) 1)
           (update pools pool
             { 'bonded: new-bonded
             , 'active: (+ active [bond])
@@ -215,7 +215,7 @@
           { 'token:= token:module{fungible-v2}
           , 'account:= pool-account
           , 'bonded:= bonded
-          , 'service:= service
+          , 'reserve:= reserve
           , 'active:= active
           , 'activity:= min-activity
           , 'rate:= rate
@@ -225,15 +225,15 @@
                                  (* balance (* rate elapsed))))
                   (total (+ balance servicing))
                   (new-bonded (- bonded balance))
-                  (new-service (- service servicing))
+                  (new-reserve (- reserve servicing))
                 )
             (enforce (> elapsed lockup) "Lockup in force")
             (install-capability (token::TRANSFER pool-account account total))
             (token::transfer pool-account account total)
-            (with-capability (UPDATE pool new-bonded new-service) 1)
+            (with-capability (UPDATE pool new-bonded new-reserve) 1)
             (update pools pool
               { 'bonded: new-bonded
-              , 'service: new-service
+              , 'reserve: new-reserve
               , 'active: (- active [bond])
               })))))
   )
@@ -248,7 +248,7 @@
       (with-read pools pool
         { 'token:= token:module{fungible-v2}
         , 'bonded:= bonded
-        , 'service:= service
+        , 'reserve:= reserve
         , 'guard:= guard
         , 'fee:=amount
         }
@@ -260,7 +260,7 @@
           })
         (update pools pool
           { 'bonded: (+ bonded amount)
-          , 'service: (- service amount)
+          , 'reserve: (- reserve amount)
           })))
   )
 

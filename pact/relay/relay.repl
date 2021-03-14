@@ -32,8 +32,8 @@
 (coin.coinbase "Admin" (read-keyset 'Admin) 100000.0)
 (env-sigs
   [{'key: "admin",'caps: [(coin.TRANSFER "Admin" 'relay-bank 100000.0)]}])
-(test.pool.fund-service test.relay.POOL "Admin" 100000.0)
-(expect "service events"
+(test.pool.fund-reserve test.relay.POOL "Admin" 100000.0)
+(expect "reserve events"
    [{"name": "coin.TRANSFER","params": ["Admin" "relay-bank" 100000.0]}
     {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 0.0 100000.0]}
    ]
@@ -116,7 +116,7 @@
    ,"guard": (test.relay.pool-module-guard)
    ,"lockup": 365
    ,"rate": 0.000822
-   ,"service": 100000.0
+   ,"reserve": 100000.0
    ,"token": coin
    }
   (test.pool.get-pool test.relay.POOL)
@@ -313,9 +313,9 @@
 (expect "pool bonded balance"
   70090.0
   (at 'bonded (test.pool.get-pool test.relay.POOL)))
-(expect "pool service balance"
+(expect "pool reserve balance"
   99910.0
-  (at 'service (test.pool.get-pool test.relay.POOL)))
+  (at 'reserve (test.pool.get-pool test.relay.POOL)))
 
 
 (env-sigs
