@@ -53,11 +53,14 @@
     (enforce-guard (at 'guard (get-bond bond)))
   )
 
-  (defcap BOND ( pool:string account:string bonded:decimal lockup:integer )
+  (defcap BOND ( pool:string bond:string bonded:decimal lockup:integer )
     @event true
   )
 
   (defcap UPDATE ( pool:string bonded:decimal service:decimal )
+    @event true)
+
+  (defcap FEE ( pool:string bond:string amount:decimal)
     @event true)
 
   (defun pool-guard () (create-module-guard "pool-bank"))
@@ -250,6 +253,7 @@
         , 'fee:=amount
         }
         (enforce-guard guard)
+        (with-capability (FEE pool bond amount) 1)
         (update bonds bond
           { 'balance: (+ balance amount)
           , 'activity: (+ activity 1)
@@ -260,18 +264,23 @@
           })))
   )
 
-  (defun pick-active (pool:string endorse:bool)
-    "Pick a random selection of COUNT bonders from POOL using tx hash as seed"
+
+
+
+  (defun pick-active (pool:string endorse:bool bonder:string)
+    " Pick random selection of COUNT active bonders, without BONDER, from POOL."
     (with-read pools pool
       { 'active:=active, 'endorsers:= endorsers, 'denouncers:= denouncers }
-      (let ((count (if endorse endorsers denouncers)))
+      (let ( (count (if endorse endorsers denouncers))
+             (h (hash [(at 'prev-block-hash (chain-data)) (tx-hash)]))
+           )
         (enforce
           (>= (length active) count)
           "Not enough active bonders")
         (at 'picks
           (fold (pick)
-            { 'hash: (tx-hash)
-            , 'cands: active
+            { 'hash: h
+            , 'cands: (filter (!= bonder) active)
             , 'picks: []
             }
             (make-list count 0)))))

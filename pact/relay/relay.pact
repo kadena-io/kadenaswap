@@ -50,6 +50,8 @@
 
   (deftable proposals:{proposal-schema})
 
+  (defun get-proposal (phash:string) (read proposals phash))
+
   (defcap PROPOSE
     ( height:integer
       hash:string
@@ -92,7 +94,7 @@
                       (not (contains hash inactive)))
                     "Duplicate proposal")
         (enforce (= proposed "") "Already active proposal")
-        (let ((endorsers (pool.pick-active pool PICK_ENDORSE)))
+        (let ((endorsers (pool.pick-active pool PICK_ENDORSE proposer)))
           (with-capability
             (PROPOSE (at 'number header) hash proposer endorsers) 1)
           (with-capability (BONDER proposer)
@@ -130,15 +132,15 @@
             (let*
               ( (pool (pool.get-pool pool-id))
                 (count (+ 1 (length endorsed)))
-                (accepted
-                  (>= count (* (at 'confirm pool) (length endorsers))))
+                (needed (ceiling (* (at 'confirm pool) (length endorsers))))
+                (is-accepted (>= count needed))
               )
-              (with-capability (ENDORSE hash endorser accepted) 1)
+              (with-capability (ENDORSE hash endorser is-accepted) 1)
               (update proposals hash
                 { 'endorsed: (+ [endorser] endorsed)
-                , 'status: (if accepted BLOCK_ACCEPTED BLOCK_PROPOSED)
+                , 'status: (if is-accepted BLOCK_ACCEPTED BLOCK_PROPOSED)
                 })
-              (if accepted
+              (if is-accepted
                 [ (enforce (= "" accepted) "Height already accepted")
                   (update heights height { 'proposed:"", 'accepted:hash}) ]
                 [])
@@ -146,10 +148,10 @@
   )
 
   (defun validate:bool ( header:object{header} )
-    (let ((hash (at 'hash header))
-          (height (get-height header)))
-      (enforce (= hash (at 'accepted (read heights height)))
-        "Not accepted")
+    (let* ((hash (at 'hash header))
+           (height (get-height header))
+           (accepted (at 'accepted (read heights height))))
+      (enforce (= hash accepted) "Not accepted")
       (with-read proposals hash
         { 'header:=stored }
         (enforce (= header stored) "Header mismatch")))
