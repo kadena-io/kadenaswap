@@ -42,7 +42,7 @@ const SwapContainer = () => {
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [fetchingPair, setFetchingPair] = useState(false)
-
+  const [priceImpact, setPriceImpact] = useState("")
   const pact = useContext(PactContext);
 
   useEffect(() => {
@@ -97,6 +97,14 @@ const SwapContainer = () => {
       }
     }
   }, [pact.ratio])
+
+  useEffect(() => {
+    if (!isNaN(pact.ratio)) {
+      setPriceImpact(pact.computePriceImpact(Number(fromValues.amount), Number(toValues.amount)))
+    } else {
+      setPriceImpact("")
+    }
+  }, [fromValues.coin, toValues.coin, fromValues.amount, toValues.amount, pact.ratio])
 
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
@@ -237,7 +245,16 @@ const SwapContainer = () => {
   	         <>
               <RowContainer>
                 <Label>price</Label>
-                <span>{`${reduceBalance(pact.ratio)} ${fromValues.coin} per ${toValues.coin}`}</span>
+                <span>{`${reduceBalance(pact.ratio*(1+priceImpact))} ${fromValues.coin} per ${toValues.coin}`}</span>
+              </RowContainer>
+              <RowContainer style={{ marginTop: 5 }}>
+                <Label>Price Impact</Label>
+                <span style={{color: pact.priceImpactWithoutFee(priceImpact) < 0 ? "red" : "blue" }}>{
+                  pact.priceImpactWithoutFee(priceImpact)<0.0001 && pact.priceImpactWithoutFee(priceImpact)
+                    ? "< 0.01%"
+                    : `${reduceBalance(pact.priceImpactWithoutFee(priceImpact), 4)}%`
+                  }
+                </span>
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
                 <Label>max slippage</Label>
@@ -245,7 +262,7 @@ const SwapContainer = () => {
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
                 <Label>liquidity provider fee</Label>
-                <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
+                <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount),14)} ${fromValues.coin}`}</span>
               </RowContainer>
             </>
 	        :
