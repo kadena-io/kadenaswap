@@ -99,7 +99,7 @@ const SwapContainer = () => {
 
   useEffect(() => {
     if (!isNaN(pact.ratio)) {
-      setPriceImpact(pact.computePriceImpact(fromValues.coin, toValues.coin, Number(fromValues.amount), Number(toValues.amount)))
+      setPriceImpact(pact.computePriceImpact(Number(fromValues.amount), Number(toValues.amount)))
     } else {
       setPriceImpact("")
     }
@@ -174,7 +174,7 @@ const SwapContainer = () => {
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
     return 'SWAP';
   };
-  console.log("Adjusted Price: " , pact.ratio*(1+priceImpact))
+  console.log("Adjusted Price: " , priceImpact)
   return (
     <Container>
       <TokenSelector

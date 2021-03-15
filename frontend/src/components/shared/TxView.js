@@ -312,7 +312,7 @@ const TxView = ({ show, view, selectedToken, onTokenClick, onClose, token0, toke
             onClose()
           }}
         >
-          Retry
+          Close
         </Button>
       </Content>
     )
