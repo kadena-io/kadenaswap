@@ -1311,8 +1311,25 @@ var computeIn = function (amountOut) {
   let numerator = Number(reserveIn * amountOut)
   let denominator = Number((reserveOut-amountOut) *(1-FEE))
   // round up the last digit
-  return numerator / denominator; 
+  return numerator / denominator;
 };
+
+function computePriceImpact(amountIn, amountOut) {
+  const reserveOut = Number(pairReserve['token1']);
+  const reserveIn = Number(pairReserve['token0']);
+  const midPrice = (reserveOut/reserveIn);
+  const exactQuote = amountIn * midPrice;
+  const slippage = (exactQuote-amountOut) / exactQuote;
+  return slippage;
+}
+
+function priceImpactWithoutFee(priceImpact){
+  return priceImpact - realizedLPFee();
+}
+
+function realizedLPFee(numHops=1) {
+  return 1-((1-FEE)*numHops);
+}
 
   return (
     <PactContext.Provider
@@ -1391,7 +1408,9 @@ var computeIn = function (amountOut) {
         kpennyRedeemWallet,
         kpennyRedeemLocal,
         computeIn,
-        computeOut
+        computeOut,
+        computePriceImpact,
+        priceImpactWithoutFee
       }}
     >
       {props.children}
