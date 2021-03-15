@@ -174,7 +174,7 @@ const SwapContainer = () => {
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
     return 'SWAP';
   };
-  console.log("Adjusted Price: " , priceImpact)
+
   return (
     <Container>
       <TokenSelector
@@ -248,10 +248,10 @@ const SwapContainer = () => {
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
                 <Label>Price Impact</Label>
-                <span>{
-                  priceImpact<0.0001
+                <span style={{color: pact.priceImpactWithoutFee(priceImpact) < 0 ? "red" : "blue" }}>{
+                  pact.priceImpactWithoutFee(priceImpact)<0.0001 && pact.priceImpactWithoutFee(priceImpact)
                     ? "< 0.01%"
-                    : `${reduceBalance(priceImpact*100)}%`
+                    : `${reduceBalance(pact.priceImpactWithoutFee(priceImpact), 4)}%`
                   }</span>
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
@@ -260,7 +260,7 @@ const SwapContainer = () => {
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
                 <Label>liquidity provider fee</Label>
-                <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
+                <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount),14)} ${fromValues.coin}`}</span>
               </RowContainer>
             </>
 	        :
