@@ -85,7 +85,7 @@
     ( header:object{header} proposer:string )
     (let ( (height (get-height header))
            (hash (at 'hash header))
-           (pool (at 'pool (pool.get-bond proposer)))
+           (pool (at 'pool (pool.get-active-bond proposer)))
          )
       (with-default-read heights height
         { 'proposed: "", 'accepted: "", 'inactive: []}
@@ -144,7 +144,7 @@
                 [ (enforce (= "" accepted) "Height already accepted")
                   (update heights height { 'proposed:"", 'accepted:hash}) ]
                 [])
-              (pool.pay-fee endorser))))))
+              (pool.record-activity endorser))))))
   )
 
   (defun validate:bool ( header:object{header} )
@@ -170,6 +170,7 @@
       coin
       (read-msg 'relay-coin-account)
       (read-integer 'lockup)
+      (read-integer 'unlock)
       (read-decimal 'bond)
       (read-integer 'activity)
       (read-integer 'endorsers)

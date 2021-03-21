@@ -16,6 +16,7 @@
     bonded:decimal
     reserve:decimal
     lockup:integer
+    unlock:integer
     bond:decimal
     active:[string]
     activity:integer
@@ -37,7 +38,10 @@
     balance:decimal
     date:time
     lockup:integer
+    rate:decimal
     activity:integer
+    renewed:integer
+    terminated:bool
   )
 
   (deftable bonds:{bond-schema})
@@ -45,10 +49,20 @@
   (defun get-bond:object{bond-schema} (id:string)
     (read bonds id))
 
+  (defun get-active-bond:object{bond-schema} (id:string)
+    (let ((bond (get-bond id)))
+      (enforce (is-active bond) "Inactive bond")
+      bond))
+
+  (defun is-active:bool (bond:object{bond-schema})
+    (and (not (at 'terminated bond))
+      (< (elapsed-days (at 'date bond)) (at 'lockup bond)))
+  )
+
   (defcap POOL_ADMIN ()
     (compose-capability (GOVERNANCE)))
 
-  (defcap WITHDRAW (bond:string)
+  (defcap BONDER (bond:string)
     @managed
     (enforce-guard (at 'guard (get-bond bond)))
   )
@@ -60,7 +74,7 @@
   (defcap UPDATE ( pool:string bonded:decimal reserve:decimal )
     @event true)
 
-  (defcap FEE ( pool:string bond:string amount:decimal)
+  (defcap ACTIVITY ( pool:string bond:string activity:integer)
     @event true)
 
   (defun pool-guard () (create-module-guard "pool-bank"))
@@ -70,6 +84,7 @@
       token:module{fungible-v2}
       account:string
       lockup:integer
+      unlock:integer
       bond:decimal
       activity:integer
       endorsers:integer
@@ -87,6 +102,7 @@
         , 'bonded: 0.0
         , 'reserve: 0.0
         , 'lockup: lockup
+        , 'unlock: unlock
         , 'bond: bond
         , 'active: []
         , 'activity: activity
@@ -101,6 +117,7 @@
   (defun update-pool
     ( pool:string
       lockup:integer
+      unlock:integer
       bond:decimal
       activity:integer
       endorsers:integer
@@ -112,6 +129,7 @@
     (with-capability (POOL_ADMIN)
       (update pools pool
         { 'lockup: lockup
+        , 'unlock: unlock
         , 'bond: bond
         , 'activity: activity
         , 'endorsers:endorsers
@@ -166,13 +184,17 @@
       , 'bonded:= bonded
       , 'reserve:=reserve
       , 'lockup:= lockup
+      , 'unlock:= unlock
       , 'bond:= bond-amount
       , 'rate:=rate
       , 'active:= active }
       (let*
         ( (date (chain-time))
           (bond (format "{}:{}" [account (format-time "%F" date)]))
+          (new-bonded (+ bonded bond-amount))
         )
+        (enforce (> reserve (* 2.0 (* (* rate 365) new-bonded)))
+          "Insufficient reserve")
         (token::transfer account pool-account bond-amount)
         (with-capability (BOND pool account bond-amount lockup) 1)
         (insert bonds bond
@@ -181,28 +203,28 @@
           , 'balance: bond-amount
           , 'date: date
           , 'lockup: lockup
+          , 'rate: rate
           , 'activity: 0
+          , 'renewed: 0
+          , 'terminated: false
           })
-        (let ((new-bonded (+ bonded bond-amount)))
-          (enforce (> reserve (* 2.0 (* (* rate lockup) new-bonded)))
-            "Insufficient reserve")
-          (with-capability (UPDATE pool new-bonded reserve) 1)
-          (update pools pool
-            { 'bonded: new-bonded
-            , 'active: (+ active [bond])
-            })
-          bond)))
+        (with-capability (UPDATE pool new-bonded reserve) 1)
+        (update pools pool
+          { 'bonded: new-bonded
+          , 'active: (+ active [bond])
+          })
+        bond))
   )
 
 
-  (defun diff-days:integer (a:time b:time)
-    (/ (floor (diff-time a b)) DAY))
+  (defun elapsed-days:integer (t:time)
+    (/ (floor (diff-time (chain-time) t)) DAY))
 
-  (defun withdraw
+  (defun unbond
     ( bond:string
       account:string
     )
-    (with-capability (WITHDRAW bond)
+    (with-capability (BONDER bond)
       (with-read bonds bond
         { 'pool:= pool
         , 'guard:= guard
@@ -210,7 +232,10 @@
         , 'lockup:= lockup
         , 'balance:= balance
         , 'activity:= activity
+        , 'rate:= rate
+        , 'terminated:= terminated
         }
+        (enforce (not terminated) "Terminated")
         (with-read pools pool
           { 'token:= token:module{fungible-v2}
           , 'account:= pool-account
@@ -218,57 +243,101 @@
           , 'reserve:= reserve
           , 'active:= active
           , 'activity:= min-activity
-          , 'rate:= rate
+          , 'unlock:= unlock
+          , 'fee:= fee
           }
-          (let* ( (elapsed (diff-days (chain-time) date))
-                  (servicing (if (< activity min-activity) 0.0
+          (let* ( (elapsed (elapsed-days date))
+                  (risk-fee (if (< activity min-activity) 0.0
                                  (* balance (* rate elapsed))))
-                  (total (+ balance servicing))
+                  (activity-fee (* activity fee))
+                  (fees (+ risk-fee activity-fee))
+                  (total (+ balance fees))
                   (new-bonded (- bonded balance))
-                  (new-reserve (- reserve servicing))
+                  (new-reserve (- reserve fees))
                 )
-            (enforce (> elapsed lockup) "Lockup in force")
+            (enforce (> elapsed (+ lockup unlock)) "Lockup or unlock in force")
             (install-capability (token::TRANSFER pool-account account total))
             (token::transfer pool-account account total)
             (with-capability (UPDATE pool new-bonded new-reserve) 1)
+            (update bonds bond { 'terminated: true })
             (update pools pool
               { 'bonded: new-bonded
               , 'reserve: new-reserve
-              , 'active: (- active [bond])
+              , 'active: (filter (!= bond) active)
               })))))
   )
 
-  (defun pay-fee
+
+  (defun renew
+    ( bond:string
+      account:string
+    )
+    (with-capability (BONDER bond)
+      (with-read bonds bond
+        { 'pool:= pool
+        , 'guard:= guard
+        , 'date:= date
+        , 'lockup:= lockup
+        , 'balance:= balance
+        , 'activity:= activity
+        , 'rate:= rate
+        , 'terminated:= terminated
+        , 'renewed:= renewed
+        }
+        (enforce (not terminated) "Terminated")
+        (with-read pools pool
+          { 'token:= token:module{fungible-v2}
+          , 'account:= pool-account
+          , 'bonded:= bonded
+          , 'reserve:= reserve
+          , 'active:= active
+          , 'activity:= min-activity
+          , 'unlock:= unlock
+          , 'fee:= fee
+          }
+          (let* ( (elapsed (elapsed-days date))
+                  (risk-fee (if (< activity min-activity) 0.0
+                                 (* balance (* rate elapsed))))
+                  (activity-fee (* activity fee))
+                  (fees (+ risk-fee activity-fee))
+                  (new-reserve (- reserve fees))
+                )
+            (enforce (> elapsed (+ lockup)) "Lockup in force")
+            (enforce (<= elapsed (+ lockup unlock)) "Unlock period expired")
+            (install-capability (token::TRANSFER pool-account account fees))
+            (token::transfer pool-account account fees)
+            (with-capability (UPDATE pool bonded new-reserve) 1)
+            (update bonds bond
+              { 'date: (chain-time)
+              , 'activity: 0
+              , 'renewed: (+ 1 renewed)
+              })
+            (update pools pool
+              { 'reserve: new-reserve
+              , 'active: (if (contains bond active) active (+ [bond] active))
+              })))))
+  )
+
+
+  (defun record-activity
     ( bond:string )
     (with-read bonds bond
-      { 'pool:= pool
-      , 'balance:= balance
-      , 'activity:= activity
-      }
+      { 'activity:= activity, 'pool:=pool }
       (with-read pools pool
-        { 'token:= token:module{fungible-v2}
-        , 'bonded:= bonded
-        , 'reserve:= reserve
-        , 'guard:= guard
-        , 'fee:=amount
-        }
+        { 'guard:= guard }
         (enforce-guard guard)
-        (with-capability (FEE pool bond amount) 1)
-        (update bonds bond
-          { 'balance: (+ balance amount)
-          , 'activity: (+ activity 1)
-          })
-        (update pools pool
-          { 'bonded: (+ bonded amount)
-          , 'reserve: (- reserve amount)
-          })))
+        (let ((new-activity (+ 1 activity)))
+          (with-capability (ACTIVITY pool bond new-activity)
+            (update bonds bond
+              { 'activity: new-activity })))))
   )
 
 
 
 
   (defun pick-active (pool:string endorse:bool bonder:string)
-    " Pick random selection of COUNT active bonders, without BONDER, from POOL."
+    " Pick random selection of active bonders, without BONDER, from POOL. \
+    \ Count is if ENDORSE endorsers otherwise denouncers from pool config."
     (with-read pools pool
       { 'active:=active, 'endorsers:= endorsers, 'denouncers:= denouncers }
       (let ( (count (if endorse endorsers denouncers))
@@ -277,33 +346,54 @@
         (enforce
           (>= (length active) count)
           "Not enough active bonders")
-        (at 'picks
-          (fold (pick)
+        (bind (fold (pick count)
             { 'hash: h
             , 'cands: (filter (!= bonder) active)
             , 'picks: []
+            , 'picked: 0
+            , 'inactives: []
             }
-            (make-list count 0)))))
+            active)
+          { 'picks:=picks, 'inactives:= inactives }
+          (if (= inactives []) ""
+            (update pools pool
+              { 'active: (filter (in-list inactives) active) }))
+          picks)))
   )
+
+  (defun in-list:bool (l:list i)
+    (contains i l))
 
 
   (defschema picks
     "Structure for holding random picks"
     hash:string
     cands:[string]
-    picks:[string])
+    picks:[string]
+    picked:integer
+    inactives:[string])
 
-  (defun pick:object{picks} (o:object{picks} x_)
-    " Accumulator to pick a random candidate using hash value, \
+  (defun pick:object{picks} (count:integer o:object{picks} x_)
+    " Accumulator to pick COUNT random active candidates using hash value, \
     \ and re-hash hash value."
-    (let* ((h0 (at 'hash o))
-           (cs (at 'cands o))
-           (count (length cs))
-           (p (mod (str-to-int 64 h0) count)))
-      { 'hash: (hash h0)
-      , 'cands: (+ (take p cs)
-                   (take (- (+ p 1) count) cs))
-      , 'picks: (+ [(at p cs)] (at 'picks o)) }))
+    (if (= (at 'picked o) count) o
+      (let* ( (cands (at 'cands o))
+              (cand-count (length cands))
+            )
+        (enforce (> cand-count 0) "Not enough active bonders")
+        (let* ( (h0 (at 'hash o))
+                (i (mod (str-to-int 64 h0) cand-count))
+                (p (at i cands))
+                (active (is-active (get-bond p)))
+              )
+          { 'hash: (hash h0)
+          , 'cands: (+ (take i cands)
+                       (take (- (+ i 1) cand-count) cands))
+          , 'picks: (+ (if active [p] []) (at 'picks o))
+          , 'picked: (+ (if active 1 0) (at 'picked o))
+          , 'inactives: (+ (if active [] [p]) (at 'inactives o))
+          })))
+    )
 
 
 
