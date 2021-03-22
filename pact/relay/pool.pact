@@ -67,7 +67,15 @@
     (enforce-guard (at 'guard (get-bond bond)))
   )
 
-  (defcap BOND ( pool:string bond:string bonded:decimal lockup:integer )
+  (defcap BOND ( pool:string bond:string bonded:decimal lockup:integer renew:integer )
+    @event true
+  )
+
+  (defcap UNBOND ( pool:string bond:string bonded:decimal )
+    @event true
+  )
+
+  (defcap FEE ( pool:string bond:string fee:decimal )
     @event true
   )
 
@@ -196,7 +204,7 @@
         (enforce (> reserve (* 2.0 (* (* rate 365) new-bonded)))
           "Insufficient reserve")
         (token::transfer account pool-account bond-amount)
-        (with-capability (BOND pool account bond-amount lockup) 1)
+        (with-capability (BOND pool account bond-amount lockup 0) 1)
         (insert bonds bond
           { 'pool: pool
           , 'guard: guard
@@ -258,8 +266,10 @@
             (enforce (> elapsed (+ lockup unlock)) "Lockup or unlock in force")
             (install-capability (token::TRANSFER pool-account account total))
             (token::transfer pool-account account total)
-            (with-capability (UPDATE pool new-bonded new-reserve) 1)
+            (with-capability (FEE pool bond fees) 1)
+            (with-capability (UNBOND pool bond balance) 1)
             (update bonds bond { 'terminated: true })
+            (with-capability (UPDATE pool new-bonded new-reserve) 1)
             (update pools pool
               { 'bonded: new-bonded
               , 'reserve: new-reserve
@@ -301,17 +311,20 @@
                   (activity-fee (* activity fee))
                   (fees (+ risk-fee activity-fee))
                   (new-reserve (- reserve fees))
+                  (new-renewed (+ 1 renewed))
                 )
-            (enforce (> elapsed (+ lockup)) "Lockup in force")
-            (enforce (<= elapsed (+ lockup unlock)) "Unlock period expired")
+            (enforce (>= elapsed lockup) "Bond still active")
+            (enforce (< elapsed (+ lockup unlock)) "Unlock period expired")
             (install-capability (token::TRANSFER pool-account account fees))
             (token::transfer pool-account account fees)
-            (with-capability (UPDATE pool bonded new-reserve) 1)
+            (with-capability (FEE pool bond fees) 1)
+            (with-capability (BOND pool account balance lockup new-renewed) 1)
             (update bonds bond
               { 'date: (chain-time)
               , 'activity: 0
-              , 'renewed: (+ 1 renewed)
+              , 'renewed: new-renewed
               })
+            (with-capability (UPDATE pool bonded new-reserve) 1)
             (update pools pool
               { 'reserve: new-reserve
               , 'active: (if (contains bond active) active (+ [bond] active))
