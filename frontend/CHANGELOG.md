@@ -1,5 +1,13 @@
 # `kadenaswap frontend` Changelog
 
+## (2021-03-22)
+- Add price impact field in swap (#121)
+- Improve performance in fetching pool stats, pool liquidity and add loader (#78)
+- Add preview of signed transaction sent from wallets (Zelcore, Chainweaver) (#111)
+- Fix number related issues in removing liquidity (#98)
+- Fix error in swap-exact-out transactions (#104)
+- Set bounds to slippage and deadlines (#115)
+
 ## (2021-01-26)
 - Add feature to show user balance of all tokens in the token selector (#45)
 - Improve precision by fetching each token's minimum precision instead of using default precision value 12 (#50)
