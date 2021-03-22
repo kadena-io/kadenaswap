@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components/macro';
 import FormContainer from '../components/shared/FormContainer';
 import { ReactComponent as KadenaLogo } from '../assets/images/crypto/kadena-logo.svg';
+import { Dimmer, Loader } from 'semantic-ui-react'
 import { PactContext } from '../contexts/PactContext';
 import {reduceBalance, extractDecimal} from '../utils/reduceBalance';
 import { ReactComponent as CloseIcon } from '../assets/images/shared/cross.svg';
@@ -59,7 +60,9 @@ const StatsContainer = ({ data }) => {
           <span style={{ width: 150 }}>Total Reserve - token1</span>
           <span style={{ width: 80 }}>Rate</span>
         </TitlesContainer>
-        {Object.values(pact.pairList).map(pair => (
+        {pact.pairList[0]
+        ?
+        Object.values(pact.pairList).map(pair => (
           pair&&pair.reserves ?
           <Row key={pair.name}>
             <div style={{ marginLeft: 0,  flex: 0.2 }}>
@@ -74,7 +77,12 @@ const StatsContainer = ({ data }) => {
             <div style={{marginLeft: 5}}>{`${reduceBalance(extractDecimal(pair.reserves[0])/extractDecimal(pair.reserves[1]))} ${pair.token0}/${pair.token1}`}</div>
           </Row>
           :""
-        ))}
+        ))
+        :
+        <Dimmer active inverted>
+          <Loader>Loading</Loader>
+        </Dimmer>
+      }
       </FormContainer>
     </Container>
   );
