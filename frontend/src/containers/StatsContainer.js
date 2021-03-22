@@ -49,6 +49,7 @@ const StatsContainer = ({ data }) => {
   React.useEffect(async () => {
     await pact.getPairList()
   }, [])
+
   return (
     <Container>
       <FormContainer title="pool stats"  containerStyle={{ maxWidth: 500 }}>

@@ -584,64 +584,123 @@ export const PactProvider = (props) => {
   }
 
   const getPairListAccountBalance = async (account) => {
-    let pairList = await Promise.all(Object.values(pairTokens).map(async pair => {
       try {
+        const tokenPairList = Object.keys(pairList).reduce((accum, pair) => {
+          accum+=`[${ pair.split(":").join(" ")}] `
+          return accum
+        }, "")
         let data = await Pact.fetch.local({
             pactCode: `
-            (use kswap.exchange)
-            (let*
-              (
-                (p (get-pair ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}))
-                (reserveA (reserve-for p ${tokenData[pair.token0].code}))
-                (reserveB (reserve-for p ${tokenData[pair.token1].code}))
-                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code})))
-                (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}) ${JSON.stringify(account)}))
-              )[acctBal totalBal reserveA reserveB (* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
+            (namespace 'free)
+
+            (module kswap-read G
+
+              (defcap G ()
+                true)
+
+              (defun pair-info (pairList:list)
+                (let* (
+                  (token0 (at 0 pairList))
+                  (token1 (at 1 pairList))
+                  (p (kswap.exchange.get-pair token0 token1))
+                  (reserveA (kswap.exchange.reserve-for p token0))
+                  (reserveB (kswap.exchange.reserve-for p token1))
+                  (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key token0 token1)))
+                  (acctBal
+                      (try 0.0 (kswap.tokens.get-balance (kswap.exchange.get-pair-key token0 token1) ${JSON.stringify(account)})
+                    ))
+                )
+                [(kswap.exchange.get-pair-key token0 token1)
+                 reserveA
+                 reserveB
+                 totalBal
+                 acctBal
+                 (* reserveA (/ acctBal totalBal))
+                 (* reserveB (/ acctBal totalBal))
+               ]
+              ))
+            )
+            (map (kswap-read.pair-info) [${tokenPairList}])
              `,
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          return {...pair,
-              balance: data.result.data[0],
-              supply: data.result.data[1],
-              reserves:[data.result.data[2],  data.result.data[3]],
-              pooledAmount: [data.result.data[4],  data.result.data[5]]
-            }
+          let dataList = data.result.data.reduce((accum, data) => {
+            accum[data[0]] = {
+              balance: data[4],
+              supply: data[3],
+              reserves:[data[1], data[2]],
+              pooledAmount: [data[5], data[6]]
+            };
+            return accum;
+          }, {})
+          const pairList = Object.values(pairTokens).map(pair => {
+            return {
+              ...pair,
+              ...dataList[pair.name]
+             }
+          })
+          setPairListAccount(pairList);
         }
       } catch (e) {
         console.log(e)
       }
-    }))
-    setPairListAccount(pairList);
   }
 
   const getPairList = async () => {
-    let pairList = await Promise.all(Object.values(pairTokens).map(async pair => {
       try {
+        const tokenPairList = Object.keys(pairList).reduce((accum, pair) => {
+          accum+=`[${ pair.split(":").join(" ")}] `
+          return accum
+        }, "")
         let data = await Pact.fetch.local({
             pactCode: `
-            (use kswap.exchange)
-            (let*
-              (
-                (p (get-pair ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}))
-                (reserveA (reserve-for p ${tokenData[pair.token0].code}))
-                (reserveB (reserve-for p ${tokenData[pair.token1].code}))
-                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code})))
-              )[totalBal reserveA reserveB])
+            (namespace 'free)
+
+            (module kswap-read G
+
+              (defcap G ()
+                true)
+
+              (defun pair-info (pairList:list)
+                (let* (
+                  (token0 (at 0 pairList))
+                  (token1 (at 1 pairList))
+                  (p (kswap.exchange.get-pair token0 token1))
+                  (reserveA (kswap.exchange.reserve-for p token0))
+                  (reserveB (kswap.exchange.reserve-for p token1))
+                  (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key token0 token1)))
+                )
+                [(kswap.exchange.get-pair-key token0 token1)
+                 reserveA
+                 reserveB
+                 totalBal
+               ]
+              ))
+            )
+            (map (kswap-read.pair-info) [${tokenPairList}])
              `,
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          return {...pair,
-              supply: data.result.data[0],
-              reserves:[data.result.data[1],  data.result.data[2]]
-            }
+          let dataList = data.result.data.reduce((accum, data) => {
+            accum[data[0]] = {
+              supply: data[3],
+              reserves:[data[1], data[2]]
+            };
+            return accum;
+          }, {})
+          const pairList = Object.values(pairTokens).map(pair => {
+            return {
+              ...pair,
+              ...dataList[pair.name]
+             }
+          })
+          setPairList(pairList);
         }
       } catch (e) {
         console.log(e)
       }
-    }))
-    setPairList(pairList);
   }
 
 
