@@ -4,10 +4,10 @@
     "token0": "ABC",
     "token1": "XYZ"
   },
-  "kswap.kpenny:kswap.abc": {
-    "name": "kswap.kpenny:kswap.abc",
-    "token0": "KPY",
-    "token1": "ABC"
+  "kswap.abc:kswap.kpenny": {
+    "name": "kswap.abc:kswap.kpenny",
+    "token0": "ABC",
+    "token1": "KPY"
   },
   "kswap.kpenny:kswap.xyz": {
     "name": "kswap.kpenny:kswap.xyz",
