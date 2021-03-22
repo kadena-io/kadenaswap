@@ -252,7 +252,7 @@ const SwapContainer = () => {
                 <span style={{color: pact.priceImpactWithoutFee(priceImpact) > 0.1 ? "red" : "green" }}>{
                   pact.priceImpactWithoutFee(priceImpact)<0.0001 && pact.priceImpactWithoutFee(priceImpact)
                     ? "< 0.01%"
-                    : `${reduceBalance(pact.priceImpactWithoutFee(priceImpact), 4)*100}%`
+                    : `${reduceBalance(pact.priceImpactWithoutFee(priceImpact)*100, 4)}%`
                   }
                 </span>
               </RowContainer>
