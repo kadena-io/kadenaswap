@@ -8,7 +8,7 @@ import { List, Message, Button} from 'semantic-ui-react'
 import { ReactComponent as KadenaIcon } from '../../assets/images/crypto/kadena-logo.svg';
 import { ReactComponent as ArrowDown } from '../../assets/images/shared/arrow-down.svg';
 import {PactContext} from '../../contexts/PactContext'
-import {reduceBalance, extractDecimal} from '../../utils/reduceBalance';
+import {reduceBalance, extractDecimal, pairUnit} from '../../utils/reduceBalance';
 
 const Container = styled.div`
   display: flex;
@@ -34,12 +34,12 @@ const TokenPair = (props) => {
               </List.Item>
               <br/>
               <List.Item>
-                {`Your pool tokens: ${extractDecimal(balance)}`}
+                {`Your pool tokens: ${pairUnit(extractDecimal(balance))}`}
                 <List.Content>
-                Pooled {token0}: {reduceBalance(pooledAmount[0],12)}
+                Pooled {token0}: {pairUnit(extractDecimal(pooledAmount[0]))}
                 </List.Content>
                 <List.Content>
-                Pooled {token1}: {reduceBalance(pooledAmount[1],12)}
+                Pooled {token1}: {pairUnit(extractDecimal(pooledAmount[1]))}
                 </List.Content>
                 <List.Content>
                 {`Your pool share: ${reduceBalance(extractDecimal(balance)/extractDecimal(supply)*100)}%`}
