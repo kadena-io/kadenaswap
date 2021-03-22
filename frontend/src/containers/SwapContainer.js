@@ -42,7 +42,7 @@ const SwapContainer = () => {
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [fetchingPair, setFetchingPair] = useState(false)
-
+  const [priceImpact, setPriceImpact] = useState("")
   const pact = useContext(PactContext);
 
   useEffect(() => {
@@ -53,9 +53,9 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (fromValues.amount.length < 5) {
-            throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) }))
+            throttle(500, setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) }))
           } else {
-            debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, fromValues.precision) }))
+            debounce(500, setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) }))
           }
         }
       }
@@ -73,9 +73,10 @@ const SwapContainer = () => {
         setInputSide(null)
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (toValues.amount.length < 5) {
-            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
+            console.log(pact.computeIn(toValues.amount))
+            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
           } else {
-            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
+            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
           }
         }
       }
@@ -88,14 +89,22 @@ const SwapContainer = () => {
   useEffect(() => {
     if (!isNaN(pact.ratio)) {
       if (fromValues.amount !== "" && toValues.amount === "") {
-        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) })
+        setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) })
       } if (fromValues.amount === "" && toValues.amount !== "") {
-        setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) })
+        setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) })
       } if (fromValues.amount !== "" && toValues.amount !== "")  {
-        setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) })
+        setToValues({ ...toValues, amount: reduceBalance(pact.computeOut(fromValues.amount), toValues.precision) })
       }
     }
   }, [pact.ratio])
+
+  useEffect(() => {
+    if (!isNaN(pact.ratio)) {
+      setPriceImpact(pact.computePriceImpact(Number(fromValues.amount), Number(toValues.amount)))
+    } else {
+      setPriceImpact("")
+    }
+  }, [fromValues.coin, toValues.coin, fromValues.amount, toValues.amount, pact.ratio])
 
   useEffect(() => {
     if (tokenSelectorType === 'from') return setSelectedToken(fromValues.coin);
@@ -236,7 +245,16 @@ const SwapContainer = () => {
   	         <>
               <RowContainer>
                 <Label>price</Label>
-                <span>{`${reduceBalance(pact.ratio)} ${fromValues.coin} per ${toValues.coin}`}</span>
+                <span>{`${reduceBalance(pact.ratio*(1+priceImpact))} ${fromValues.coin} per ${toValues.coin}`}</span>
+              </RowContainer>
+              <RowContainer style={{ marginTop: 5 }}>
+                <Label>Price Impact</Label>
+                <span style={{color: pact.priceImpactWithoutFee(priceImpact) > 0.1 ? "red" : "green" }}>{
+                  pact.priceImpactWithoutFee(priceImpact)<0.0001 && pact.priceImpactWithoutFee(priceImpact)
+                    ? "< 0.01%"
+                    : `${reduceBalance(pact.priceImpactWithoutFee(priceImpact)*100, 4)}%`
+                  }
+                </span>
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
                 <Label>max slippage</Label>
@@ -244,7 +262,7 @@ const SwapContainer = () => {
               </RowContainer>
               <RowContainer style={{ marginTop: 5 }}>
                 <Label>liquidity provider fee</Label>
-                <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount))} ${fromValues.coin}`}</span>
+                <span>{`${reduceBalance(pact.liquidityProviderFee * parseFloat(fromValues.amount),14)} ${fromValues.coin}`}</span>
               </RowContainer>
             </>
 	        :
@@ -276,11 +294,16 @@ const SwapContainer = () => {
                 setLoading(false)
               }
             } else {
-              pact.swapWallet(
+              const res = await pact.swapWallet(
                 { amount: fromValues.amount, address: fromValues.address, coin: fromValues.coin },
                 { amount: toValues.amount, address: toValues.address, coin: toValues.coin },
                 (fromNote === "(estimated)" ? false : true)
               )
+              setShowTxModal(true)
+              if (res?.result?.status === 'success') {
+                setFromValues({ amount: '', balance: '', coin: '', address: '', precision: 0 });
+                setToValues({ amount: '', balance: '', coin: '', address: '', precision: 0 })
+              }
               setLoading(false)
             }
 

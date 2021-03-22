@@ -13,6 +13,7 @@ import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
 import { reduceBalance, extractDecimal } from '../utils/reduceBalance'
 import tokenData from '../constants/cryptoCurrencies';
+const fetch = require("node-fetch");
 
 export const PactContext = createContext();
 const savedAcct = localStorage.getItem('acct');
@@ -24,6 +25,7 @@ const savedTtl = localStorage.getItem('ttl');
 const chainId = "1";
 const PRECISION = 12;
 const NETWORKID = 'mainnet01';
+const FEE = 0.003
 const network = `https://api.chainweb.com/chainweb/0.0/${NETWORKID}/chain/${chainId}/pact`;
 
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
@@ -63,6 +65,7 @@ export const PactProvider = (props) => {
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState((savedTtl ? savedTtl : 600));
   const [balances, setBalances] = useState(false);
+
   //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
   // const [toastIds, setToastIds] = useState({})
@@ -401,13 +404,12 @@ export const PactProvider = (props) => {
       //close alert programmatically
       swal.close()
       setWalletSuccess(true)
-      const res = await Pact.wallet.sendSigned(cmd, network);
-      //this is a small hack to get the polling header widget to work
-      setLocalRes({ reqKey: res.requestKeys[0] })
-      setPolling(true)
-      pollingNotif(res.requestKeys[0]);
-      await listen(res.requestKeys[0]);
-      setPolling(false)
+      //set signedtx
+      setCmd(cmd);
+      let data = await fetch(`${network}/api/v1/local`, mkReq(cmd))
+      data = await parseRes(data);
+      setLocalRes(data);
+      return data;
     } catch (e) {
       //wallet error alert
       if (e.message.includes('Failed to fetch')) walletError()
@@ -461,8 +463,9 @@ export const PactProvider = (props) => {
         return data;
       } catch (e) {
         setLocalRes({});
-        return -1
-        console.log(e)
+        if (e.message.includes('Failed to fetch')) walletError()
+        else walletSigError();
+        return -1;
       }
   }
 
@@ -504,15 +507,14 @@ export const PactProvider = (props) => {
       //close alert programmatically
       swal.close()
       setWalletSuccess(true)
-      const res = await Pact.wallet.sendSigned(cmd, network);
-      //this is a small hack to get the polling header widget to work
-      setLocalRes({ reqKey: res.requestKeys[0] })
-      setPolling(true)
-      pollingNotif(res.requestKeys[0]);
-      await listen(res.requestKeys[0]);
-      setPolling(false)
+      setCmd(cmd);
+      let data = await fetch(`${network}/api/v1/local`, mkReq(cmd))
+      data = await parseRes(data);
+      setLocalRes(data);
+      return data;
     } catch (e) {
       //wallet error alert
+      setLocalRes({});
       if (e.message.includes('Failed to fetch')) walletError()
       else walletSigError()
       console.log(e)
@@ -582,64 +584,123 @@ export const PactProvider = (props) => {
   }
 
   const getPairListAccountBalance = async (account) => {
-    let pairList = await Promise.all(Object.values(pairTokens).map(async pair => {
       try {
+        const tokenPairList = Object.keys(pairList).reduce((accum, pair) => {
+          accum+=`[${ pair.split(":").join(" ")}] `
+          return accum
+        }, "")
         let data = await Pact.fetch.local({
             pactCode: `
-            (use kswap.exchange)
-            (let*
-              (
-                (p (get-pair ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}))
-                (reserveA (reserve-for p ${tokenData[pair.token0].code}))
-                (reserveB (reserve-for p ${tokenData[pair.token1].code}))
-                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code})))
-                (acctBal (kswap.tokens.get-balance (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}) ${JSON.stringify(account)}))
-              )[acctBal totalBal reserveA reserveB (* reserveA (/ acctBal totalBal))(* reserveB (/ acctBal totalBal))])
+            (namespace 'free)
+
+            (module kswap-read G
+
+              (defcap G ()
+                true)
+
+              (defun pair-info (pairList:list)
+                (let* (
+                  (token0 (at 0 pairList))
+                  (token1 (at 1 pairList))
+                  (p (kswap.exchange.get-pair token0 token1))
+                  (reserveA (kswap.exchange.reserve-for p token0))
+                  (reserveB (kswap.exchange.reserve-for p token1))
+                  (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key token0 token1)))
+                  (acctBal
+                      (try 0.0 (kswap.tokens.get-balance (kswap.exchange.get-pair-key token0 token1) ${JSON.stringify(account)})
+                    ))
+                )
+                [(kswap.exchange.get-pair-key token0 token1)
+                 reserveA
+                 reserveB
+                 totalBal
+                 acctBal
+                 (* reserveA (/ acctBal totalBal))
+                 (* reserveB (/ acctBal totalBal))
+               ]
+              ))
+            )
+            (map (kswap-read.pair-info) [${tokenPairList}])
              `,
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          return {...pair,
-              balance: data.result.data[0],
-              supply: data.result.data[1],
-              reserves:[data.result.data[2],  data.result.data[3]],
-              pooledAmount: [data.result.data[4],  data.result.data[5]]
-            }
+          let dataList = data.result.data.reduce((accum, data) => {
+            accum[data[0]] = {
+              balance: data[4],
+              supply: data[3],
+              reserves:[data[1], data[2]],
+              pooledAmount: [data[5], data[6]]
+            };
+            return accum;
+          }, {})
+          const pairList = Object.values(pairTokens).map(pair => {
+            return {
+              ...pair,
+              ...dataList[pair.name]
+             }
+          })
+          setPairListAccount(pairList);
         }
       } catch (e) {
         console.log(e)
       }
-    }))
-    setPairListAccount(pairList);
   }
 
   const getPairList = async () => {
-    let pairList = await Promise.all(Object.values(pairTokens).map(async pair => {
       try {
+        const tokenPairList = Object.keys(pairList).reduce((accum, pair) => {
+          accum+=`[${ pair.split(":").join(" ")}] `
+          return accum
+        }, "")
         let data = await Pact.fetch.local({
             pactCode: `
-            (use kswap.exchange)
-            (let*
-              (
-                (p (get-pair ${tokenData[pair.token0].code} ${tokenData[pair.token1].code}))
-                (reserveA (reserve-for p ${tokenData[pair.token0].code}))
-                (reserveB (reserve-for p ${tokenData[pair.token1].code}))
-                (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key ${tokenData[pair.token0].code} ${tokenData[pair.token1].code})))
-              )[totalBal reserveA reserveB])
+            (namespace 'free)
+
+            (module kswap-read G
+
+              (defcap G ()
+                true)
+
+              (defun pair-info (pairList:list)
+                (let* (
+                  (token0 (at 0 pairList))
+                  (token1 (at 1 pairList))
+                  (p (kswap.exchange.get-pair token0 token1))
+                  (reserveA (kswap.exchange.reserve-for p token0))
+                  (reserveB (kswap.exchange.reserve-for p token1))
+                  (totalBal (kswap.tokens.total-supply (kswap.exchange.get-pair-key token0 token1)))
+                )
+                [(kswap.exchange.get-pair-key token0 token1)
+                 reserveA
+                 reserveB
+                 totalBal
+               ]
+              ))
+            )
+            (map (kswap-read.pair-info) [${tokenPairList}])
              `,
             meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
           }, network);
         if (data.result.status === "success"){
-          return {...pair,
-              supply: data.result.data[0],
-              reserves:[data.result.data[1],  data.result.data[2]]
-            }
+          let dataList = data.result.data.reduce((accum, data) => {
+            accum[data[0]] = {
+              supply: data[3],
+              reserves:[data[1], data[2]]
+            };
+            return accum;
+          }, {})
+          const pairList = Object.values(pairTokens).map(pair => {
+            return {
+              ...pair,
+              ...dataList[pair.name]
+             }
+          })
+          setPairList(pairList);
         }
       } catch (e) {
         console.log(e)
       }
-    }))
-    setPairList(pairList);
   }
 
 
@@ -835,7 +896,6 @@ export const PactProvider = (props) => {
       console.log(e)
       setLocalRes({});
       return -1
-
     }
   }
 
@@ -896,21 +956,19 @@ export const PactProvider = (props) => {
       }
       //alert to sign tx
       walletLoading();
-      console.log(signCmd)
       const cmd = await Pact.wallet.sign(signCmd);
       //close alert programmatically
       swal.close()
       setWalletSuccess(true)
-      const res = await Pact.wallet.sendSigned(cmd, network);
-      console.log(res)
-      //this is a small hack to get the polling header widget to work
-      setLocalRes({ reqKey: res.requestKeys[0] })
-      setPolling(true)
-      pollingNotif(res.requestKeys[0]);
-      await listen(res.requestKeys[0]);
-      setPolling(false)
+      //set signedtx
+      setCmd(cmd);
+      let data = await fetch(`${network}/api/v1/local`, mkReq(cmd))
+      data = await parseRes(data);
+      setLocalRes(data);
+      return data;
     } catch (e) {
       //wallet error alert
+      setLocalRes({});
       if (e.message.includes('Failed to fetch')) walletError()
       else walletSigError()
       console.log(e)
@@ -921,7 +979,12 @@ export const PactProvider = (props) => {
   const swapSend = async () => {
     setPolling(true)
     try {
-      const data = await Pact.fetch.send(cmd, network)
+      let data
+      if (cmd.pactCode){
+        data = await Pact.fetch.send(cmd, network)
+      } else {
+        data = await Pact.wallet.sendSigned(cmd, network)
+      }
       pollingNotif(data.requestKeys[0]);
       await listen(data.requestKeys[0]);
       setPolling(false)
@@ -1101,10 +1164,8 @@ const kpennyReserveLocal = async (amtKda) => {
         networkId: NETWORKID,
         meta: Pact.lang.mkMeta("kswap-free-gas", chainId, GAS_PRICE, 3000, ct, 600),
     }
-    console.log(cmd)
     setCmd(cmd);
     let data = await Pact.fetch.local(cmd, network);
-    console.log(data)
     setLocalRes(data);
     return data;
   } catch (e) {
@@ -1264,10 +1325,70 @@ const kpennyRedeemWallet = async () => {
   }
 }
 
+
+var mkReq = function(cmd) {
+  return {
+    headers: {
+      "Content-Type": "application/json"
+    },
+    method: "POST",
+    body: JSON.stringify(cmd)
+  };
+};
+
+var parseRes = async function (raw) {
+  const rawRes = await raw;
+  const res = await rawRes;
+  if (res.ok){
+     const resJSON = await rawRes.json();
+     return resJSON;
+   } else {
+     const resTEXT = await rawRes.text();
+     return resTEXT;
+   }
+};
+
+
 //------------------------------------------------------------------------------------------------------------------------
 //                  END KPENNY FUNCTIONS ONLY
 //------------------------------------------------------------------------------------------------------------------------
 
+//COMPUTE_OUT
+
+var computeOut = function (amountIn) {
+  let reserveOut = Number(pairReserve['token1']);
+  let reserveIn = Number(pairReserve['token0']);
+  let numerator = Number((amountIn * (1-FEE)) * reserveOut);
+  let denominator = Number(reserveIn + (amountIn * (1-FEE)))
+  return numerator / denominator;
+};
+
+//COMPUTE_IN
+var computeIn = function (amountOut) {
+  let reserveOut = Number(pairReserve['token1']);
+  let reserveIn = Number(pairReserve['token0']);
+  let numerator = Number(reserveIn * amountOut)
+  let denominator = Number((reserveOut-amountOut) *(1-FEE))
+  // round up the last digit
+  return numerator / denominator;
+};
+
+function computePriceImpact(amountIn, amountOut) {
+  const reserveOut = Number(pairReserve['token1']);
+  const reserveIn = Number(pairReserve['token0']);
+  const midPrice = (reserveOut/reserveIn);
+  const exactQuote = amountIn * midPrice;
+  const slippage = (exactQuote-amountOut) / exactQuote;
+  return slippage;
+}
+
+function priceImpactWithoutFee(priceImpact){
+  return priceImpact - realizedLPFee();
+}
+
+function realizedLPFee(numHops=1) {
+  return 1-((1-FEE)*numHops);
+}
 
   return (
     <PactContext.Provider
@@ -1344,7 +1465,11 @@ const kpennyRedeemWallet = async () => {
         kpennyReserveLocal,
         kpennyReserveWallet,
         kpennyRedeemWallet,
-        kpennyRedeemLocal
+        kpennyRedeemLocal,
+        computeIn,
+        computeOut,
+        computePriceImpact,
+        priceImpactWithoutFee
       }}
     >
       {props.children}
