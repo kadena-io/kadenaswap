@@ -51,3 +51,9 @@ jobs:
           cat out.log
           r=`tail -1 out.log | grep "Load successful"`
           if [ -n "$r" ]; then exit 0; else echo "Pact run failed."; exit 1; fi
+      - name: pact/relay/relay.repl
+        run: |
+          bin/pact -t pact/relay/relay.repl > out.log 2>&1
+          cat out.log
+          r=`tail -1 out.log | grep "Load successful"`
+          if [ -n "$r" ]; then exit 0; else echo "Pact run failed."; exit 1; fi

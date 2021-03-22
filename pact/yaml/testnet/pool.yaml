@@ -1,0 +1,14 @@
+codeFile: ../../relay/pool.pact
+signers:
+  - public: ef711514b5a248ac16ffd5cc94511dfccbd89005e9737343dfbb3743c8a63ca6
+data:
+  ns: "relay"
+  upgrade: false
+networkId: testnet04
+nonce: install-relay-pool
+publicMeta:
+  chainId: "0"
+  sender: "ef711514b5a248ac16ffd5cc94511dfccbd89005e9737343dfbb3743c8a63ca6"
+  gasLimit: 3000
+  gasPrice: 0.0000000001
+  ttl: 26600

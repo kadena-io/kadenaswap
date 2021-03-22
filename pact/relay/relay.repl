@@ -1,0 +1,496 @@
+(load "../util/guards.repl")
+(begin-tx)
+(load "../root/fungible-v2.pact")
+(load "../root/coin.pact")
+(commit-tx)
+(begin-tx)
+(env-keys [])
+(define-namespace 'test (sig-keyset) (sig-keyset))
+(env-data
+  { 'ns: 'test
+  , 'relay-ns-admin: ['admin]
+  , 'upgrade: false
+  , 'relay-coin-account: 'relay-bank
+  , 'lockup: 30
+  , 'unlock: 20
+  , 'bond: 10000
+  , 'activity: 3
+  , 'endorsers: 5
+  , 'denouncers: 7
+  , 'confirm: 0.5
+  , 'rate: 0.000822 ;; 30%
+  , 'fee: 5.0
+  })
+(define-keyset 'relay-ns-admin)
+(env-keys ['admin])
+(load "pool.pact")
+(load "relay.pact")
+(env-data {'Bob: ["bob"], 'Alice:["alice"], 'Carol:["carol"], 'Admin:["admin"]})
+(test-capability (coin.COINBASE))
+(coin.coinbase "Bob" (read-keyset 'Bob) 150000.0)
+(coin.coinbase "Alice" (read-keyset 'Alice) 30000.0)
+(coin.coinbase "Carol" (read-keyset 'Carol) 10000.0)
+(coin.coinbase "Admin" (read-keyset 'Admin) 100000.0)
+(env-sigs
+  [{'key: "admin",'caps: [(coin.TRANSFER "Admin" 'relay-bank 100000.0)]}])
+(test.pool.fund-reserve test.relay.POOL "Admin" 100000.0)
+(expect "reserve events"
+   [{"name": "coin.TRANSFER","params": ["Admin" "relay-bank" 100000.0]}
+    {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 0.0 100000.0]}
+   ]
+  (map (remove 'module-hash) (env-events true)))
+(commit-tx)
+
+;;
+;; upgrade tests
+;;
+(begin-tx)
+
+(env-data
+  { 'ns: 'test
+  , 'upgrade: true
+  })
+(env-keys ['admin])
+(load "pool.pact")
+(load "relay.pact")
+
+;; test reconfigure of pool
+
+(test.pool.update-pool
+  test.relay.POOL 1 2 3.0 4 5 6 7.0 8.0 9.0 )
+(expect "pool state after update"
+   {"account": "relay-bank"
+   ,"active": []
+   ,"activity": 4
+   ,"bond": 3.0
+   ,"bonded": 0.0
+   ,"confirm": 7.0
+   ,"denouncers": 6
+   ,"endorsers": 5
+   ,"fee": 9.0
+   ,"guard": (test.relay.pool-module-guard)
+   ,"lockup": 1
+   ,"rate": 8.0
+   ,"reserve": 100000.0
+   ,"token": coin
+   ,"unlock": 2
+   }
+  (test.pool.get-pool test.relay.POOL)
+)
+(rollback-tx)
+
+;;
+;; Bonding
+;;
+
+(begin-tx)
+(env-data {'Bob: ["bob"], 'Alice:["alice"], 'Carol:["carol"] })
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-01")})
+(env-sigs [
+  {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 30000.0)]}
+  {'key: "alice",'caps: [(coin.TRANSFER "Alice" 'relay-bank 30000.0)]}
+  {'key: "carol",'caps: [(coin.TRANSFER "Carol" 'relay-bank 10000.0)]}
+
+])
+(expect "new-bond: success Bob 1"
+  "Bob:2021-01-01"
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+(expect "new-bond: success Alice 1"
+  "Alice:2021-01-01"
+  (test.pool.new-bond test.relay.POOL "Alice" (read-keyset 'Alice)))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-02")})
+(expect "new-bond: success Bob 2"
+  "Bob:2021-01-02"
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+(expect "new-bond: success Alice 2"
+  "Alice:2021-01-02"
+  (test.pool.new-bond test.relay.POOL "Alice" (read-keyset 'Alice)))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-03")})
+(expect "new-bond: success Bob 3"
+  "Bob:2021-01-03"
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+(expect "new-bond: success Alice 3"
+  "Alice:2021-01-03"
+  (test.pool.new-bond test.relay.POOL "Alice" (read-keyset 'Alice)))
+(expect "new-bond: success Carol 3"
+  "Carol:2021-01-03"
+  (test.pool.new-bond test.relay.POOL "Carol" (read-keyset 'Carol)))
+(expect "events"
+   [{"name": "coin.TRANSFER","params": ["Bob" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 30 0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 10000.0 100000.0]}
+
+   {"name": "coin.TRANSFER","params": ["Alice" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Alice" 10000.0 30 0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 20000.0 100000.0]}
+
+   {"name": "coin.TRANSFER","params": ["Bob" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 30 0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 30000.0 100000.0]}
+
+   {"name": "coin.TRANSFER","params": ["Alice" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Alice" 10000.0 30 0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 40000.0 100000.0]}
+
+   {"name": "coin.TRANSFER","params": ["Bob" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 30 0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 50000.0 100000.0]}
+
+   {"name": "coin.TRANSFER","params": ["Alice" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Alice" 10000.0 30 0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 60000.0 100000.0]}
+
+   {"name": "coin.TRANSFER","params": ["Carol" "relay-bank" 10000.0]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Carol" 10000.0 30 0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 70000.0 100000.0]}
+
+
+
+   ]
+  (map (remove 'module-hash) (env-events true)))
+
+(expect "pool state"
+   {"account": "relay-bank"
+   ,"active":
+    [ "Bob:2021-01-01" "Alice:2021-01-01"
+      "Bob:2021-01-02" "Alice:2021-01-02"
+      "Bob:2021-01-03" "Alice:2021-01-03" "Carol:2021-01-03"
+    ]
+   ,"activity": 3
+   ,"bond": 10000.0
+   ,"bonded": 70000.0
+   ,"confirm": 0.5
+   ,"denouncers": 7
+   ,"endorsers": 5
+   ,"fee": 5.0
+   ,"guard": (test.relay.pool-module-guard)
+   ,"lockup": 30
+   ,"unlock": 20
+   ,"rate": 0.000822
+   ,"reserve": 100000.0
+   ,"token": coin
+   }
+  (test.pool.get-pool test.relay.POOL)
+)
+(commit-tx)
+
+;; test reserve exhaustion
+(begin-tx)
+(env-sigs [
+  {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 100000.0)]}])
+
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-04")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-05")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-06")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-07")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-08")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-09")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-10")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-11")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-12")})
+(test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob))
+(expect "bonded check" 160000.0 (at 'bonded (test.pool.get-pool test.relay.POOL)))
+
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-13")})
+(expect-failure "Reserve exhausted"
+  "Insufficient reserve"
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+
+(rollback-tx)
+
+(begin-tx)
+(env-sigs
+  [ {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 10000.0)]}
+  , {'key: "carol",'caps: [(coin.TRANSFER "Carol" 'relay-bank 10000.0)]}
+  ])
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-01")})
+(expect-failure "new-bond: duplicate"
+  "row found"
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+(env-chain-data { 'block-time: (parse-time "%F" "2021-01-02")})
+(expect-failure "new-bond: insufficient funds"
+  "Insufficient funds"
+  (test.pool.new-bond test.relay.POOL "Carol" (read-keyset 'Carol)))
+
+
+(expect-failure "unbond: managed"
+  "not installed"
+  (test.pool.unbond "Bob:2021-01-01"))
+
+(env-sigs [{'key: "nobody",'caps: [(test.pool.BONDER "Bob:2021-01-01")]}])
+(expect-failure "unbond: bad key"
+  "Keyset failure"
+  (test.pool.unbond "Bob:2021-01-01"))
+
+(env-sigs
+  [ {'key: "bob",'caps: [(test.pool.BONDER "Bob:2021-01-02")]}
+  ])
+(expect-failure "unbond: in lockup"
+  "Lockup or unlock in force"
+  (test.pool.unbond "Bob:2021-01-02"))
+(rollback-tx)
+
+
+;;
+;; Proposal/endorse
+;;
+
+(begin-tx)
+(env-sigs
+  [ {'key: "alice",'caps: [(test.relay.BONDER "Alice:2021-01-01")]}
+  ])
+(env-hash (hash 'envhash1))
+(env-chain-data {'prev-block-hash: (hash 'prevblockhash11111)})
+(env-data {'header: { 'hash: "h1", 'number: 1, 'receipts-root: "r1" }})
+(expect "Alice 1 propose"
+  "Write succeeded"
+  (test.relay.propose
+    (read-msg 'header)
+    "Alice:2021-01-01"))
+(expect "propose events"
+  [{"name": "test.relay.PROPOSE"
+  ,"params": [1 "h1" "Alice:2021-01-01"
+    ["Bob:2021-01-01" "Bob:2021-01-03" "Bob:2021-01-02"
+     "Alice:2021-01-03" "Alice:2021-01-02"]]}]
+  (map (remove 'module-hash) (env-events true)))
+(expect-failure "not validated 0"
+  "Not accepted"
+  (test.relay.validate (read-msg 'header)))
+
+;; endorser simple failures
+(expect-failure "no sig"
+  "Keyset failure"
+  (test.relay.endorse (read-msg 'header) "Bob:2021-01-01"))
+(env-sigs
+  [ {'key: "carol",'caps: [(test.relay.BONDER "Carol:2021-01-03")]}
+  ])
+(expect-failure "wrong sig"
+  "Keyset failure"
+  (test.relay.endorse (read-msg 'header) "Bob:2021-01-01"))
+(expect-failure "not endorser"
+  "Invalid endorser"
+  (test.relay.endorse (read-msg 'header) "Carol:2021-01-03"))
+(env-sigs
+  [ {'key: "bob",'caps: [(test.relay.BONDER "Bob:2021-01-01")]}
+  ])
+(expect-failure "wrong height"
+  "row not found"
+  (test.relay.endorse (+ {'number: 2} (read-msg 'header)) "Bob:2021-01-01"))
+(expect-failure "wrong hash"
+  "not proposed at height"
+  (test.relay.endorse (+ {'hash: "skdfjh"} (read-msg 'header)) "Bob:2021-01-01"))
+(expect-failure "wrong data"
+  "Header mismatch"
+  (test.relay.endorse (+ {'receipts-root: "skdfjh"} (read-msg 'header)) "Bob:2021-01-01"))
+
+;; endorser success
+
+(env-sigs
+  [ {'key: "bob",'caps: [(test.relay.BONDER "Bob:2021-01-01")]}
+  ])
+(expect "endorse Bob 1"
+  "Write succeeded"
+  (test.relay.endorse (read-msg 'header) "Bob:2021-01-01"))
+(expect "endorse events"
+   [ {"name": "test.relay.ENDORSE","params": ["h1" "Bob:2021-01-01" false]}
+     {"name": "test.pool.ACTIVITY","params": ["kda-relay-pool" "Bob:2021-01-01" 1]}
+   ]
+  (map (remove 'module-hash) (env-events true)))
+(expect "activity 1"
+  1
+  (at 'activity (test.pool.get-bond "Bob:2021-01-01")))
+(expect-failure "not validated 1"
+  "Not accepted"
+  (test.relay.validate (read-msg 'header)))
+
+(expect-failure "dupe failure"
+  "Duplicate endorse"
+  (test.relay.endorse (read-msg 'header) "Bob:2021-01-01"))
+
+
+(env-sigs
+  [ {'key: "bob",'caps: [(test.relay.BONDER "Bob:2021-01-02")]}
+  ])
+(expect "endorse Bob 2"
+  "Write succeeded"
+  (test.relay.endorse (read-msg 'header) "Bob:2021-01-02"))
+(expect "endorse events"
+   [ {"name": "test.relay.ENDORSE","params": ["h1" "Bob:2021-01-02" false]}
+     {"name": "test.pool.ACTIVITY","params": ["kda-relay-pool" "Bob:2021-01-02" 1]}
+   ]
+  (map (remove 'module-hash) (env-events true)))
+(expect "activity 2"
+  1
+  (at 'activity (test.pool.get-bond "Bob:2021-01-02")))
+(expect-failure "not validated 2"
+  "Not accepted"
+  (test.relay.validate (read-msg 'header)))
+
+(env-sigs
+  [ {'key: "alice",'caps: [(test.relay.BONDER "Alice:2021-01-02")]}
+  ])
+(expect "endorse Alice 2"
+  "Write succeeded"
+  (test.relay.endorse (read-msg 'header) "Alice:2021-01-02"))
+(expect "endorse events"
+   [ {"name": "test.relay.ENDORSE","params": ["h1" "Alice:2021-01-02" true]}
+     {"name": "test.pool.ACTIVITY","params": ["kda-relay-pool" "Alice:2021-01-02" 1]}
+   ]
+  (map (remove 'module-hash) (env-events true)))
+(expect "activity 3"
+  1
+  (at 'activity (test.pool.get-bond "Alice:2021-01-02")))
+(expect "validated 3" true
+  (test.relay.validate (read-msg 'header)))
+(env-sigs
+  [ {'key: "bob",'caps: [(test.relay.BONDER "Bob:2021-01-03")]}
+  ])
+(expect-failure "already accepted"
+  "Block not proposed at height"
+  (test.relay.endorse (read-msg 'header) "Bob:2021-01-03"))
+
+(commit-tx) ;; persist this round of activity for later renew/unbond tests
+
+;; test inactive bonders
+
+(begin-tx)
+(env-sigs
+  [ {'key: "alice",'caps: [
+    (test.relay.BONDER "Alice:2021-01-01")
+    (test.relay.BONDER "Alice:2021-01-02")
+    ]}
+  ])
+(env-hash (hash 'envhash2))
+(env-chain-data
+  { 'prev-block-hash: (hash 'prevblockhash2)
+  , 'block-time: (parse-time "%F" "2021-01-31")} )
+(env-data {'header: { 'hash: "h2.1", 'number: 2, 'receipts-root: "r2" }})
+(expect-failure "Alice 1 inactive"
+  "Inactive bond"
+  (test.relay.propose (read-msg 'header) "Alice:2021-01-01"))
+(expect-failure "Alice 2 propose but not enough active bonders"
+  "Not enough active bonders"
+  (test.relay.propose (read-msg 'header) "Alice:2021-01-02"))
+(rollback-tx)
+
+;;
+;; test renew
+;;
+
+(begin-tx)
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-01-31")} )
+(env-data
+  { 'header21: { 'hash: "h2.1", 'number: 2, 'receipts-root: "r2" }
+  , 'header31: { 'hash: "h3.1", 'number: 3, 'receipts-root: "r3" }
+  })
+(env-sigs
+  [ {'key: "bob",'caps: [
+    (test.pool.BONDER "Bob:2021-01-01")
+    (test.relay.BONDER "Bob:2021-01-02")
+    ] }
+    {'key: "alice", 'caps: [
+    (test.pool.BONDER "Alice:2021-01-02")
+    (test.relay.BONDER "Alice:2021-01-02")
+    ] }
+    {'key: "carol", 'caps: [
+    (test.pool.BONDER "Carol:2021-01-03")
+    (test.relay.BONDER "Carol:2021-01-03")
+    ] }
+  ])
+(expect-failure "renew Alice 2: too soon"
+  "Bond still active"
+  (test.pool.renew "Alice:2021-01-02"))
+(expect "renew Bob 1"
+  "Write succeeded"
+  (test.pool.renew "Bob:2021-01-01"))
+(expect "renew events Bob 1 just activity fee"
+  [{"name": "test.pool.BONDER","params": ["Bob:2021-01-01"]}
+  {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 5.0]}
+  {"name": "test.pool.FEE","params": ["kda-relay-pool" "Bob:2021-01-01" 5.0]}
+  {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 30 1]}
+  {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 70000.0 99995.0]}
+  ]
+  (map (remove 'module-hash) (env-events true)))
+(expect "Bob 1 renew balance" 120005.0 (coin.get-balance "Bob"))
+;; propose succeeds, add two to get to risk fee limit
+(expect "Alice 2 propose 2.1 succeeds with renew (enough bonders)"
+  "Write succeeded"
+  (test.relay.propose (read-msg 'header21) "Alice:2021-01-02"))
+(expect "endorse 2.1 Bob 2"
+  "Write succeeded"
+  (test.relay.endorse (read-msg 'header21) "Bob:2021-01-02"))
+(expect "endorse 2.1 Carol 3"
+  "Write succeeded"
+  (test.relay.endorse (read-msg 'header21) "Carol:2021-01-03"))
+(expect "Alice 2 propose 3.1 succeeds with renew (enough bonders)"
+  "Write succeeded"
+  (test.relay.propose (read-msg 'header31) "Alice:2021-01-02"))
+(expect "endorse 3.1 Bob 2"
+  "Write succeeded"
+  (test.relay.endorse (read-msg 'header31) "Bob:2021-01-02"))
+(expect "endorse 2.1 Carol 3"
+  "Write succeeded"
+  (test.relay.endorse (read-msg 'header31) "Carol:2021-01-03"))
+(env-events true)
+(commit-tx) ;; keep proposals 2.1, 3.1, renewed Bob 1
+
+(begin-tx)
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-02-01")} )
+(env-sigs
+  [ {'key: "bob",'caps: [
+    (test.pool.BONDER "Bob:2021-01-02")
+    ] }
+    {'key: "alice", 'caps: [
+    (test.pool.BONDER "Alice:2021-01-02")
+    (test.relay.BONDER "Alice:2021-01-02")
+    ] }
+  ])
+(expect "renew Bob 2"
+  "Write succeeded"
+  (test.pool.renew "Bob:2021-01-02"))
+(expect "renew Bob 2 events"
+   [{"name": "test.pool.BONDER","params": ["Bob:2021-01-02"]}
+   {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 261.6]} ;;246.6+15
+   {"name": "test.pool.FEE","params": ["kda-relay-pool" "Bob:2021-01-02" 261.6]}
+   {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 30 1]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 70000.0 99733.4]}
+   ]
+  (map (remove 'module-hash) (env-events true)))
+(expect "Bob 2 renew balance" 120266.6 (coin.get-balance "Bob"))
+(commit-tx) ;; keep Bob 2 renewed
+
+(begin-tx)
+(env-sigs
+  [ {'key: "carol", 'caps: [
+    (test.pool.BONDER "Carol:2021-01-03")
+    ] }
+  ])
+(expect-failure "carol 3 unbond too early"
+  "Lockup or unlock in force"
+  (test.pool.unbond "Carol:2021-01-03"))
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-02-23")} )
+(expect "carol 3 unbond"
+  "Write succeeded"
+  (test.pool.unbond "Carol:2021-01-03"))
+(expect "unbond carol 3 events"
+   [{"name": "test.pool.BONDER","params": ["Carol:2021-01-03"]}
+   {"name": "coin.TRANSFER","params": ["relay-bank" "Carol" 10010.0]}
+   {"name": "test.pool.FEE","params": ["kda-relay-pool" "Carol:2021-01-03" 10.0]}
+   {"name": "test.pool.UNBOND","params": ["kda-relay-pool" "Carol:2021-01-03" 10000.0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 60000.0 99723.4]}]
+  (map (remove 'module-hash) (env-events true)))
+(expect "Carol 3 unbond balance" 10010.0 (coin.get-balance "Carol"))
+(expect "Carol 3 terminated" true (at 'terminated (test.pool.get-bond "Carol:2021-01-03")))
+(expect "bonded check" 60000.0 (at 'bonded (test.pool.get-pool test.relay.POOL)))
+(expect "reserve check" 99723.4 (at 'reserve (test.pool.get-pool test.relay.POOL)))
