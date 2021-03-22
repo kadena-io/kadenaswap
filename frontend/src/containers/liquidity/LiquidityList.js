@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import styled from 'styled-components/macro';
-import { Message, Divider } from 'semantic-ui-react'
+import { Message, Divider, Dimmer, Loader } from 'semantic-ui-react'
 import FormContainer from '../../components/shared/FormContainer';
 import Input from '../../components/shared/Input';
 import InputToken from '../../components/shared/InputToken';
@@ -101,7 +101,8 @@ const LiquidityList = (props) => {
         </RightContainer>
         <Divider/>
         {pact.account.account!==null
-          ? Object.values(pact.pairListAccount).map(pair => {
+          ? pact.pairListAccount[0]
+            ? Object.values(pact.pairListAccount).map(pair => {
               return (
                 pair
                 ?
@@ -115,6 +116,10 @@ const LiquidityList = (props) => {
                 : ""
               )
             })
+            :
+              <Dimmer active inverted>
+                <Loader>Loading</Loader>
+              </Dimmer>
           : <Message>Connect an account to view your liquidity</Message>
         }
       </FormContainer>
