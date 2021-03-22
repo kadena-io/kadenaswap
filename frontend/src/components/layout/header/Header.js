@@ -1,24 +1,30 @@
-import React, { useContext, useState } from 'react';
-import { NavLink, useHistory } from 'react-router-dom';
-import { Modal, Message, Popup } from 'semantic-ui-react'
-import Button from '../../shared/Button';
-import styled from 'styled-components/macro';
-import reduceToken from '../../../utils/reduceToken';
-import {reduceBalance} from '../../../utils/reduceBalance';
-import { PactContext } from '../../../contexts/PactContext';
-import KdaModal from '../../../modals/kdaModal/KdaModal';
-import { ROUTE_INDEX, ROUTE_POOL, ROUTE_SWAP, ROUTE_WRAP, ROUTE_STATS } from '../../../router/routes';
-import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
-import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
-import { ReactComponent as CogIcon } from '../../../assets/images/header/cog.svg';
-import { ReactComponent as HamburgerIcon } from '../../../assets/images/header/hamburger.svg';
-import { ReactComponent as AboutIcon } from '../../../assets/images/header/about.svg';
-import { ReactComponent as CodeIcon } from '../../../assets/images/header/code.svg';
-import { ReactComponent as DiscordIcon } from '../../../assets/images/header/discord.svg';
-import Input from '../../shared/Input';
-import SlippagePopupContent from './SlippagePopupContent';
-import AccountInfo from '../header/AccountInfo';
-import theme from '../../../styles/theme';
+import React, { useContext, useState } from "react";
+import { NavLink, useHistory } from "react-router-dom";
+import { Modal, Message, Popup } from "semantic-ui-react";
+import Button from "../../shared/Button";
+import styled from "styled-components/macro";
+import reduceToken from "../../../utils/reduceToken";
+import { reduceBalance } from "../../../utils/reduceBalance";
+import { PactContext } from "../../../contexts/PactContext";
+import KdaModal from "../../../modals/kdaModal/KdaModal";
+import {
+  ROUTE_INDEX,
+  ROUTE_POOL,
+  ROUTE_SWAP,
+  ROUTE_WRAP,
+  ROUTE_STATS,
+} from "../../../router/routes";
+import { ReactComponent as KDALogo } from "../../../assets/images/header/kadena-logo.svg";
+import { ReactComponent as PowerIcon } from "../../../assets/images/header/power.svg";
+import { ReactComponent as CogIcon } from "../../../assets/images/header/cog.svg";
+import { ReactComponent as HamburgerIcon } from "../../../assets/images/header/hamburger.svg";
+import { ReactComponent as AboutIcon } from "../../../assets/images/header/about.svg";
+import { ReactComponent as CodeIcon } from "../../../assets/images/header/code.svg";
+import { ReactComponent as DiscordIcon } from "../../../assets/images/header/discord.svg";
+import Input from "../../shared/Input";
+import SlippagePopupContent from "./SlippagePopupContent";
+import AccountInfo from "../header/AccountInfo";
+import theme from "../../../styles/theme";
 
 const Container = styled.div`
   position: fixed;
@@ -26,9 +32,10 @@ const Container = styled.div`
   left: 18px;
   display: flex;
   justify-content: space-between;
-  min-height: ${({ theme: { header } }) => `${header.height}px`};
+  margin-top: 24px;
   width: calc(100% - 3em);
-  @media (min-width: ${({ theme: { mediaQueries } }) => mediaQueries.mobileBreakpoint}) {
+  @media (min-width: ${({ theme: { mediaQueries } }) =>
+      mediaQueries.mobileBreakpoint}) {
     width: inherit;
     left: unset;
   }
@@ -58,7 +65,8 @@ const RightContainer = styled.div`
   & > *:not(:first-child):not(:last-child) {
     margin-right: 14px;
   }
-  @media (min-width: ${({ theme: { mediaQueries } }) => mediaQueries.mobileBreakpoint}) {
+  @media (min-width: ${({ theme: { mediaQueries } }) =>
+      mediaQueries.mobileBreakpoint}) {
     & > *:not(:first-child):not(:last-child) {
       margin-right: 16px;
     }
@@ -105,7 +113,6 @@ const HamburgerItem = styled(NavLink)`
 `;
 
 const Header = () => {
-
   const [showEthModal, setShowEthModal] = useState(false);
   const [showPactModal, setShowPactModal] = useState(false);
   const [openKdaModal, setOpenKdaModal] = useState(false);
@@ -115,15 +122,17 @@ const Header = () => {
   return (
     <Container>
       <LeftContainer>
-        <KDALogo style={{ cursor: 'pointer' }} onClick={() => history.push(ROUTE_INDEX)} />
+        <KDALogo
+          style={{ cursor: "pointer" }}
+          onClick={() => history.push(ROUTE_INDEX)}
+        />
         <Item to={ROUTE_SWAP}>swap</Item>
         <Item to={ROUTE_POOL}>pool</Item>
         <Item to={ROUTE_WRAP}>wrap</Item>
         <Item to={ROUTE_STATS}>stats</Item>
-
       </LeftContainer>
       <RightContainer>
-      {/*
+        {/*
       {(pact.polling
         ?
           <Item className="mobile-none" to="#">
@@ -183,17 +192,23 @@ const Header = () => {
         />
         */}
         <Item className="mobile-none" to="#">
-        <Label
-          style={{ padding: '10px 16px', color:"white", fontSize: 16 }}
-        >
-          Bountyswap live on chain 1
-        </Label>
+          <Label style={{ padding: "10px 16px", color: "white", fontSize: 16 }}>
+            Bountyswap live on chain 1
+          </Label>
         </Item>
         {pact?.account.account ? (
           <AccountInfo
             onClick={() => setOpenKdaModal(true)}
-            account={pact?.account.account ? `${reduceToken(pact?.account.account)}` : 'KDA'}
-            balance={pact?.account.account ? `${reduceBalance(pact?.account.balance)} KDA` : ''}
+            account={
+              pact?.account.account
+                ? `${reduceToken(pact?.account.account)}`
+                : "KDA"
+            }
+            balance={
+              pact?.account.account
+                ? `${reduceBalance(pact?.account.balance)} KDA`
+                : ""
+            }
           ></AccountInfo>
         ) : (
           <></>
@@ -205,7 +220,7 @@ const Header = () => {
                 hover={true}
                 background="white"
                 color={theme.colors.pink}
-                buttonStyle={{ padding: '10px 16px' }}
+                buttonStyle={{ padding: "10px 16px" }}
                 fontSize={14}
                 onClick={() => setOpenKdaModal(true)}
               >
@@ -220,40 +235,61 @@ const Header = () => {
           </Item>
         )}
         <Item to="#">
-          <Popup trigger={<CogIcon />} on="click" offset={[10, 10]} position="bottom right" style={{ padding: 13 }}>
+          <Popup
+            trigger={<CogIcon />}
+            on="click"
+            offset={[10, 10]}
+            position="bottom right"
+            style={{ padding: 13 }}
+          >
             <SlippagePopupContent />
           </Popup>
         </Item>
         <Item to="#">
-          <Popup trigger={<HamburgerIcon />} on="click" offset={[10, 10]} position="bottom right" style={{ padding: 13 }}>
+          <Popup
+            trigger={<HamburgerIcon />}
+            on="click"
+            offset={[10, 10]}
+            position="bottom right"
+            style={{ padding: 13 }}
+          >
             <HamburgerListContainer>
-              <HamburgerItem to="/"
-                onClick={() => window.open(
-                  `https://kadena.io`,
-                  "_blank",
-                  'noopener,noreferrer'
-                )}
+              <HamburgerItem
+                to="/"
+                onClick={() =>
+                  window.open(
+                    `https://kadena.io`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
               >
                 <AboutIcon />
                 About
               </HamburgerItem>
-              <HamburgerItem to="/"
+              <HamburgerItem
+                to="/"
                 style={{ paddingTop: 9, paddingBottom: 9 }}
-                onClick={() => window.open(
-                  `https://github.com/kadena-io/kadenaswap`,
-                  "_blank",
-                  'noopener,noreferrer'
-                )}
-                >
+                onClick={() =>
+                  window.open(
+                    `https://github.com/kadena-io/kadenaswap`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+              >
                 <CodeIcon />
                 Code
               </HamburgerItem>
-              <HamburgerItem to="/"
-                onClick={() => window.open(
-                  `https://discord.io/kadena`,
-                  "_blank",
-                  'noopener,noreferrer'
-                )}
+              <HamburgerItem
+                to="/"
+                onClick={() =>
+                  window.open(
+                    `https://discord.io/kadena`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
               >
                 <DiscordIcon />
                 Discord
