@@ -17,6 +17,10 @@ export const gasUnit = decimal => {
   return decimal.toFixed(12);
 }
 
+export const pairUnit = decimal => {
+  return Number(decimal).toFixed(14);
+}
+
 export const extractDecimal = num => {
   if (num.int) return num.int;
   if (num.decimal) return num.decimal;
