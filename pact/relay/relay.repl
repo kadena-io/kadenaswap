@@ -42,10 +42,49 @@
 (commit-tx)
 
 ;;
+;; upgrade tests
+;;
+(begin-tx)
+
+(env-data
+  { 'ns: 'test
+  , 'upgrade: true
+  })
+(env-keys ['admin])
+(load "pool.pact")
+(load "relay.pact")
+
+;; test reconfigure of pool
+
+(test.pool.update-pool
+  test.relay.POOL 1 2 3.0 4 5 6 7.0 8.0 9.0 )
+(expect "pool state after update"
+   {"account": "relay-bank"
+   ,"active": []
+   ,"activity": 4
+   ,"bond": 3.0
+   ,"bonded": 0.0
+   ,"confirm": 7.0
+   ,"denouncers": 6
+   ,"endorsers": 5
+   ,"fee": 9.0
+   ,"guard": (test.relay.pool-module-guard)
+   ,"lockup": 1
+   ,"rate": 8.0
+   ,"reserve": 100000.0
+   ,"token": coin
+   ,"unlock": 2
+   }
+  (test.pool.get-pool test.relay.POOL)
+)
+(rollback-tx)
+
+;;
 ;; Bonding
 ;;
 
 (begin-tx)
+(env-data {'Bob: ["bob"], 'Alice:["alice"], 'Carol:["carol"] })
 (env-chain-data { 'block-time: (parse-time "%F" "2021-01-01")})
 (env-sigs [
   {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 30000.0)]}
@@ -422,7 +461,7 @@
 (expect "renew Bob 2 events"
    [{"name": "test.pool.BONDER","params": ["Bob:2021-01-02"]}
    {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 261.6]} ;;246.6+15
-   {"name": "test.pool.FEE","params": ["kda-relay-pool" "Bob:2021-01-02" 261.6]} 
+   {"name": "test.pool.FEE","params": ["kda-relay-pool" "Bob:2021-01-02" 261.6]}
    {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 30 1]}
    {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 70000.0 99733.4]}
    ]
