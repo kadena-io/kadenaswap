@@ -223,19 +223,19 @@
 
 (expect-failure "unbond: managed"
   "not installed"
-  (test.pool.unbond "Bob:2021-01-01" "Bob"))
+  (test.pool.unbond "Bob:2021-01-01"))
 
 (env-sigs [{'key: "nobody",'caps: [(test.pool.BONDER "Bob:2021-01-01")]}])
 (expect-failure "unbond: bad key"
   "Keyset failure"
-  (test.pool.unbond "Bob:2021-01-01" "Bob"))
+  (test.pool.unbond "Bob:2021-01-01"))
 
 (env-sigs
   [ {'key: "bob",'caps: [(test.pool.BONDER "Bob:2021-01-02")]}
   ])
 (expect-failure "unbond: in lockup"
   "Lockup or unlock in force"
-  (test.pool.unbond "Bob:2021-01-02" "Bob"))
+  (test.pool.unbond "Bob:2021-01-02"))
 (rollback-tx)
 
 
@@ -408,10 +408,10 @@
   ])
 (expect-failure "renew Alice 2: too soon"
   "Bond still active"
-  (test.pool.renew "Alice:2021-01-02" "Alice"))
+  (test.pool.renew "Alice:2021-01-02"))
 (expect "renew Bob 1"
   "Write succeeded"
-  (test.pool.renew "Bob:2021-01-01" "Bob"))
+  (test.pool.renew "Bob:2021-01-01"))
 (expect "renew events Bob 1 just activity fee"
   [{"name": "test.pool.BONDER","params": ["Bob:2021-01-01"]}
   {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 5.0]}
@@ -457,7 +457,7 @@
   ])
 (expect "renew Bob 2"
   "Write succeeded"
-  (test.pool.renew "Bob:2021-01-02" "Bob"))
+  (test.pool.renew "Bob:2021-01-02"))
 (expect "renew Bob 2 events"
    [{"name": "test.pool.BONDER","params": ["Bob:2021-01-02"]}
    {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 261.6]} ;;246.6+15
@@ -477,12 +477,12 @@
   ])
 (expect-failure "carol 3 unbond too early"
   "Lockup or unlock in force"
-  (test.pool.unbond "Carol:2021-01-03" "Carol"))
+  (test.pool.unbond "Carol:2021-01-03"))
 (env-chain-data
   { 'block-time: (parse-time "%F" "2021-02-23")} )
 (expect "carol 3 unbond"
   "Write succeeded"
-  (test.pool.unbond "Carol:2021-01-03" "Carol"))
+  (test.pool.unbond "Carol:2021-01-03"))
 (expect "unbond carol 3 events"
    [{"name": "test.pool.BONDER","params": ["Carol:2021-01-03"]}
    {"name": "coin.TRANSFER","params": ["relay-bank" "Carol" 10010.0]}

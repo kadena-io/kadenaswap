@@ -35,6 +35,7 @@
   (defschema bond-schema
     pool:string
     guard:guard
+    account:string
     balance:decimal
     date:time
     lockup:integer
@@ -208,6 +209,7 @@
         (insert bonds bond
           { 'pool: pool
           , 'guard: guard
+          , 'account: account
           , 'balance: bond-amount
           , 'date: date
           , 'lockup: lockup
@@ -229,13 +231,12 @@
     (/ (floor (diff-time (chain-time) t)) DAY))
 
   (defun unbond
-    ( bond:string
-      account:string
-    )
+    ( bond:string )
     (with-capability (BONDER bond)
       (with-read bonds bond
         { 'pool:= pool
         , 'guard:= guard
+        , 'account:= account
         , 'date:= date
         , 'lockup:= lockup
         , 'balance:= balance
@@ -279,13 +280,12 @@
 
 
   (defun renew
-    ( bond:string
-      account:string
-    )
+    ( bond:string )
     (with-capability (BONDER bond)
       (with-read bonds bond
         { 'pool:= pool
         , 'guard:= guard
+        , 'account:= account
         , 'date:= date
         , 'lockup:= lockup
         , 'balance:= balance
