@@ -5,14 +5,15 @@ data:
   ns: "relay"
   upgrade: false
   relay-coin-account: relay-bank
-  lockup: 365
-  bond: 100000
-  activity: 365
+  lockup: 30
+  unlock: 20
+  bond: 50000
+  activity: 0 # for initial bonding period
   endorsers: 10
   denouncers: 15
   confirm: 0.5
   rate: 0.000822
-  fee: 1.0
+  fee: 5.0
 networkId: testnet04
 nonce: install-relay
 publicMeta:
