@@ -1,0 +1,36 @@
+.swal-modal {
+  /* background-color: rgba(63,255,106,0.69); */
+  border: 3px solid white;
+}
+.swal-text {
+  /* background-color: #FEFAE3; */
+  padding: 17px;
+  /* border: 1px solid #F0E1A1; */
+  display: block;
+  margin: 22px;
+  text-align: center;
+  color: #61534e;
+  font-family: neue-bold !important;
+}
+
+.swal-footer {
+  background-color: rgb(245, 248, 250);
+  margin-top: 32px;
+  border-top: 1px solid #E9EEF1;
+  overflow: hidden;
+  font-family: neue-bold !important;
+}
+.swal-input{
+  border: 1px solid purple;
+}
+.swal-button {
+  padding: 7px 19px;
+  border-radius: 2px;
+  background-color: #D20790;
+  font-size: 12px;
+  color: white;
+  background-image: linear-gradient(59deg, rgba(237, 9, 143, 1) 0%, rgba(122, 1, 150, 1) 100%) !important;
+  border: 1px solid purple;
+  font-family: neue-bold !important;
+  text-shadow: 0px -1px 0px rgba(0, 0, 0, 0.3);
+}

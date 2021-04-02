@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import '../App.css';
 import { Button, Grid, Input, Icon, Form, List,
-   Modal, Header, Message, Popup, Select, Radio,
+   Modal,  Message, Popup, Select, Radio,
    Tab, TextArea, Loader, Step } from 'semantic-ui-react';
-
+import { Wallet } from './wallet/Wallet.js'
 import PactContext from "../contexts/PactContext";
 
 function Home() {
@@ -13,9 +13,11 @@ function Home() {
   const [acct, setAcct] = useState("");
   const [key, setKey] = useState("");
   const [bond, setBond] = useState("");
-  console.log(result())
+  const [openKdaModal, setOpenKdaModal] = useState(false);
+
   return (
     <div className="App">
+      <Wallet/>
       <header className="App-header">
         <img src={require("../kadena.png")} style={{height:100, marginBottom: 10}}/>
         <h1>
