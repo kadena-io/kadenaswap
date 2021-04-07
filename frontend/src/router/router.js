@@ -8,6 +8,8 @@ import StatsContainer from '../containers/StatsContainer';
 import StaticContainer from '../containers/StaticContainer';
 import KpennyContainer from '../containers/KpennyContainer';
 import KpennyRedeemContainer from '../containers/KpennyRedeemContainer';
+import RedeemGuide from '../modals/RedeemGuide'
+
 import {
   ROUTE_INDEX,
   ROUTE_POOL,
@@ -23,6 +25,7 @@ export default () => {
   return (
     <Router>
       <Layout>
+        <RedeemGuide/>
         <Switch>
           <Route exact path={ROUTE_INDEX} component={SwapContainer} />
           <Route exact path={ROUTE_SWAP} component={SwapContainer} />
