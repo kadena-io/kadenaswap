@@ -11,7 +11,7 @@ function ModalExampleModal() {
       open={open}
     >
       <Modal.Header>
-        <p>Quick Guide to Redeeming KPenny <Label as='a' color='red' tag> Upcoming </Label></p>
+        <p>Quick Guide on KPenny Redeem<Label as='a' color='red' tag> Upcoming </Label></p>
       </Modal.Header>
       <Modal.Content>
         <h4> To do BEFORE 4/21/2021 00:00 UTC</h4>
