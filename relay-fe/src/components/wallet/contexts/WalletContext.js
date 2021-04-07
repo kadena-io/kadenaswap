@@ -1,6 +1,5 @@
-import React, { useState, createContext, useEffect, useContext, useReducer } from 'react';
+import React, { useState, createContext, useEffect, useContext } from 'react';
 import Pact from "pact-lang-api";
-import AES from 'crypto-js/aes'
 import CryptoJS from 'crypto-js'
 import { NotificationContext, STATUSES } from './NotificationContext';
 import PasswordPopup from '../components/shared/PasswordPopup';
@@ -10,10 +9,8 @@ import pwPrompt from '../components/alerts/pwPrompt'
 import walletError from '../components/alerts/walletError'
 import walletSigError from '../components/alerts/walletSigError'
 import walletLoading from '../components/alerts/walletLoading'
-import { reduceBalance, extractDecimal } from '../utils/reduceBalance'
-const fetch = require("node-fetch");
 
-export const PactContext = createContext();
+export const WalletContext = createContext();
 const savedAcct = localStorage.getItem('acct');
 const savedPrivKey = localStorage.getItem('pk');
 const savedNetwork = localStorage.getItem('network');
@@ -23,29 +20,17 @@ const savedTtl = localStorage.getItem('ttl');
 const chainId = "0";
 const PRECISION = 12;
 const NETWORKID = 'testnet04';
-const FEE = 0.003
 const network = `https://api.testnet.chainweb.com/chainweb/0.0/${NETWORKID}/chain/${chainId}/pact`;
 
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 const GAS_PRICE = 0.000000000001;
 
-export const PactProvider = (props) => {
+export const WalletProvider = (props) => {
   const notificationContext = useContext(NotificationContext);
   const [account, setAccount] = useState((savedAcct ? JSON.parse(savedAcct) : {account: null, guard: null, balance: 0}));
   const [tokenAccount, setTokenAccount] = useState({account: null, guard: null, balance: 0});
   const [privKey, setPrivKey] = useState((savedPrivKey ? savedPrivKey : ""));
   const keyPair = privKey ? Pact.crypto.restoreKeyPairFromSecretKey(privKey) : "";
-  const [tokenFromAccount, setTokenFromAccount] = useState({account: null, guard: null, balance: 0});
-  const [tokenToAccount, setTokenToAccount] = useState({account: null, guard: null, balance: 0});
-  const [precision, setPrecision] = useState(false);
-  const [pairAccount, setPairAccount] = useState("");
-  const [pairReserve, setPairReserve] = useState("");
-  const [pair, setPair] = useState("");
-  const [ratio, setRatio] = useState(NaN);
-  const [pairAccountBalance, setPairAccountBalance] = useState(null);
-  const [supplied, setSupplied] = useState(false);
-  const [slippage, setSlippage] = useState((savedSlippage ? savedSlippage : 0.05));
-  const [liquidityProviderFee, setLiquidityProviderFee] = useState(0.003);
   const [cmd, setCmd] = useState(null);
   const [localRes, setLocalRes] = useState(null);
   const [polling, setPolling] = useState(false);
@@ -93,16 +78,6 @@ export const PactProvider = (props) => {
   const getCorrectBalance = (balance) => {
     const balanceClean = (!isNaN(balance) ? balance : balance.decimal)
     return balanceClean
-  }
-
-  const storeSlippage = async (slippage) => {
-    await setSlippage(slippage)
-    await localStorage.setItem('slippage', slippage);
-  }
-
-  const storeTtl = async (ttl) => {
-    await setTtl(slippage)
-    await localStorage.setItem('ttl', ttl);
   }
 
   const setVerifiedAccount = async (accountName) => {
@@ -268,28 +243,18 @@ var parseRes = async function (raw) {
 
 
   return (
-    <PactContext.Provider
+    <WalletContext.Provider
       value={{
         GAS_PRICE,
-        PRECISION,
         account,
         setVerifiedAccount,
-        supplied,
-        setSupplied,
         privKey,
         storePrivKey,
-        tokenAccount,
-        tokenFromAccount,
-        tokenToAccount,
-        slippage,
-        storeSlippage,
         getCorrectBalance,
-        liquidityProviderFee,
         localRes,
         polling,
         setSigning,
         poolBalance,
-        pair,
         sendRes,
         clearSendRes,
         signing,
@@ -307,18 +272,17 @@ var parseRes = async function (raw) {
         sigView,
         setSigView,
         pw,
-        setPw,
-        storeTtl
+        setPw
       }}
     >
       {props.children}
-    </PactContext.Provider>
+    </WalletContext.Provider>
   );
 };
 
-export const PactConsumer = PactContext.Consumer;
+export const PactConsumer = WalletContext.Consumer;
 
-export const withPactContext = (Component) => (props) => (
+export const withWalletContext = (Component) => (props) => (
   <PactConsumer>{(providerProps) => <Component {...props} sessionContextProps={providerProps} />}</PactConsumer>
 );
 

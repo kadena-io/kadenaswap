@@ -28,7 +28,7 @@ export const extractDecimal = num => {
 }
 
 export const  limitDecimalPlaces = (numStr, count) => {
-  if (numStr.indexOf('.') == -1) {
+  if (numStr.indexOf('.') === -1) {
     if (numStr === '') return '';
     if (!isNaN(numStr)) return Number(numStr);
   }

@@ -1,14 +1,14 @@
-import React  from 'react';
+import React, {useContext}  from 'react';
 import Pact from 'pact-lang-api';
 import { Icon } from 'semantic-ui-react'
-
 const Context = React.createContext();
-
+import {WalletContext} from "./wallet/contexts/WalletContext"
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 const GAS_PRICE = 0.000000000001;
-const APIHost =  `https://api.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact`
-const bondAmount = 50000;
-const chainId = "0"
+const BOND_AMOUNT = 50000;
+const CHAIN_ID = "0";
+const NETWORKID = 'testnet04';
+const APIHost = `https://api.testnet.chainweb.com/chainweb/0.0/${NETWORKID}/chain/${CHAIN_ID}/pact`
 
 export class PactStore extends React.Component {
 
@@ -45,7 +45,7 @@ export class PactStore extends React.Component {
                    <p><b>Block Height:</b> {res.metaData.blockHeight}</p>
                    <p><b>Block Hash:</b> {res.metaData.blockHash}</p>
                    <p><b>Result:</b> {JSON.stringify(res.result.data)}</p>
-                   <p>Check Your Balance <a href="https://balance.chainweb.com"><b>here</b></a></p>
+                   <p>Check Your TX <a href="https://balance.chainweb.com"><b>here</b></a></p>
                  </div>,
         hidden: false,
         success: true
@@ -97,7 +97,7 @@ export class PactStore extends React.Component {
         envData: {
           bond: bond
         },
-        meta: Pact.lang.mkMeta('relay-free-gas', chainId,1000,5000,creationTime(), 600),
+        meta: Pact.lang.mkMeta('relay-free-gas', CHAIN_ID,1000,5000,creationTime(), 600),
         networkId: 'testnet04'
       };
 
@@ -111,17 +111,18 @@ export class PactStore extends React.Component {
     return this.state.bondAccount
   }
 
-  newBond = async (acct, key) => {
+  newBond = async (acct,key) => {
+
     const cmd = {
         pactCode: `(relay.pool.new-bond relay.relay.POOL (read-msg 'account) (read-keyset 'ks))`,
         caps: [
           Pact.lang.mkCap("Gas Station", "free gas", "relay.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
-          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `coin.TRANSFER`, [acct, "relay-bank", bondAmount]),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `coin.TRANSFER`, [acct, "relay-bank", BOND_AMOUNT]),
         ],
         sender: 'relay-free-gas',
         gasLimit: 2000,
         gasPrice: GAS_PRICE,
-        chainId: "0",
+        chainId: CHAIN_ID,
         ttl: 1500,
         envData: {
           account: acct,
@@ -131,49 +132,43 @@ export class PactStore extends React.Component {
     this.sendBond(cmd);
   }
 
-  unBond = async (bond) => {
-    let account = await this.getBond(bond);
-    if (account !== "") {
-      const cmd = {
-          pactCode: `(relay.pool.unbond (read-msg 'bond))`,
-          caps: [
-            Pact.lang.mkCap("Gas Station", "free gas", "relay.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
-            Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `coin.TRANSFER`, ["relay-bank", this.state.bondAccount, bondAmount]),
-            Pact.lang.mkCap("Bonder", "Bond", "relay.pool.BONDER", [bond])
-          ],
-          sender: 'relay-free-gas',
-          gasLimit: 2000,
-          gasPrice: GAS_PRICE,
-          chainId: "0",
-          ttl: 1500,
-          envData: {
-            bond: bond
-          }
+  unBond = async (acct, bond) => {
+    const cmd = {
+        pactCode: `(relay.pool.unbond (read-msg 'bond))`,
+        caps: [
+          Pact.lang.mkCap("Gas Station", "free gas", "relay.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
+          Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `coin.TRANSFER`, ["relay-bank", acct, BOND_AMOUNT]),
+          Pact.lang.mkCap("Bonder", "Bond", "relay.pool.BONDER", [bond])
+        ],
+        sender: 'relay-free-gas',
+        gasLimit: 2000,
+        gasPrice: GAS_PRICE,
+        chainId: CHAIN_ID,
+        ttl: 1500,
+        envData: {
+          bond: bond
         }
-      this.sendBond(cmd);
-    }
+      }
+    this.sendBond(cmd);
   }
 
   renewBond = async (bond) => {
-    let account = await this.getBond(bond);
-    if (account !== "") {
-      const cmd = {
-          pactCode: `(relay.pool.renew (read-msg 'bond))`,
-          caps: [
-            Pact.lang.mkCap("Gas Station", "free gas", "relay.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
-            Pact.lang.mkCap("Bonder", "Bond", "relay.pool.BONDER", [bond])
-          ],
-          sender: 'relay-free-gas',
-          gasLimit: 2000,
-          gasPrice: GAS_PRICE,
-          chainId: "0",
-          ttl: 1000,
-          envData: {
-            bond: bond
-          }
+    const cmd = {
+        pactCode: `(relay.pool.renew (read-msg 'bond))`,
+        caps: [
+          Pact.lang.mkCap("Gas Station", "free gas", "relay.gas-station.GAS_PAYER", ["free-gas", {int: 1}, 1.0]),
+          Pact.lang.mkCap("Bonder", "Bond", "relay.pool.BONDER", [bond])
+        ],
+        sender: 'relay-free-gas',
+        gasLimit: 2000,
+        gasPrice: GAS_PRICE,
+        chainId: CHAIN_ID,
+        ttl: 1000,
+        envData: {
+          bond: bond
         }
-      this.sendBond(cmd);
-    }
+      }
+    this.sendBond(cmd);
   }
 
   sendBond = async (signCmd) => {
@@ -192,6 +187,7 @@ export class PactStore extends React.Component {
           });
         })
         .then(async res => {
+          console.log(res)
           let reqKey
           if (res.ok){
             reqKey = await res.json();

@@ -8,7 +8,7 @@ import Backdrop from './Backdrop';
 import Button from './Button'
 import { ReactComponent as SuccessfulIcon } from '../../assets/images/shared/successful-circle.svg';
 import { ReactComponent as ErrorIcon } from '../../assets/images/shared/error-circle.svg';
-import { PactContext } from '../../contexts/PactContext';
+import { WalletContext } from '../../contexts/WalletContext';
 
 // const Container = styled.div`
 //   position: absolute;
@@ -96,7 +96,7 @@ const ContainerInputTypeNumber = styled.div`
 
 
 const PasswordPopup = ({}) => {
-  const pact = useContext(PactContext);
+  const pact = useContext(WalletContext);
 
   const [loading, setLoading] = useState(false)
   const [pw, setPw] = useState("");

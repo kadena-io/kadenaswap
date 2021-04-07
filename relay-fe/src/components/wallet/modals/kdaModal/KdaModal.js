@@ -3,7 +3,7 @@ import { Header, Modal, Menu, Icon, Message } from 'semantic-ui-react';
 import styled from 'styled-components/macro';
 import Input from '../../components/shared/Input';
 import Button from '../../components/shared/Button';
-import { PactContext } from '../../contexts/PactContext';
+import { WalletContext } from '../../contexts/WalletContext';
 import theme from '../../styles/theme';
 import Checkbox from '../../components/shared/Checkbox';
 import { ReactComponent as LockIcon } from '../../assets/images/shared/lock.svg';
@@ -16,7 +16,7 @@ import selectAcct from '../../components/alerts/selectAcct'
 
 export default function Account(props) {
 
-  const pact = useContext(PactContext);
+  const pact = useContext(WalletContext);
   const [acct, setAcct] = useState((pact.account.account ? pact.account.account : ""))
   const [locked, setLocked] = useState((pact.account.account && pact.hasWallet() ? true : false));
   const [method, setMethod] = useState(pact.signing.method);
@@ -63,7 +63,7 @@ export default function Account(props) {
     setPwConf('');
     setLocked(true);
   };
-
+  console.log(pact.account.account)
   return (
     <Modal
       onClose={() => {
@@ -87,6 +87,7 @@ export default function Account(props) {
               setAcct(value);
               setTemp(value);
               await pact.setVerifiedAccount(value);
+              console.log(value)
             }}
             rightLabel={
               <>

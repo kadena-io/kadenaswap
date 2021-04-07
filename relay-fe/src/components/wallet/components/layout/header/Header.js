@@ -1,11 +1,11 @@
 import React, { useContext, useState } from 'react';
-import { NavLink, useHistory } from 'react-router-dom';
-import { Modal, Message, Popup } from 'semantic-ui-react'
+import { useHistory } from 'react-router-dom';
+import { Message, Popup } from 'semantic-ui-react'
 import Button from '../../shared/Button';
 import styled from 'styled-components/macro';
 import reduceToken from '../../../utils/reduceToken';
 import {reduceBalance} from '../../../utils/reduceBalance';
-import { PactContext } from '../../../contexts/PactContext';
+import { WalletContext } from '../../../contexts/WalletContext';
 import KdaModal from '../../../modals/kdaModal/KdaModal';
 import { ReactComponent as KDALogo } from '../../../assets/images/header/kadena-logo.svg';
 import { ReactComponent as PowerIcon } from '../../../assets/images/header/power.svg';
@@ -107,7 +107,7 @@ const Header = () => {
   const [showPactModal, setShowPactModal] = useState(false);
   const [openKdaModal, setOpenKdaModal] = useState(false);
   const history = useHistory();
-  const pact = useContext(PactContext);
+  const pact = useContext(WalletContext);
 
   return (
       <Container>

@@ -8,7 +8,7 @@ import Backdrop from './Backdrop';
 import Button from './Button'
 import { ReactComponent as SuccessfulIcon } from '../../assets/images/shared/successful-circle.svg';
 import { ReactComponent as ErrorIcon } from '../../assets/images/shared/error-circle.svg';
-import { PactContext } from '../../contexts/PactContext';
+import { WalletContext } from '../../contexts/WalletContext';
 import { extractDecimal, reduceBalance, gasUnit } from '../../utils/reduceBalance';
 
 const Container = styled.div`

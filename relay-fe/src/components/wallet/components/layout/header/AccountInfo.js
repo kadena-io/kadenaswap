@@ -1,7 +1,5 @@
 import React from 'react';
 import styled from 'styled-components/macro';
-import { reduceBalance } from '../../../utils/reduceBalance';
-import reduceToken from '../../../utils/reduceToken';
 
 const Container = styled.div`
   display: flex;

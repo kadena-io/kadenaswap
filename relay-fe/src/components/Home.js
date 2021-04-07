@@ -1,20 +1,18 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import '../App.css';
-import { Button, Grid, Input, Icon, Form, List,
-   Modal,  Message, Popup, Select, Radio,
-   Tab, TextArea, Loader, Step } from 'semantic-ui-react';
+import { Button, Form, Message } from 'semantic-ui-react';
 import { Wallet } from './wallet/Wallet.js'
 import PactContext from "../contexts/PactContext";
+import {WalletContext} from "./wallet/contexts/WalletContext"
 
 function Home() {
 
   const pactContext = useContext(PactContext);
+  const wallet = useContext(WalletContext);
   const result = pactContext.status
-  const [acct, setAcct] = useState("");
   const [key, setKey] = useState("");
   const [bond, setBond] = useState("");
-  const [openKdaModal, setOpenKdaModal] = useState(false);
-
+  console.log(wallet.account.account)
   return (
     <div className="App">
       <Wallet/>
@@ -38,14 +36,6 @@ function Home() {
               style={{width: "360px"}}
               icon='user'
               iconPosition='left'
-              placeholder='Account Name'
-              value={acct}
-              onChange={(e) => setAcct(e.target.value)}
-            />
-            <Form.Input
-              style={{width: "360px"}}
-              icon='user'
-              iconPosition='left'
               placeholder='Bond Guard (Enter Public Key)'
               value={key}
               onChange={(e) => setKey(e.target.value)}
@@ -54,14 +44,14 @@ function Home() {
 
           <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
             <Button
-              disabled={acct === "" || key === ""}
+              disabled={wallet.account === "" || key === ""}
               style={{
               backgroundColor: "#18A33C",
               color: "white",
               width: 360,
               }}
               onClick={() => {
-                pactContext.newBond(acct, key)}}
+                pactContext.newBond(wallet.account.account, key)}}
             >
               New Bond
             </Button>
@@ -89,7 +79,7 @@ function Home() {
               color: "white",
               width: 360,
               }}
-              onClick={() => pactContext.unBond(bond)}
+              onClick={() => pactContext.unBond(wallet.account.account, bond)}
             >
               Unbond
             </Button>

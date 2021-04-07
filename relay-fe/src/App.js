@@ -1,11 +1,15 @@
 import React from 'react';
 import Home from "./components/Home";
 import { PactStore } from "./contexts/PactContext";
+import { WalletProvider, WalletContext } from './components/wallet/contexts/WalletContext';
 
 function App() {
+
   return (
     <PactStore>
-      <Home />
+      <WalletProvider>
+        <Home/>
+      </WalletProvider>
     </PactStore>
   );
 }
