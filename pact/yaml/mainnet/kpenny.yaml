@@ -5,7 +5,7 @@ data:
   ns: "kswap"
   upgrade: true
   swap-deadline: "2021-03-09T00:00:00Z"
-  final-deadline: "2021-04-21T00:00:00Z"
+  final-deadline: "2021-04-15T00:00:00Z"
 networkId: mainnet01
 nonce: update kpenny redeem deadline to 4/21
 publicMeta:
