@@ -145,25 +145,33 @@ export const PactProvider = (props) => {
           //Sign wallet
           Pact.wallet.sign(signCmd)
             .then(cmd => {
-              setRequestState(2);
-              return fetch(`${apiHost(NETWORK_ID, CHAIN_ID)}/api/v1/send`, {
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                method: "POST",
-                body: JSON.stringify({"cmds": [cmd]})
-              });
+              if (!cmd) {
+                throw "Signing was unsuccessful"
+              }
+              else {
+                //send cmd to node
+                setRequestState(2);
+                return fetch(`${apiHost(NETWORK_ID, CHAIN_ID)}/api/v1/send`, {
+                  headers: {
+                    "Content-Type": "application/json"
+                  },
+                  method: "POST",
+                  body: JSON.stringify({"cmds": [cmd]})
+                });
+              }
             })
             .then(async res => {
-            let reqKey
-            if (res.ok){
-              reqKey = await res.json();
-            } else {
-               let resTEXT = await res.text()
-              throw resTEXT;
-            }
-            return reqKey
-          }).then(reqKey => {
+              let reqKey
+              if (res.ok){
+                reqKey = await res.json();
+                return reqKey
+              } else {
+                 //Wallet closed without signing
+                let resTEXT = await res.text()
+                throw resTEXT;
+              }
+          })
+          .then(reqKey => {
             //RequestKey Fetched
             setRequestKey(reqKey.requestKeys[0])
             setRequestState(3);
@@ -183,7 +191,7 @@ export const PactProvider = (props) => {
           }).catch(e => {
             //Error
             if (e=== "Error in $.cmds[0]: parsing Command failed, expected Object, but encountered Null"){
-              setRequestState(5);
+              setRequestState(6);
               setError("Signing was unsuccessful");
             } else if (typeof e === "object"){
               setRequestState(6);

@@ -78,6 +78,7 @@ function Home() {
       7: {header: "Preview: Failure", content: JSON.stringify(localRes), error: true, hidden: false},
       8: {header: "Preview: Success", content: JSON.stringify(localRes), error: false, hidden: false}
     }
+    console.log(requestState)
     return requestContent[requestState];
   }
   return (
