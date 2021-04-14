@@ -27,7 +27,7 @@ export const PactProvider = (props) => {
     decryptKey
   } = wallet;
 
-  const newBond = async (acct,key) => {
+  const newBond = async (acct,keys) => {
     const cmd = {
       pactCode: `(relay.pool.new-bond relay.relay.POOL (read-msg 'account) (read-keyset 'ks))`,
       caps: [
@@ -41,7 +41,10 @@ export const PactProvider = (props) => {
       ttl: 1500,
       envData: {
         account: acct,
-        ks: [key]
+        ks: {
+          pred: "keys-any",
+          keys: keys
+        }
       }
     }
     if (signing.method === "sign"){

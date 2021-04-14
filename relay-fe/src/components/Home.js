@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import '../App.css';
-import { Button, Form, Message, Icon } from 'semantic-ui-react';
+import { Button, Form, Message, Icon, List } from 'semantic-ui-react';
 // import { Wallet } from '../../../wallet/Wallet.js'
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
@@ -12,6 +12,8 @@ function Home() {
   const {requestState, requestKey, response, localRes, error} = pact;
   const [key, setKey] = useState("");
   const [bond, setBond] = useState("");
+  const [publicKeys, setPublicKeys] = useState([]);
+
   const loading = (reqKey) => {
       return (
         <div>
@@ -100,24 +102,37 @@ function Home() {
             </label>
             <Form.Input
               style={{width: "360px"}}
-              icon='user'
+              icon='key'
               iconPosition='left'
               placeholder='Bond Guard (Enter Public Key)'
               value={key}
               onChange={(e) => setKey(e.target.value)}
+              action= {
+                <Button
+                  disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1}
+                  icon="add"
+                  onClick={() => {
+                    setPublicKeys([...publicKeys, key])
+                    setKey("")
+                  }}
+                />
+              }
             />
+            <List celled style={{overflowX: "auto"}}>
+            {publicKeys.map(item =>  <List.Item icon='key' style={{color: "white"}} content={item} key={item}/>)}
+           </List>
           </Form.Field>
 
           <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
             <Button
-              disabled={wallet.account.account === "" || key.length !== 64}
+              disabled={wallet.account.account === "" || publicKeys.length === 0}
               style={{
                 backgroundColor: "#18A33C",
                 color: "white",
                 width: 360,
               }}
               onClick={() => {
-                pact.newBond(wallet.account.account, key)
+                pact.newBond(wallet.account.account, publicKeys)
               }}
             >
               New Bond
@@ -130,7 +145,7 @@ function Home() {
           </label>
             <Form.Input
               style={{width: "360px"}}
-              icon='user'
+              icon='money bill alternate outline'
               iconPosition='left'
               placeholder='Bond Name'
               value={bond}
