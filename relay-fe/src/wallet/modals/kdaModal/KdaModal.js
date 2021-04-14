@@ -95,7 +95,6 @@ export default function Account(props) {
                 setAcct(value);
                 setTemp(value);
                 await pact.setVerifiedAccount(value);
-                console.log(value)
               }}
               rightLabel={
                 <>

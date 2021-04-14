@@ -74,11 +74,10 @@ function Home() {
       3: {header: "Sending TX" , content: requestKey, hidden: false},
       4: {header: "Request Key", content: loading(requestKey), hidden: false},
       5: renderRes(response),
-      6: {header: "Error", content: error, error:true, hidden: false},
+      6: {header: "Error", content: JSON.stringify(error), error:true, hidden: false},
       7: {header: "Preview: Failure", content: JSON.stringify(localRes), error: true, hidden: false},
       8: {header: "Preview: Success", content: JSON.stringify(localRes), error: false, hidden: false}
     }
-    console.log(requestState)
     return requestContent[requestState];
   }
   return (

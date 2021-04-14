@@ -121,11 +121,12 @@ export const PactProvider = (props) => {
       }
       let data = await Pact.fetch.local(cmd, apiHost(NETWORK_ID, CHAIN_ID));
       setTransaction(cmd);
-      setRequestState(7);
       if (data.result.status === "success"){
         setLocalRes(data.result.data);
+        setRequestState(8);
       } else {
         setLocalRes(data.result.error.message);
+        setRequestState(7);
       }
       return data;
     } catch (e) {
@@ -135,7 +136,33 @@ export const PactProvider = (props) => {
   }
 
   const sendCmd = async () => {
-    let data = await Pact.fetch.send(transaction, apiHost(NETWORK_ID, CHAIN_ID));
+    setRequestState(2);
+    Pact.fetch.send(transaction, apiHost(NETWORK_ID, CHAIN_ID))
+      .then(reqKey => {
+        //RequestKey Fetched
+        setRequestKey(reqKey.requestKeys[0])
+        setRequestState(3);
+        return reqKey.requestKeys[0]
+      }).then(reqKey => {
+        //Listening for result
+        setRequestState(4);
+        return Pact.fetch.listen({"listen": reqKey }, apiHost(NETWORK_ID, CHAIN_ID))
+      })
+      .then(res => {
+        //Result came back
+        setRequestState(5);
+        setResponse(res);
+        return res
+      })
+      .then(res => {
+        setRequestState(5);
+        setResponse(res);
+      })
+      .catch(e => {
+        //Error
+        setRequestState(6);
+        setError(e);
+      })
   }
 
   const sendBondWallet = async (signCmd) => {
