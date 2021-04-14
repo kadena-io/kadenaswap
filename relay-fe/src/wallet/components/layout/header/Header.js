@@ -20,7 +20,7 @@ import theme from '../../../styles/theme';
 
 const Container = styled.div`
   position: fixed;
-  top: 0;
+  top: 5px;
   left: 18px;
   display: flex;
   justify-content: space-between;
@@ -35,7 +35,7 @@ const Container = styled.div`
 const LeftContainer = styled.div`
   display: flex;
   align-items: center;
-  margin-right: 25px;
+
   & > *:not(:last-child) {
     margin-right: 25px;
   }
@@ -43,7 +43,6 @@ const LeftContainer = styled.div`
 
 const Label = styled.span`
   font-size: 13px;
-  font-family: neue-bold;
   text-transform: capitalize;
 `;
 

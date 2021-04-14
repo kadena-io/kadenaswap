@@ -24,10 +24,9 @@ export default createGlobalStyle`
       line-height: inherit;
       overflow: auto;
       min-width: 0;
-      font-family: neue-regular;
       color: ${({ theme: { colors } }) => colors.primary};
       background: ${() => `url(/images/background.jpg)`};
-      background-color: #9d4f9e;
+      background-color: #282c34;
       background-size: cover;
       background-repeat: no-repeat;
     };

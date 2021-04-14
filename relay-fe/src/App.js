@@ -1,16 +1,30 @@
 import React from 'react';
 import Home from "./components/Home";
-import { PactStore } from "./contexts/PactContext";
-import { WalletProvider, WalletContext } from './components/wallet/contexts/WalletContext';
+import { PactProvider } from "./contexts/PactContext";
+
+import { ThemeProvider } from 'styled-components';
+import { theme } from './wallet/styles/theme';
+import GlobalStyle from './wallet/styles/globalStyle';
+import { WalletProvider, WalletContext } from './wallet/contexts/WalletContext';
+import NotificationContent from './wallet/components/notification/NotificationContent';
+import NotificationRender from './wallet/components/notification/NotificationRender';
+import Layout from './wallet/components/layout/Layout'
 
 function App() {
 
   return (
-    <PactStore>
-      <WalletProvider>
-        <Home/>
-      </WalletProvider>
-    </PactStore>
+    <ThemeProvider theme={theme}>
+      <NotificationRender>
+        <WalletProvider>
+          <GlobalStyle />
+          <Layout>
+            <PactProvider>
+              <Home/>
+            </PactProvider>
+          </Layout>
+        </WalletProvider>
+      </NotificationRender>
+    </ThemeProvider>
   );
 }
 

@@ -24,6 +24,13 @@ const network = `https://api.testnet.chainweb.com/chainweb/0.0/${NETWORKID}/chai
 
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 const GAS_PRICE = 0.000000000001;
+const apiHost = (networkId, chainId) => {
+  let node = "api.testnet.chainweb.com";
+  if(networkId === "mainnet01") node = "api.chainweb.com"
+  return `https://${node}/chainweb/0.0/${networkId}/chain/${chainId}/pact`
+}
+
+
 
 export const WalletProvider = (props) => {
   const notificationContext = useContext(NotificationContext);
@@ -45,10 +52,10 @@ export const WalletProvider = (props) => {
   const [registered, setRegistered] = useState(false);
   const [ttl, setTtl] = useState((savedTtl ? savedTtl : 600));
   const [balances, setBalances] = useState(false);
-
   //TO FIX, not working when multiple toasts are there
   const toastId = React.useRef(null)
   // const [toastIds, setToastIds] = useState({})
+
   useEffect(() => {
     if (account.account) setRegistered(true);
   }, [registered]);
@@ -83,16 +90,15 @@ export const WalletProvider = (props) => {
   const setVerifiedAccount = async (accountName) => {
     try {
       let data = await Pact.fetch.local({
-          pactCode: `(coin.details ${JSON.stringify(accountName)})`,
-          meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
-        }, network);
-        if (data.result.status === "success"){
-          await localStorage.setItem('acct', JSON.stringify(data.result.data));
-          setAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
-          await localStorage.setItem('acct', JSON.stringify(data.result.data));
-        } else {
-          setAccount({account: null, guard: null, balance: 0});
-        }
+        pactCode: `(coin.details ${JSON.stringify(accountName)})`,
+        meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
+      }, network);
+      if (data.result.status === "success"){
+        await localStorage.setItem('acct', JSON.stringify(data.result.data));
+        await setAccount({...data.result.data, balance: getCorrectBalance(data.result.data.balance)});
+      } else {
+        await setAccount({account: null, guard: null, balance: 0});
+      }
     } catch (e) {
       console.log(e)
     }
@@ -234,7 +240,6 @@ var parseRes = async function (raw) {
    }
 };
 
-
 //------------------------------------------------------------------------------------------------------------------------
 //                  END KPENNY FUNCTIONS ONLY
 //------------------------------------------------------------------------------------------------------------------------
@@ -246,6 +251,7 @@ var parseRes = async function (raw) {
     <WalletContext.Provider
       value={{
         GAS_PRICE,
+        apiHost,
         account,
         setVerifiedAccount,
         privKey,
@@ -272,7 +278,13 @@ var parseRes = async function (raw) {
         sigView,
         setSigView,
         pw,
-        setPw
+        setPw,
+        creationTime,
+        decryptKey,
+        pwPrompt,
+        walletError,
+        walletSigError,
+        walletLoading
       }}
     >
       {props.children}
@@ -280,10 +292,10 @@ var parseRes = async function (raw) {
   );
 };
 
-export const PactConsumer = WalletContext.Consumer;
+export const WalletConsumer = WalletContext.Consumer;
 
 export const withWalletContext = (Component) => (props) => (
-  <PactConsumer>{(providerProps) => <Component {...props} sessionContextProps={providerProps} />}</PactConsumer>
+  <WalletConsumer>{(providerProps) => <Component {...props} sessionContextProps={providerProps} />}</WalletConsumer>
 );
 
 //ORIGINAL LISTEN
