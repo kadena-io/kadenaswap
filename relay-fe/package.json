@@ -27,8 +27,6 @@
     "yup": "^0.29.3"
   },
   "scripts": {
-    "start:pact": "rm -Rf ./log && mkdir log && pact --serve ./pact-local/server.conf",
-    "start:deploy": "./pact-local/initialize.sh 9001",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

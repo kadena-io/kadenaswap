@@ -4,7 +4,7 @@ import { Button, Form, Message, Icon, List } from 'semantic-ui-react';
 // import { Wallet } from '../../../wallet/Wallet.js'
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
-
+import MainnetHome from "./MainnetHome"
 
 function Home() {
   const pact = useContext(PactContext);
@@ -82,130 +82,136 @@ function Home() {
     }
     return requestContent[requestState];
   }
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={require("../kadena.png")} style={{height:100, marginBottom: 10}}/>
-        <h1>
-          Kadena Testnet Chain Relay
-        </h1>
-        <h5>Create and manage Kadena Chain Relay Bonds on Testnet
-        </h5>
+  console.log(process.env)
+  if (process.env.TESTNET) {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <img src={require("../kadena.png")} style={{height:100, marginBottom: 10}}/>
+          <h1>
+            Kadena Testnet Chain Relay
+          </h1>
+          <h5>Create and manage Kadena Chain Relay Bonds on Testnet
+          </h5>
 
-        <Form success={status().success}
-              error={status().error}
-              warning={status().warning}>
+          <Form success={status().success}
+                error={status().error}
+                warning={status().warning}>
 
-          <Form.Field  style={{marginTop: "0px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}} >
+            <Form.Field  style={{marginTop: "10px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}>
+              <label style={{color: "#18A33C", textAlign: "left" }}>
+                Create a New Bond
+              </label>
+              <Form.Input
+                style={{width: "360px"}}
+                icon='key'
+                iconPosition='left'
+                placeholder='Bond Guard (Enter Public Key)'
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                action= {
+                  <Button
+                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1}
+                    icon="add"
+                    onClick={() => {
+                      setPublicKeys([...publicKeys, key])
+                      setKey("")
+                    }}
+                  />
+                }
+              />
+              <List celled style={{overflowX: "auto"}}>
+              {publicKeys.map(item =>  <List.Item icon='key' style={{color: "white"}} content={item} key={item}/>)}
+             </List>
+            </Form.Field>
+
+            <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
+              <Button
+                disabled={wallet.account.account === "" || publicKeys.length === 0}
+                style={{
+                  backgroundColor: "#18A33C",
+                  color: "white",
+                  width: 360,
+                }}
+                onClick={() => {
+                  pact.newBond(wallet.account.account, publicKeys)
+                }}
+              >
+                New Bond
+              </Button>
+            </Form.Field>
+
+            <Form.Field  style={{marginTop: "0px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}} >
             <label style={{color: "#18A33C", textAlign: "left" }}>
-              Create a New Bond
+              Unbond / Renew Bond
             </label>
-            <Form.Input
-              style={{width: "360px"}}
-              icon='key'
-              iconPosition='left'
-              placeholder='Bond Guard (Enter Public Key)'
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-              action= {
-                <Button
-                  disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1}
-                  icon="add"
-                  onClick={() => {
-                    setPublicKeys([...publicKeys, key])
-                    setKey("")
-                  }}
-                />
-              }
-            />
-            <List celled style={{overflowX: "auto"}}>
-            {publicKeys.map(item =>  <List.Item icon='key' style={{color: "white"}} content={item} key={item}/>)}
-           </List>
-          </Form.Field>
+              <Form.Input
+                style={{width: "360px"}}
+                icon='money bill alternate outline'
+                iconPosition='left'
+                placeholder='Bond Name'
+                value={bond}
+                onChange={(e) => setBond(e.target.value)}
+              />
+            </Form.Field>
 
-          <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
-            <Button
-              disabled={wallet.account.account === "" || publicKeys.length === 0}
-              style={{
+            <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
+              <Button
+                disabled={wallet.account.account === "" || bond === ""}
+                style={{
                 backgroundColor: "#18A33C",
                 color: "white",
                 width: 360,
-              }}
-              onClick={() => {
-                pact.newBond(wallet.account.account, publicKeys)
-              }}
-            >
-              New Bond
-            </Button>
-          </Form.Field>
+                }}
+                onClick={() => pact.unBond(wallet.account.account, bond)}
+              >
+                Unbond
+              </Button>
+            </Form.Field>
+            <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
+              <Button
+                disabled={bond === ""}
+                style={{
+                backgroundColor: "#18A33C",
+                color: "white",
+                width: 360,
+                }}
+                onClick={() => pact.renewBond(bond)}
+              >
+                Renew
+              </Button>
+            </Form.Field>
 
-          <Form.Field  style={{marginTop: "0px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}} >
-          <label style={{color: "#18A33C", textAlign: "left" }}>
-            Unbond / Renew Bond
-          </label>
-            <Form.Input
-              style={{width: "360px"}}
-              icon='money bill alternate outline'
-              iconPosition='left'
-              placeholder='Bond Name'
-              value={bond}
-              onChange={(e) => setBond(e.target.value)}
-            />
-          </Form.Field>
+            <Form.Field style={{width: 500, margin: "auto"}}>
+              <Message
+                success={status().success}
+                warning={status().warning}
+                error={status().error}
+                hidden={status().hidden}
+              >
+                <Message.Header>{status().header}</Message.Header>
+                <div>{status().content}</div>
+                  <Message hidden={requestState!==8}>
+                    <Button
+                      disabled={status().error}
+                      style={{
+                        marginTop: 10
+                      }}
+                      onClick={() => pact.sendCmd()}
+                    >
+                      Confirm
+                    </Button>
+                  </Message>
+              </Message>
+            </Form.Field>
+          </Form>
+        </header>
+      </div>
+    );
+  } else {
+    return <MainnetHome/>
+  }
 
-          <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
-            <Button
-              disabled={wallet.account.account === "" || bond === ""}
-              style={{
-              backgroundColor: "#18A33C",
-              color: "white",
-              width: 360,
-              }}
-              onClick={() => pact.unBond(wallet.account.account, bond)}
-            >
-              Unbond
-            </Button>
-          </Form.Field>
-          <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
-            <Button
-              disabled={bond === ""}
-              style={{
-              backgroundColor: "#18A33C",
-              color: "white",
-              width: 360,
-              }}
-              onClick={() => pact.renewBond(bond)}
-            >
-              Renew
-            </Button>
-          </Form.Field>
-
-          <Form.Field style={{width: 500, margin: "auto"}}>
-            <Message
-              success={status().success}
-              warning={status().warning}
-              error={status().error}
-              hidden={status().hidden}
-            >
-              <Message.Header>{status().header}</Message.Header>
-              <div>{status().content}</div>
-                <Message hidden={requestState!==8}>
-                  <Button
-                    disabled={status().error}
-                    style={{
-                      marginTop: 10
-                    }}
-                    onClick={() => pact.sendCmd()}
-                  >
-                    Confirm
-                  </Button>
-                </Message>
-            </Message>
-          </Form.Field>
-        </Form>
-      </header>
-    </div>
-  );
 }
 
 export default Home;
