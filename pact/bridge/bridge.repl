@@ -3,21 +3,20 @@
  { 'ns-admin-keyset: ["admin"]
  , 'ns-operate-keyset: ["operate"]
  , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
-(load "root/fungible-v2.pact")
-(load "root/coin.pact")
-(load "root/ns.pact")
+(load "../root/fungible-v2.pact")
+(load "../root/coin.pact")
+(load "../root/ns.pact")
 
 (env-data
   { 'bridge-ns-user: ["bridge-user"]
-  , 'brdge-ns-admin: ["bridge-admin"]
+  , 'bridge-ns-admin: ["bridge-admin"]
   , 'bridge-ns: "bridge"
   , 'upgrade: false
   })
 (env-keys ["operate", "bridge-user", "bridge-admin"])
 
 (load "bridge-ns.pact")
-(load "fungible-util.pact")
-(load "tokens.pact")
+(load "mintable-v1.pact")
 
 (env-data { 'bridge-ns: "bridge", 'upgrade: false })
 (commit-tx)
