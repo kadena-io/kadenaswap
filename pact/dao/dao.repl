@@ -8,18 +8,17 @@
 (load "../root/ns.pact")
 
 (env-data
-  { 'bridge-ns-user: ["bridge-user"]
-  , 'bridge-ns-admin: ["bridge-admin"]
-  , 'bridge-ns: "bridge"
+  { 'dao-ns-user: ["dao-user"]
+  , 'dao-ns-admin: ["dao-admin"]
+  , 'dao-ns: "dao"
   , 'upgrade: false
   })
-(env-keys ["operate", "bridge-user", "bridge-admin"])
+(env-keys ["operate", "dao-user", "dao-admin"])
 
-(load "bridge-ns.pact")
-(load "mintable-v1.pact")
+(load "dao-ns.pact")
 
-(env-data { 'bridge-ns: "bridge", 'upgrade: false })
+(env-data { 'dao-ns: "dao", 'upgrade: false })
 (commit-tx)
 
 (begin-tx)
-(load "bridge.pact")
+(load "dao.pact")
