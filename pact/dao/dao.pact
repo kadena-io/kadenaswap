@@ -9,6 +9,7 @@
 
   (defconst MODULE_NAME "dao-v1")
   (defconst MODULE_ACCT_NAME "dao-v1") ; we'll change this
+  (defcap INTERNAL () true)
 
   ; Approved upgrades need to be at least this old to occur.
   ; This gives the ambassadors time to respond
@@ -38,6 +39,14 @@
     proposed-upgrade:object{proposed-upgrade}
     )
 
+  (defun adjust-count:bool (key:string adjustment:integer)
+    (require-capability INTERNAL)
+    (enforce (<= (abs adjustment) 1) "Adjustment is 1 at a time")
+    (let* ((prev-state (read state DAO_STATE_KEY))
+           (prev-cnt (at key prev-state))
+           (new-state (+ {key:(+ prev-cnt adjustment)} prev-state)))
+         (write state DAO_STATE_KEY new-state)))
+
   (defconst DAO_STATE_KEY "state")
 
   (deftable state:table{dao-state})
@@ -65,7 +74,8 @@
       {"guard":guard
       ,"committed-kda":GUARDIAN_KDA_REQUIRED
       ,"approved-hash":""
-      ,"approved-date":(now)}))
+      ,"approved-date":(now)})
+    (adjust-count "guardian-count" 1))
 
   (defcap GUARDIAN (acct:string)
     (with-read guardians acct
@@ -78,23 +88,26 @@
       guard:guard
       active:bool
       voted-to-freeze:time)
-
   (deftable ambassadors:table{ambassador})
+
   (defun register-ambassador:bool (acct:string guard:guard)
+    (require-capability (GUARDIAN guardian))
     (insert ambassadors acct
             {"guard":guard
             ,"active":true
             ,"voted-to-freeze":(time "2000-01-01T12:00:00Z")})
-    ())
+    (adjust-count "ambassador-cnt" 1))
   (defun deactivate-ambassador:bool (guardian:string ambassador:string)
     (require-capability (GUARDIAN guardian))
     (let ((dao-state (read state DAO_STATE_KEY)))
       (enforce (> (add-time (now) DEACTIVATE_COOLDOWN) (at 'last-ambassador-deactivation dao-state)) "Deactivate Cooldown Failure")
       (update state DAO_STATE_KEY (+ {"last-ambassador-deactivation":(now)} dao-state))
-      (update ambassadors ambassador {"active":false})))
+      (update ambassadors ambassador {"active":false}))
+    (adjust-count "ambassador-cnt" (- 1)))
   (defun reactivate-ambassador:bool (guardian:string ambassador:string)
     (require-capability (GUARDIAN guardian))
-    (update ambassadors ambassador {"active":true}))
+    (update ambassadors ambassador {"active":true})
+    (adjust-count "ambassador-cnt" 1))
 
   (defcap AMBASSADOR (acct:string)
     (with-read ambassadors acct
