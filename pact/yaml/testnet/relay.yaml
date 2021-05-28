@@ -5,12 +5,12 @@ data:
   ns: "relay"
   upgrade: false
   relay-coin-account: relay-bank
-  lockup: 30
-  unlock: 20
-  bond: 50000
-  activity: 0 # for initial bonding period
-  endorsers: 10
-  denouncers: 15
+  lockup: 3
+  unlock: 2
+  bond: 20
+  activity: 1
+  endorsers: 5
+  denouncers: 7
   confirm: 0.5
   rate: 0.000822
   fee: 5.0
