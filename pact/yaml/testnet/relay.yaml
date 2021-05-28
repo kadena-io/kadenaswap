@@ -1,9 +1,9 @@
 codeFile: ../../relay/relay.pact
 signers:
-  - public: ef711514b5a248ac16ffd5cc94511dfccbd89005e9737343dfbb3743c8a63ca6
+  - public: dfb16b13e4032a6878fd98506b22cb0d6e5932c541e656b7ee5d69d72e6eb76e
 data:
   ns: "relay"
-  upgrade: false
+  upgrade: true
   relay-coin-account: relay-bank
   lockup: 3
   unlock: 2
@@ -18,7 +18,7 @@ networkId: testnet04
 nonce: install-relay
 publicMeta:
   chainId: "0"
-  sender: "ef711514b5a248ac16ffd5cc94511dfccbd89005e9737343dfbb3743c8a63ca6"
+  sender: "heekyun"
   gasLimit: 3000
   gasPrice: 0.0000000001
   ttl: 26600
