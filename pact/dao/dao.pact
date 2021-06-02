@@ -43,9 +43,12 @@
   \a majority vote by the ambassadors can freeze the DAO for 7 days."
 
   (use utils-v1)
-  (defconst MODULE_NAME "dao-v1")
-  (defconst MODULE_ACCT_NAME "dao-v1") ; we'll change this
-  (defcap INTERNAL () true)
+  (defconst DAO_MODULE_NAME "dao-v1")
+  (defconst DAO_ACCT_NAME "dao-v1") ; we'll change this
+  (defun DAO_ACCT_BALANCE () (coin.get-balance DAO_ACCT_NAME))
+  (defcap INTERNAL ()
+    "mark some functions as internal only"
+    true)
 
   ; Approved upgrades need to be at least this old to occur.
   ; This gives the ambassadors time to respond
@@ -61,7 +64,7 @@
   (defconst FREEZE_TIMEOUT (days 7))
 
   ; Every guardian needs to escrow this much to
-  (defconst GUARDIAN_KDA_REQUIRED 500000)
+  (defconst GUARDIAN_KDA_REQUIRED 500000.0)
 
   ; ----
   ; DAO State
@@ -69,18 +72,18 @@
   (defschema dao-state
     guardian-count:integer
     ambassador-count:integer
-    dao-frozen-until-date:time
+    dao-frozen-until:time
     last-ambassador-deactivation:time
     proposed-upgrade-hash:string
     proposed-upgrade-time:time)
   (deftable state:{dao-state})
-  (defun init-state:string (grd-cnt:integer)
+  (defun init-state:string ()
     (let ((default-time (add-time (now) (days -7))))
       ; insert fails if key exists, so this only runs once
       (insert state DAO_STATE_KEY
-          {'guardian-count:grd-cnt
+          {'guardian-count:0
           ,'ambassador-count:0
-          ,'dao-frozen-until-date:default-time
+          ,'dao-frozen-until:default-time
           ,'last-ambassador-deactivation:default-time
           ,'proposed-upgrade-hash:""
           ,'proposed-upgrade-time:default-time})))
@@ -88,53 +91,53 @@
     (read state DAO_STATE_KEY))
 
   (defun adjust-ambassador-count:bool (adjustment:integer)
-    (require-capability INTERNAL)
+    (require-capability (INTERNAL))
     (enforce (= (abs adjustment) 1) "Adjustment is 1 at a time")
     (let* ((prev-state (read state DAO_STATE_KEY))
            (prev-cnt (at 'ambassador-count prev-state))
            (x (+ {'ambassador-count:(+ prev-cnt adjustment)} prev-state)))
       (write state DAO_STATE_KEY x)))
   (defun adjust-guardian-count:bool (adjustment:integer)
-    (require-capability INTERNAL)
+    (require-capability (INTERNAL))
     (enforce (= (abs adjustment) 1) "Adjustment is 1 at a time")
-    (let* ((prev-state (read state DAO_STATE_KEY))
-           (prev-cnt (at 'guardian-count prev-state))
-           (x (+ {'guardian-count:(+ prev-cnt adjustment)} prev-state)))
-      (write state DAO_STATE_KEY x)))
+    (with-read state DAO_STATE_KEY {'guardian-count:=cnt}
+      (update state DAO_STATE_KEY
+        {'guardian-count: (+ adjustment cnt)})))
 
   (defun is-dao-frozen:bool ()
     ; check the time of tx vs state.frozenuntil... but I think this can be done better via a guard
     (with-read state DAO_STATE_KEY {"dao-frozen-until":=frz-time}
-        (enforce (> (now) frz-time)) "DAO is Frozen"))
+        (enforce (> (now) frz-time) "DAO is Frozen")))
 
   ; ----
   ; Guardians are the dao-v1's actors, the entites that will actually do things like run the bridge and upgrade the dao
   (defschema guardian
       guard:guard
-      committed-kda:integer
+      committed-kda:decimal
       approved-hash:string
-      approved-date:string)
+      approved-date:time)
   (deftable guardians:{guardian})
   (defcap GUARDIAN (acct:string)
     (with-read guardians acct
       {"guard":=guard}
       (enforce-guard guard)))
   (defun view-guardians ()
-    (fold (read guardians) (keys guardians)))
+    (map (read guardians) (keys guardians)))
 
   (defun register-guardian:bool (acct:string guard:guard)
-    (coin.transfer acct MODULE_ACCT_NAME GUARDIAN_KDA_REQUIRED)
-    (insert guardians acct
-      {"guard":guard
-      ,"committed-kda":GUARDIAN_KDA_REQUIRED
-      ,"approved-hash":""
-      ,"approved-date":(now)})
-    (adjust-guardian-count 1))
+    (with-capability (INTERNAL)
+      (coin.transfer acct DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)
+      (insert guardians acct
+        {"guard":guard
+        ,"committed-kda":GUARDIAN_KDA_REQUIRED
+        ,"approved-hash":""
+        ,"approved-date":(now)})
+      (adjust-guardian-count 1)))
 
   ; For now, registration is a one-way street
   (defun unregister-guardian (acct:string)
     (enforce false
-      (format "{} needs to be upgraded to enable withdrawls" [MODULE_NAME]))
+      (format "{} needs to be upgraded to enable withdrawls" [DAO_MODULE_NAME]))
     (is-dao-frozen))
 
   (defun propose-dao-upgrade (acct:string hsh:string)
@@ -164,7 +167,7 @@
       (enforce-guard guard)
       (enforce active "Ambassador acct is disabled")))
   (defun view-ambassadors ()
-    (fold (read ambassadors) (keys ambassadors)))
+    (map (read ambassadors) (keys ambassadors)))
 
   (defun register-ambassador:bool (acct:string guard:guard)
     (with-capability (GUARDIAN guardian)
@@ -199,7 +202,7 @@
       (enforce (> (* 2 ambs-voted-to-freeze) ambs-cnt) "Majority vote failed")
       (is-dao-frozen) ; so it can't get called twice
       ; is this correct?
-      (write state DAO_STATE_KEY {"dao-frozen-until-date": (add-time (now) FREEZE_TIMEOUT)}))))
+      (write state DAO_STATE_KEY {"dao-frozen-until": (add-time (now) FREEZE_TIMEOUT)}))))
 
 
   ; ----
@@ -221,10 +224,13 @@
     ; ----
     ; Initialize the DAO
     (defun init:string ()
-      (init-state 1)
+      (init-state)
       (coin.create-account
-        MODULE_ACCT_NAME
-        (create-module-guard MODULE_ACCT_NAME)))
+        DAO_ACCT_NAME
+        (create-module-guard DAO_ACCT_NAME)))
+
+    (defun state-hash:string ()
+      (hash [(view-state) (view-guardians) (view-ambassadors)]))
 
 )
 

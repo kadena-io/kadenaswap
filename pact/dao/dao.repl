@@ -17,11 +17,59 @@
 
 (load "dao-ns.pact")
 
-(env-data { 'dao-ns: "dao", 'upgrade: false })
+(env-data { 'dao-ns: "dao" })
+(env-chain-data
+  {"block-height": 1675409
+  ,"block-time": (time "2021-06-01T12:00:00Z")
+  ,"chain-id": "0"
+  ,"gas-limit": 10000000
+  ,"gas-price": 0.0
+  ,"prev-block-hash": ""
+  ,"sender": ""})
 (load "dao.pact")
 
 ; Check init State
-(coin.details MODULE_ACCT_NAME)
-(dao.dao-v1.view-state)
-
+(coin.details DAO_ACCT_NAME)
+(use dao.dao-v1)
+(view-state)
+(view-guardians)
+(view-ambassadors)
+(is-dao-frozen)
+(expect "state hash checkpoint" "qp44Pd5Mzox-D2YiGakiC-zTzLeyjrFuyXXAnyR3duU" (state-hash))
 (commit-tx)
+
+(begin-tx)
+(load "tests/populate-users.repl")
+(use dao.dao-v1)
+
+; -- basic guardian functionality tests
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:
+      [(coin.TRANSFER 'guardian0 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
+  }])
+(register-guardian 'guardian0 (read-keyset 'guardian0))
+(env-sigs [
+  { 'key: 'guardian1
+  , 'caps:
+      [(coin.TRANSFER 'guardian1 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
+  }])
+(register-guardian 'guardian1 (read-keyset 'guardian1))
+(env-sigs [
+  { 'key: 'guardian2
+  , 'caps:
+      [(coin.TRANSFER 'guardian2 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
+  }])
+(register-guardian 'guardian2 (read-keyset 'guardian2))
+
+(expect "3 guardians" 3 (at 'guardian-count (view-state)))
+(expect "DAO has right balance" (* 3 GUARDIAN_KDA_REQUIRED) (DAO_ACCT_BALANCE))
+(expect-failure "cannot unregister guardians" (unregister-guardian 'guardian1))
+
+(env-sigs [
+  { 'key: 'bob
+  , 'caps:
+      [(coin.TRANSFER 'bob DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
+  }])
+(expect-failure "insufficient funds for guardianship" (register-guardian 'bob (read-keyset 'bob)))
+(expect "state hash checkpoint" "IHFggqVA03db45A4LnOYWxDZaApjsI8P-lGYUl2l2ao" (state-hash))
