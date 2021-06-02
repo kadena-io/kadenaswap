@@ -18,7 +18,10 @@
 (load "dao-ns.pact")
 
 (env-data { 'dao-ns: "dao", 'upgrade: false })
-(commit-tx)
-
-(begin-tx)
 (load "dao.pact")
+
+; Check init State
+(coin.details MODULE_ACCT_NAME)
+(dao.dao-v1.view-state)
+
+(commit-tx)
