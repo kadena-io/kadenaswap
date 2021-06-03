@@ -14,8 +14,10 @@
   (defun tomorrow:time () (add-time (today) (days 1)))
 
   (defun btwn-incl:bool (start end ts)
+    (enforce (>= end start) (format "bounding start {} must come before end {}" [start end]))
     (and (>= ts start) (<= ts end)))
   (defun btwn-excl:bool (start end ts)
+    (enforce (>= end start) "bounding end comes before start")
     (and (> ts start) (< ts end)))
 
   (defun this-block:integer () (at 'block-height (chain-data)))
@@ -60,7 +62,7 @@
   ; Min time between deactivations
   (defconst DEACTIVATE_COOLDOWN (days 1))
 
-  ; Max time a freeze lasts for
+  ; Max time a freeze can exist for
   (defconst FREEZE_TIMEOUT (days 7))
 
   ; Every guardian needs to escrow this much to
@@ -107,7 +109,8 @@
   (defun is-dao-frozen:bool ()
     ; check the time of tx vs state.frozenuntil... but I think this can be done better via a guard
     (with-read state DAO_STATE_KEY {"dao-frozen-until":=frz-time}
-        (enforce (> (now) frz-time) "DAO is Frozen")))
+        (enforce (> (now) frz-time) "DAO is Frozen"))
+    false)
 
   ; ----
   ; Guardians are the dao-v1's actors, the entites that will actually do things like run the bridge and upgrade the dao
@@ -118,6 +121,7 @@
       approved-date:time)
   (deftable guardians:{guardian})
   (defcap GUARDIAN (acct:string)
+    (is-dao-frozen)
     (with-read guardians acct
       {"guard":=guard}
       (enforce-guard guard)))
@@ -149,13 +153,19 @@
       ; for now, we just trust guardians to not be griefers
       (update state DAO_STATE_KEY
         {"proposed-upgrade-hash":hsh
-        ,"proposed-upgrade-time":(now)})))
+        ,"proposed-upgrade-time":(now)}))
+     (guardian-approve-hash acct hsh)
+     true)
 
-  (defun guardian-approve-hash:string (acct:string hsh:string)
+  (defun guardian-approve-hash:bool (acct:string hsh:string)
     (with-capability (GUARDIAN acct)
+      (with-read state DAO_STATE_KEY {'proposed-upgrade-hash:=prp-hsh}
+        (enforce (= prp-hsh hsh)
+          (format "Upgrade hash mismatch: {} vs {}" [prp-hsh hsh])))
       (update guardians acct
         {"approved-hash":hsh
-        ,"approved-date":(now)})))
+        ,"approved-date":(now)}))
+    true)
 
   ; ----
   ; Ambassadors can lock things up (table flip)
@@ -200,35 +210,49 @@
   ; ----
   ; Freeze the DAO
   (defun vote-to-freeze:bool (ambassador:string)
-    (require-capability (AMBASSADOR ambassador))
-    (update ambassadors ambassador {"voted-to-freeze":(now)}))
-
-  (defun freeze:bool (ambassador:string)
     (with-capability (AMBASSADOR ambassador)
-    (let* ((live-ambs (select ambassadors ["voted-to-freeze"] (where 'active (= true))))
+      (update ambassadors ambassador {"voted-to-freeze":(now)}))
+    true)
+
+  (defun freeze:string (ambassador:string)
+    (with-capability (AMBASSADOR ambassador)
+    (let* ((live-ambs
+              (map (at "voted-to-freeze")
+              (select ambassadors ["voted-to-freeze"] (where 'active (= true)))))
            (ambs-cnt (length live-ambs))
-           (ambs-voted-to-freeze (length (filter (>= (add-time (now) (- APPROVAL_COOLDOWN))) live-ambs))))
-      (enforce (> (* 2 ambs-voted-to-freeze) ambs-cnt) "Majority vote failed")
+           (ambs-voted-to-freeze (length (filter (btwn-incl (add-time (now) (- APPROVAL_COOLDOWN)) (now)) live-ambs)))
+           (dao-frz-ts (add-time (now) FREEZE_TIMEOUT)))
+      (enforce (> (* 2 ambs-voted-to-freeze) ambs-cnt)
+        (format "Majority vote failed: {} of {}" [ambs-voted-to-freeze ambs-cnt]))
       (is-dao-frozen) ; so it can't get called twice
       ; is this correct?
-      (write state DAO_STATE_KEY {"dao-frozen-until": (add-time (now) FREEZE_TIMEOUT)}))))
+      (update state DAO_STATE_KEY
+        {"dao-frozen-until": dao-frz-ts})
+      (format "DAO now frozen until {}" [dao-frz-ts]))))
 
 
   ; ----
   ; Upgrade the DAO
   (defcap GOVERNANCE ()
     (is-dao-frozen); if it's frozen, bail
-    (check-hash-approval))
+    (check-hash-approval (tx-hash)))
 
-  (defun check-hash-approval:bool ()
-    (let*
-      ((grd-cnt (at 'guardian-count (read state DAO_STATE_KEY)))
-       (start (add-time (now) (- APPROVAL_TIMEOUT)))
-       (end (add-time (now) (- APPROVAL_COOLDOWN)))
-       (approvals (select guardians (where 'approved-hash (= (tx-hash)))))
-       (valid-approvals (filter (and? (< start) (> end)) approvals)))
-      (enforce (>= (* 2 (length valid-approvals)) grd-cnt)
-        (format "Upgrade not approved, {} of {}" [valid-approvals, grd-cnt]))))
+  (defun check-hash-approval:bool (hsh:string)
+    (with-read state DAO_STATE_KEY
+      {'proposed-upgrade-time:=prp-time
+      ,'guardian-count:=grd-cnt}
+      (enforce (>= (now) (add-time prp-time APPROVAL_COOLDOWN))
+        (format "Proposal still in cooldown" [(add-time prp-time APPROVAL_COOLDOWN)]))
+      (enforce (< (now) (add-time prp-time APPROVAL_TIMEOUT))
+        (format "Proposal has timed out" [(add-time prp-time APPROVAL_COOLDOWN)]))
+      (let*
+         ((approvals (map (at 'approved-date )
+           (select guardians (where 'approved-hash (= hsh)))))
+         (valid-aprv-start (add-time (now) (- APPROVAL_TIMEOUT)))
+         (valid-approvals (length (filter (<= valid-aprv-start) approvals))))
+        (enforce (>= (* 2 valid-approvals) grd-cnt)
+          (format "Upgrade not approved, {} of {} before {}"
+            [valid-approvals approvals valid-aprv-start])))))
 
     ; ----
     ; Initialize the DAO

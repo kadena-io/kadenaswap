@@ -27,6 +27,7 @@
   ,"prev-block-hash": ""
   ,"sender": ""})
 (load "dao.pact")
+(typecheck "dao.dao-v1" true)
 
 ; Check init State
 (coin.details DAO_ACCT_NAME)
@@ -48,20 +49,16 @@
 (env-sigs [
   { 'key: 'guardian0
   , 'caps:
-      [(coin.TRANSFER 'guardian0 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
-  }])
-(register-guardian 'guardian0 (read-keyset 'guardian0))
-(env-sigs [
+      [(coin.TRANSFER 'guardian0 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
   { 'key: 'guardian1
   , 'caps:
-      [(coin.TRANSFER 'guardian1 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
-  }])
-(register-guardian 'guardian1 (read-keyset 'guardian1))
-(env-sigs [
+      [(coin.TRANSFER 'guardian1 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
   { 'key: 'guardian2
   , 'caps:
-      [(coin.TRANSFER 'guardian2 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
-  }])
+      [(coin.TRANSFER 'guardian2 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
+  ])
+(register-guardian 'guardian0 (read-keyset 'guardian0))
+(register-guardian 'guardian1 (read-keyset 'guardian1))
 (register-guardian 'guardian2 (read-keyset 'guardian2))
 
 (expect "3 guardians" 3 (at 'guardian-count (view-state)))
@@ -102,3 +99,70 @@
 (expect "cooldown triggered" true (deactivate-ambassador 'guardian0 'ambassador2))
 
 (reactivate-ambassador 'guardian0 'ambassador2)
+
+; -----------------------------------------------------------------------------
+; freezer tests
+; -----------------------------------------------------------------------------
+(env-sigs [
+  { 'key: 'ambassador0
+  , 'caps:[(AMBASSADOR 'ambassador0)]},
+  { 'key: 'ambassador1
+  , 'caps:[(AMBASSADOR 'ambassador1)]},
+  { 'key: 'ambassador2
+  , 'caps:[(AMBASSADOR 'ambassador2)]}
+  ])
+(env-chain-data
+  {"block-time": (time "2021-07-01T12:00:00Z")})
+
+(vote-to-freeze 'ambassador0)
+(expect-failure "insufficent votes" (freeze 'ambassador0))
+(expect "not frozen" false (is-dao-frozen))
+
+(vote-to-freeze 'ambassador1)
+(freeze 'ambassador0)
+(expect-failure "DAO is frozen" (is-dao-frozen))
+
+; roll forward to the edge of the boundry
+(env-chain-data
+  {"block-time": (time "2021-07-08T11:59:59Z")})
+(expect-failure "DAO is frozen" (is-dao-frozen))
+(expect-failure "freeze votes are timed out" (freeze 'ambassador0))
+
+; check that ambassadors can't refreeze while frozen
+(vote-to-freeze 'ambassador0)
+(vote-to-freeze 'ambassador1)
+(expect-failure "cannot freeze a frozen DAO" (freeze 'ambassador0))
+
+; check that freeze aborts GOVERNANCE
+(expect-failure "GOVERNANCE cap is frozen" (read state DAO_STATE_KEY))
+
+; roll forward the first second that the DAO is unfrozen
+(env-chain-data
+  {"block-time": (time "2021-07-08T12:00:01Z")})
+(expect "DAO is not frozen" false (is-dao-frozen))
+
+; -----------------------------------------------------------------------------
+; proposal tests
+; -----------------------------------------------------------------------------
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(GUARDIAN 'guardian0)]}
+  { 'key: 'guardian1
+  , 'caps:[(GUARDIAN 'guardian1)]}
+  ])
+(propose-dao-upgrade 'guardian0 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
+(expect-failure "approvals still in cooldown"
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+(env-chain-data
+  {"block-time": (time "2021-07-09T12:00:01Z")})
+(expect-failure "approvals still in cooldown (but now 1 of 3)"
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+(expect-failure "wrong hash"
+  (guardian-approve-hash 'guardian1 "foo"))
+(guardian-approve-hash 'guardian1 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
+(check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
+(env-chain-data
+  {"block-time": (time "2021-07-11T12:00:01Z")})
+(expect-failure "Poposal timed out"
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
