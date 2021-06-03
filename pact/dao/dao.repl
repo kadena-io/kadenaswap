@@ -99,10 +99,13 @@
 (expect "cooldown triggered" true (deactivate-ambassador 'guardian0 'ambassador2))
 
 (reactivate-ambassador 'guardian0 'ambassador2)
+(commit-tx)
 
 ; -----------------------------------------------------------------------------
 ; freezer tests
 ; -----------------------------------------------------------------------------
+(begin-tx)
+(use dao.dao-v1)
 (env-sigs [
   { 'key: 'ambassador0
   , 'caps:[(AMBASSADOR 'ambassador0)]},

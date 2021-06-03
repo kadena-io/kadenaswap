@@ -26,10 +26,12 @@
   (defconst BLOCKHEIGHT_PER_HOUR 120)
   (defconst BLOCKHEIGHT_PER_DAY 2880)
 
+  (defun row-with-key (tbl k)
+    (let ((r (read tbl k)))
+      [k r]))
+
   )
 
-
-;; dao.toETH
 (module dao-v1 GOVERNANCE
   @doc
   "This is the start of the KDA DAO, not the end. \
@@ -98,13 +100,15 @@
     (let* ((prev-state (read state DAO_STATE_KEY))
            (prev-cnt (at 'ambassador-count prev-state))
            (x (+ {'ambassador-count:(+ prev-cnt adjustment)} prev-state)))
-      (write state DAO_STATE_KEY x)))
+      (write state DAO_STATE_KEY x))
+    true)
   (defun adjust-guardian-count:bool (adjustment:integer)
     (require-capability (INTERNAL))
     (enforce (= (abs adjustment) 1) "Adjustment is 1 at a time")
     (with-read state DAO_STATE_KEY {'guardian-count:=cnt}
       (update state DAO_STATE_KEY
-        {'guardian-count: (+ adjustment cnt)})))
+        {'guardian-count: (+ adjustment cnt)}))
+    true)
 
   (defun is-dao-frozen:bool ()
     ; check the time of tx vs state.frozenuntil... but I think this can be done better via a guard
@@ -125,11 +129,9 @@
     (with-read guardians acct
       {"guard":=guard}
       (enforce-guard guard)))
-  (defun row-with-key (tbl k)
-    (let ((r (read tbl k)))
-      [k r]))
   (defun view-guardians ()
-    (map (row-with-key guardians) (keys guardians)))
+    (with-capability (INTERNAL)
+      (map (row-with-key guardians) (keys guardians))))
 
   (defun register-guardian:bool (acct:string guard:guard)
     (with-capability (INTERNAL)
@@ -180,7 +182,8 @@
       (enforce-guard guard)
       (enforce active "Ambassador acct is disabled")))
   (defun view-ambassadors ()
-    (map (row-with-key ambassadors) (keys ambassadors)))
+    (with-capability (INTERNAL)
+      (map (row-with-key ambassadors) (keys ambassadors))))
 
   (defun register-ambassador:bool (guardian:string acct:string guard:guard)
     (with-capability (GUARDIAN guardian)
@@ -234,8 +237,11 @@
   ; ----
   ; Upgrade the DAO
   (defcap GOVERNANCE ()
-    (is-dao-frozen); if it's frozen, bail
-    (check-hash-approval (tx-hash)))
+    (if (try false (require-capability (INTERNAL)))
+      true
+      (let ((x (is-dao-frozen)); if it's frozen, bail
+            (res (check-hash-approval (tx-hash))))
+      res)))
 
   (defun check-hash-approval:bool (hsh:string)
     (with-read state DAO_STATE_KEY
@@ -263,7 +269,7 @@
         (create-module-guard DAO_ACCT_NAME)))
 
     (defun state-hash:string ()
-      (hash [(view-state) (view-guardians) (view-ambassadors)]))
+      (hash  [(view-state) (view-guardians) (view-ambassadors)]))
 
 )
 
