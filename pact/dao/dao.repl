@@ -42,7 +42,9 @@
 (load "tests/populate-users.repl")
 (use dao.dao-v1)
 
-; -- basic guardian functionality tests
+; -----------------------------------------------------------------------------
+; basic guardian functionality tests
+; -----------------------------------------------------------------------------
 (env-sigs [
   { 'key: 'guardian0
   , 'caps:
@@ -72,4 +74,31 @@
       [(coin.TRANSFER 'bob DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
   }])
 (expect-failure "insufficient funds for guardianship" (register-guardian 'bob (read-keyset 'bob)))
-(expect "state hash checkpoint" "IHFggqVA03db45A4LnOYWxDZaApjsI8P-lGYUl2l2ao" (state-hash))
+(view-guardians)
+(expect "state hash checkpoint" "GUM-RCyDuFdfdrKIR2U4RR6Sa9MenRM3N_Va39OBBT0" (state-hash))
+
+; -----------------------------------------------------------------------------
+; basic ambassador functionality tests
+; -----------------------------------------------------------------------------
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(GUARDIAN 'guardian0)]}
+  ])
+(register-ambassador 'guardian0 'ambassador0 (read-keyset 'ambassador0))
+(register-ambassador 'guardian0 'ambassador1 (read-keyset 'ambassador1))
+(register-ambassador 'guardian0 'ambassador2 (read-keyset 'ambassador2))
+(register-ambassador 'guardian0 'ambassador3 (read-keyset 'ambassador3))
+(expect "4 ambassadors" 4 (at 'ambassador-count (view-state)))
+
+(deactivate-ambassador 'guardian0 'ambassador3)
+(expect "3 ambassadors" 3 (at 'ambassador-count (view-state)))
+
+(expect-failure "cooldown triggered" (deactivate-ambassador 'guardian0 'ambassador2))
+(env-chain-data
+  {"block-time": (add-time
+      (at 'last-ambassador-deactivation (view-state))
+      (+ DEACTIVATE_COOLDOWN (days 1)))})
+(expect "cooldown triggered" true (deactivate-ambassador 'guardian0 'ambassador2))
+
+(reactivate-ambassador 'guardian0 'ambassador2)

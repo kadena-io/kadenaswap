@@ -121,8 +121,11 @@
     (with-read guardians acct
       {"guard":=guard}
       (enforce-guard guard)))
+  (defun row-with-key (tbl k)
+    (let ((r (read tbl k)))
+      [k r]))
   (defun view-guardians ()
-    (map (read guardians) (keys guardians)))
+    (map (row-with-key guardians) (keys guardians)))
 
   (defun register-guardian:bool (acct:string guard:guard)
     (with-capability (INTERNAL)
@@ -167,26 +170,32 @@
       (enforce-guard guard)
       (enforce active "Ambassador acct is disabled")))
   (defun view-ambassadors ()
-    (map (read ambassadors) (keys ambassadors)))
+    (map (row-with-key ambassadors) (keys ambassadors)))
 
-  (defun register-ambassador:bool (acct:string guard:guard)
+  (defun register-ambassador:bool (guardian:string acct:string guard:guard)
     (with-capability (GUARDIAN guardian)
       (insert ambassadors acct
               {"guard":guard
               ,"active":true
               ,"voted-to-freeze":(time "2000-01-01T12:00:00Z")})
-      (adjust-ambassador-count 1)))
+      (with-capability (INTERNAL)
+        (adjust-ambassador-count 1)))
+      true)
   (defun deactivate-ambassador:bool (guardian:string ambassador:string)
     (with-capability (GUARDIAN guardian)
-      (let ((dao-state (read state DAO_STATE_KEY)))
-        (enforce (> (add-time (now) DEACTIVATE_COOLDOWN) (at 'last-ambassador-deactivation dao-state)) "Deactivate Cooldown Failure")
-        (update state DAO_STATE_KEY (+ {"last-ambassador-deactivation":(now)} dao-state))
+      (let ((lst-deactivate (at 'last-ambassador-deactivation (read state DAO_STATE_KEY))))
+        (enforce (> (now) (add-time lst-deactivate DEACTIVATE_COOLDOWN)) "Deactivate Cooldown Failure")
+        (update state DAO_STATE_KEY {"last-ambassador-deactivation":(now)})
         (update ambassadors ambassador {"active":false}))
-      (adjust-ambassador-count -1)))
+      (with-capability (INTERNAL)
+        (adjust-ambassador-count -1)))
+      true)
   (defun reactivate-ambassador:bool (guardian:string ambassador:string)
     (with-capability (GUARDIAN guardian)
       (update ambassadors ambassador {"active":true})
-      (adjust-ambassador-count 1)))
+      (with-capability (INTERNAL)
+        (adjust-ambassador-count 1)))
+      true)
 
   ; ----
   ; Freeze the DAO
@@ -213,10 +222,10 @@
 
   (defun check-hash-approval:bool ()
     (let*
-      ((grd-cnt (at 'guardian-cnt (read state DAO_STATE_KEY)))
+      ((grd-cnt (at 'guardian-count (read state DAO_STATE_KEY)))
        (start (add-time (now) (- APPROVAL_TIMEOUT)))
        (end (add-time (now) (- APPROVAL_COOLDOWN)))
-       (approvals (select guardians (where 'approved-hash (= tx-hash))))
+       (approvals (select guardians (where 'approved-hash (= (tx-hash)))))
        (valid-approvals (filter (and? (< start) (> end)) approvals)))
       (enforce (>= (* 2 (length valid-approvals)) grd-cnt)
         (format "Upgrade not approved, {} of {}" [valid-approvals, grd-cnt]))))
