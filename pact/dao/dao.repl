@@ -1,5 +1,17 @@
 (begin-tx)
 (env-data
+ { 'util-ns-users: ["util-ns-user"]
+ , 'util-ns-admin: ["util-ns-admin"]
+ })
+(env-keys ["util-ns-user", "util-ns-admin"])
+
+(load "../util/ns.pact")
+(load "../util/guards.pact")
+(load "../util/guards1.pact")
+(commit-tx)
+
+(begin-tx)
+(env-data
  { 'ns-admin-keyset: ["admin"]
  , 'ns-operate-keyset: ["operate"]
  , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
@@ -20,7 +32,7 @@
 (env-data { 'dao-ns: "dao" })
 (env-chain-data
   {"block-height": 1675409
-  ,"block-time": (time "2021-06-01T12:00:00Z")
+  ,"block-time": (time "2021-05-30T12:00:00Z")
   ,"chain-id": "0"
   ,"gas-limit": 10000000
   ,"gas-price": 0.0
@@ -36,7 +48,9 @@
 (view-guardians)
 (view-ambassadors)
 (is-dao-frozen)
-(expect "state hash checkpoint" "qp44Pd5Mzox-D2YiGakiC-zTzLeyjrFuyXXAnyR3duU" (state-hash))
+(expect "state hash checkpoint"
+  "il3_zetSGMlcqQ5272FIuKiOyddKvzIwDtQFubk7-tk"
+  (state-hash))
 (commit-tx)
 
 (begin-tx)
@@ -49,30 +63,54 @@
 (env-sigs [
   { 'key: 'guardian0
   , 'caps:
-      [(coin.TRANSFER 'guardian0 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
+      [(coin.TRANSFER 'guardian0 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)
+       (GUARDIAN 'guardian0)]}
   { 'key: 'guardian1
   , 'caps:
-      [(coin.TRANSFER 'guardian1 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
+      [(coin.TRANSFER 'guardian1 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)
+       (GUARDIAN 'guardian1)]}
   { 'key: 'guardian2
   , 'caps:
       [(coin.TRANSFER 'guardian2 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
   ])
 (register-guardian 'guardian0 (read-keyset 'guardian0))
-(register-guardian 'guardian1 (read-keyset 'guardian1))
+
+; quickly poke at the just-one and just-two guardian scenarios
+(propose-dao-upgrade 'guardian0 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
+(expect-failure "proposal is too new"
+  "Proposal still in cooldown"
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+(env-chain-data
+  {"block-time": (time "2021-06-01T12:00:00Z")})
+;(expect-failure "approvals still in cooldown (but now 1 of 3)"
+(expect "1 of 1 allows for upgrade"
+  true
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+(register-guardian 'guardian1 (read-keyset 'guardian1 ))
+(expect-failure "50% vote"
+  "Upgrade not approved, 1 of 2"
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+
 (register-guardian 'guardian2 (read-keyset 'guardian2))
 
 (expect "3 guardians" 3 (at 'guardian-count (view-state)))
-(expect "DAO has right balance" (* 3 GUARDIAN_KDA_REQUIRED) (DAO_ACCT_BALANCE))
-(expect-failure "cannot unregister guardians" (unregister-guardian 'guardian1))
+(expect "DAO has right balance" (* 3 GUARDIAN_KDA_REQUIRED) (dao-acct-balance))
+(expect-failure "cannot unregister guardians"
+  "dao-v1 needs to be upgraded to enable withdrawls"
+  (unregister-guardian 'guardian1))
 
 (env-sigs [
   { 'key: 'bob
   , 'caps:
       [(coin.TRANSFER 'bob DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
   }])
-(expect-failure "insufficient funds for guardianship" (register-guardian 'bob (read-keyset 'bob)))
+(expect-failure "insufficient funds for guardianship"
+  "Insufficient funds"
+  (register-guardian 'bob (read-keyset 'bob)))
 (view-guardians)
-(expect "state hash checkpoint" "GUM-RCyDuFdfdrKIR2U4RR6Sa9MenRM3N_Va39OBBT0" (state-hash))
+(expect "state hash checkpoint"
+  "cWCgiA9VVNT0E___btA_wD7I7XLSs1mZoIS52lQlCkc"
+  (state-hash))
 
 ; -----------------------------------------------------------------------------
 ; basic ambassador functionality tests
@@ -81,8 +119,19 @@
 (env-sigs [
   { 'key: 'guardian0
   , 'caps:[(GUARDIAN 'guardian0)]}
+  { 'key: 'bob
+  , 'caps:[(GUARDIAN 'bob)]}
+  { 'key: 'ambassador0
+  , 'caps:[(GUARDIAN 'ambassador0)]}
   ])
 (register-ambassador 'guardian0 'ambassador0 (read-keyset 'ambassador0))
+(expect-failure "unauthorized access"
+  "with-read: row not found: bob"
+  (register-ambassador 'bob 'ambassador1 (read-keyset 'ambassador1 )))
+(expect-failure "unauthorized access"
+  "with-read: row not found: ambassador0"
+  (register-ambassador 'ambassador0 'ambassador1 (read-keyset 'ambassador1 )))
+
 (register-ambassador 'guardian0 'ambassador1 (read-keyset 'ambassador1))
 (register-ambassador 'guardian0 'ambassador2 (read-keyset 'ambassador2))
 (register-ambassador 'guardian0 'ambassador3 (read-keyset 'ambassador3))
@@ -91,7 +140,9 @@
 (deactivate-ambassador 'guardian0 'ambassador3)
 (expect "3 ambassadors" 3 (at 'ambassador-count (view-state)))
 
-(expect-failure "cooldown triggered" (deactivate-ambassador 'guardian0 'ambassador2))
+(expect-failure "cooldown triggered"
+  "Deactivate Cooldown Failure"
+  (deactivate-ambassador 'guardian0 'ambassador2))
 (env-chain-data
   {"block-time": (add-time
       (at 'last-ambassador-deactivation (view-state))
@@ -118,26 +169,38 @@
   {"block-time": (time "2021-07-01T12:00:00Z")})
 
 (vote-to-freeze 'ambassador0)
-(expect-failure "insufficent votes" (freeze 'ambassador0))
+(expect-failure "insufficent votes"
+  "Majority vote failed: 1 of 3"
+  (freeze 'ambassador0))
 (expect "not frozen" false (is-dao-frozen))
 
 (vote-to-freeze 'ambassador1)
 (freeze 'ambassador0)
-(expect-failure "DAO is frozen" (is-dao-frozen))
+(expect-failure "DAO is frozen"
+  "DAO is Frozen"
+  (is-dao-frozen))
 
 ; roll forward to the edge of the boundry
 (env-chain-data
   {"block-time": (time "2021-07-08T11:59:59Z")})
-(expect-failure "DAO is frozen" (is-dao-frozen))
-(expect-failure "freeze votes are timed out" (freeze 'ambassador0))
+(expect-failure "bounds check"
+  "DAO is Frozen"
+  (is-dao-frozen))
+(expect-failure "freeze votes are timed out"
+  "Majority vote failed: 0 of 3"
+  (freeze 'ambassador0))
 
 ; check that ambassadors can't refreeze while frozen
 (vote-to-freeze 'ambassador0)
 (vote-to-freeze 'ambassador1)
-(expect-failure "cannot freeze a frozen DAO" (freeze 'ambassador0))
+(expect-failure "cannot freeze a frozen DAO"
+  "DAO is Frozen"
+  (freeze 'ambassador0))
 
 ; check that freeze aborts GOVERNANCE
-(expect-failure "GOVERNANCE cap is frozen" (read state DAO_STATE_KEY))
+(expect-failure "GOVERNANCE cap is frozen"
+  "DAO is Frozen"
+  (read state DAO_STATE_KEY))
 
 ; roll forward the first second that the DAO is unfrozen
 (env-chain-data
@@ -154,18 +217,47 @@
   { 'key: 'guardian1
   , 'caps:[(GUARDIAN 'guardian1)]}
   ])
-(propose-dao-upgrade 'guardian0 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
+(propose-dao-upgrade 'guardian0 "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
 (expect-failure "approvals still in cooldown"
-  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+  (check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
 (env-chain-data
   {"block-time": (time "2021-07-09T12:00:01Z")})
 (expect-failure "approvals still in cooldown (but now 1 of 3)"
-  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+  "Upgrade not approved, 1 of 3 for DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"
+  (check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
 (expect-failure "wrong hash"
+  "Upgrade hash mismatch: DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g vs foo"
   (guardian-approve-hash 'guardian1 "foo"))
-(guardian-approve-hash 'guardian1 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
-(check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
+(guardian-approve-hash 'guardian1 "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
+(check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
+(commit-tx)
+
+(begin-tx)
 (env-chain-data
   {"block-time": (time "2021-07-11T12:00:01Z")})
-(expect-failure "Poposal timed out"
-  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+(expect-failure "bounds check on upgrades"
+  "Proposal has timed out"
+  (dao.dao-v1.check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
+(rollback-tx)
+
+(begin-tx)
+(env-data
+  { 'dao-ns-user: ["dao-user"]
+  , 'dao-ns: "dao"
+  })
+(env-keys ["dao-user"])
+(namespace (read-msg 'dao-ns ))
+(env-chain-data
+  {"block-height": 1675410
+  ,"block-time": (time "2021-07-09T12:00:01Z")
+  ,"chain-id": "0"
+  ,"gas-limit": 10000000
+  ,"gas-price": 0.0
+  ,"prev-block-hash": ""
+  ,"sender": ""})
+
+
+(env-chain-data
+  {"block-time": (time "2021-07-09T12:00:01Z")})
+(module dao-v1 EMPTY
+  (defcap EMPTY () (enforce false "empty module for testing")))
