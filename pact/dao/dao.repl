@@ -48,9 +48,6 @@
 (view-guardians)
 (view-ambassadors)
 (is-dao-frozen)
-(expect "state hash checkpoint"
-  "il3_zetSGMlcqQ5272FIuKiOyddKvzIwDtQFubk7-tk"
-  (state-hash))
 (commit-tx)
 
 (begin-tx)
@@ -108,9 +105,6 @@
   "Insufficient funds"
   (register-guardian 'bob (read-keyset 'bob)))
 (view-guardians)
-(expect "state hash checkpoint"
-  "cWCgiA9VVNT0E___btA_wD7I7XLSs1mZoIS52lQlCkc"
-  (state-hash))
 
 ; -----------------------------------------------------------------------------
 ; basic ambassador functionality tests

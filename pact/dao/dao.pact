@@ -243,11 +243,6 @@
         DAO_ACCT_NAME
         (create-module-guard DAO_ACCT_NAME)))
 
-    (defun state-hash:string ()
-      ; format is here to bypass typecheck warnings
-      (hash (format "{}{}{}"
-        [(view-state) (view-guardians) (view-ambassadors)])))
-
 )
 
 (create-table state)
