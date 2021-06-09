@@ -20,12 +20,12 @@
 (load "../root/ns.pact")
 
 (env-data
-  { 'dao-ns-user: ["dao-user"]
+  { 'dao-ns-user: { "keys": [], "pred": "="}
   , 'dao-ns-admin: ["dao-admin"]
   , 'dao-ns: "dao"
   , 'upgrade: false
   })
-(env-keys ["operate", "dao-user", "dao-admin"])
+(env-keys ["operate", "dao-admin"])
 
 (load "dao-ns.pact")
 
@@ -146,6 +146,67 @@
 (reactivate-ambassador 'guardian0 'ambassador2)
 (commit-tx)
 
+; ----
+; is-ambassador, is-guardian and rotate-abm/grd tests
+(begin-tx)
+(use dao.dao-v1)
+(env-data {
+  'guardian0: ["guardian0"],
+  'guardian0b: ["guardian0b"],
+  'ambassador0: ["ambassador0"],
+  'ambassador0b: ["ambassador0b"]
+  })
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(GUARDIAN 'guardian0) ]},
+  { 'key: 'guardian0b
+  , 'caps:[(GUARDIAN 'guardian0) ]},
+  { 'key: 'ambassador0
+  , 'caps:[(AMBASSADOR 'ambassador0)]},
+  { 'key: 'ambassador0b
+  , 'caps:[(AMBASSADOR 'ambassador0)]},
+  { 'key: 'ambassador2
+  , 'caps:[(AMBASSADOR 'ambassador2)]}
+  ])
+(is-ambassador 'ambassador2)
+(env-chain-data
+  {"block-time": (add-time
+      (at 'last-ambassador-deactivation (view-state))
+      (+ DEACTIVATE_COOLDOWN (days 1)))})
+(deactivate-ambassador 'guardian0 'ambassador2)
+(expect-failure "fails for not active ambs"
+  "Ambassador 'ambassador2' is not active"
+  (is-ambassador 'ambassador2 ))
+
+(expect-failure
+  "must sign to prove you're an ambassador"
+  "Keyset failure (keys-all): [ambassad...]" (is-ambassador 'ambassador3 ))
+(expect-failure
+  "must be in ambassador table"
+  "with-read: row not found: guardian0" (is-ambassador 'guardian0 ))
+
+(is-guardian 'guardian0)
+(expect-failure
+  "must sign to prove you're an ambassador"
+  "Keyset failure (keys-all): [guardian...]" (is-guardian 'guardian1))
+(expect-failure
+  "must be in ambassador table"
+  "with-read: row not found: ambassador0" (is-guardian 'ambassador0 ))
+
+(rotate-guardian 'guardian0 (read-keyset 'guardian0b))
+(expect-failure
+  "must pass existing guard to rotate"
+  "Keyset failure (keys-all): [guardian...]"
+  (rotate-guardian 'guardian1 (read-keyset 'guardian0)))
+(rotate-ambassador 'ambassador0 (read-keyset 'ambassador0b))
+(expect-failure
+  "must pass existing guard to rotate"
+  "Keyset failure (keys-all): [ambassad...]"
+  (rotate-ambassador 'ambassador1 (read-keyset 'ambassador0)))
+
+
+(rollback-tx)
+
 ; -----------------------------------------------------------------------------
 ; freezer tests
 ; -----------------------------------------------------------------------------
@@ -234,12 +295,9 @@
   (dao.dao-v1.check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
 (rollback-tx)
 
+; Check that upgrade can happen w/ only governance approval
 (begin-tx)
-(env-data
-  { 'dao-ns-user: ["dao-user"]
-  , 'dao-ns: "dao"
-  })
-(env-keys ["dao-user"])
+(env-data { 'dao-ns: "dao" })
 (namespace (read-msg 'dao-ns ))
 (env-chain-data
   {"block-height": 1675410
@@ -250,8 +308,6 @@
   ,"prev-block-hash": ""
   ,"sender": ""})
 
-
-(env-chain-data
-  {"block-time": (time "2021-07-09T12:00:01Z")})
 (module dao-v1 EMPTY
   (defcap EMPTY () (enforce false "empty module for testing")))
+(rollback-tx)

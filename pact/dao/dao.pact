@@ -108,6 +108,13 @@
       (enforce-guard guard)))
   (defun view-guardians ()
       (map (read guardians) (keys guardians)))
+  (defun is-guardian:bool (guardian:string)
+    (with-capability (GUARDIAN guardian)
+      true))
+  (defun rotate-guardian:bool (guardian:string new-guard:guard)
+    (with-capability (GUARDIAN guardian)
+      (update guardians guardian {"guard": new-guard})
+      true))
 
   (defun register-guardian:bool (acct:string guard:guard)
     (with-capability (INTERNAL)
@@ -158,9 +165,17 @@
     (with-read ambassadors acct
       {"guard":=guard, "active":=active}
       (enforce-guard guard)
-      (enforce active "Ambassador acct is disabled")))
+      (enforce active (format "Ambassador '{}' is not active" [acct]))))
   (defun view-ambassadors ()
       (map (read ambassadors) (keys ambassadors)))
+  (defun is-ambassador:bool (ambassador:string)
+    (with-capability (AMBASSADOR ambassador)
+      (with-read ambassadors ambassador {"active":= active}
+        (enforce active (format "{} is inactive" [ambassador])))))
+  (defun rotate-ambassador:bool (ambassador:string new-guard:guard)
+    (with-capability (AMBASSADOR ambassador)
+      (update ambassadors ambassador {"guard": new-guard})
+      true))
 
   (defun register-ambassador:bool (guardian:string acct:string guard:guard)
     (with-capability (GUARDIAN guardian)

@@ -10,6 +10,7 @@
   'ambassador3: ["ambassador3"],
   'ambassador4: ["ambassador4"],
   'ambassador5: ["ambassador5"],
+  'always-true: { "keys": [], "pred": "="},
   'bob: ["bob"],
   'alice: ["alice"]
   })
