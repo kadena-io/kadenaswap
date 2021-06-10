@@ -14,7 +14,7 @@
 (env-data
  { 'ns-admin-keyset: ["admin"]
  , 'ns-operate-keyset: ["operate"]
- , 'ns-init-keyset: { "keys": [], "pred": "="} })
+ , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
 (load "../root/fungible-v2.pact")
 (load "../root/coin.pact")
 (load "../root/ns.pact")
@@ -309,5 +309,22 @@
   ,"sender": ""})
 
 (module init EMPTY
+  (defcap EMPTY () (enforce false "empty module for testing")))
+(rollback-tx)
+
+; Check that no one else can install into the module
+(begin-tx)
+(env-data { 'dao-ns: "dao" })
+(namespace (read-msg 'dao-ns ))
+(env-chain-data
+  {"block-height": 1775410
+  ,"block-time": (time "2021-10-09T12:00:01Z")
+  ,"chain-id": "0"
+  ,"gas-limit": 10000000
+  ,"gas-price": 0.0
+  ,"prev-block-hash": ""
+  ,"sender": ""})
+
+(module bar EMPTY
   (defcap EMPTY () (enforce false "empty module for testing")))
 (rollback-tx)
