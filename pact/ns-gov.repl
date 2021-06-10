@@ -1,0 +1,109 @@
+(begin-tx)
+(env-data
+ { 'ns-admin-keyset: ["admin"]
+ , 'ns-operate-keyset: ["operate"]
+ , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
+(load "root/fungible-v2.pact")
+(load "root/coin.pact")
+(load "root/ns.pact")
+(env-data
+ { 'util-ns-users: ["util-ns-user"]
+ , 'util-ns-admin: ["util-ns-admin"]
+ })
+(env-keys ["util-ns-user", "util-ns-admin"])
+
+(load "util/ns.pact")
+(load "util/guards1.pact")
+(load "util/guards.pact")
+(env-data
+ { 'ns-admin-keyset: ["admin"]
+ , 'ns-operate-keyset: ["operate"]
+ , 'ns-genesis-keyset: { "keys": [], "pred": "="}
+ , 'storage-user-keyset: ["storage-user"]
+ , 'storage-admin-keyset: ["storage-admin"] })
+ (env-keys ["operate", "storage-user"])
+
+(define-keyset 'storage-user-keyset)
+(define-keyset 'storage-admin-keyset)
+(ns.write-registry 'storage (keyset-ref-guard 'ns-operate-keyset) true)
+
+;;Create namespace that will store
+(define-namespace
+  'storage
+  (keyset-ref-guard 'storage-user-keyset)
+  (keyset-ref-guard 'storage-admin-keyset)
+)
+
+(namespace 'storage)
+(module dao-gov GOVERNANCE
+
+  (defcap GOVERNANCE () (enforce-keyset (keyset-ref-guard 'storage-user-keyset)) )
+
+  (defun create-gov-guard:guard () (create-user-guard (gov-guard)) )
+
+  (defun gov-guard ()
+    true
+  )
+)
+
+(commit-tx)
+
+(begin-tx)
+(env-chain-data {"block-time": (time "2021-06-07T00:00:00Z")})
+(env-data
+ { 'dao-user-keyset: ["dao-user"],
+   'dao-admin-keyset: ["dao-admin"]
+ })
+
+(env-keys ["operate"])
+(ns.write-registry 'dao (keyset-ref-guard 'ns-operate-keyset) true)
+(use util.guards)
+
+(define-keyset 'dao-user-keyset)
+(define-keyset 'dao-admin-keyset)
+(define-namespace
+  'dao
+  (guard-or (storage.dao-gov.create-gov-guard) (keyset-ref-guard 'dao-user-keyset))
+  (keyset-ref-guard 'dao-admin-keyset))
+
+
+(namespace 'dao)
+(module dao-contract GOVERNANCE
+  (use util.guards)
+  (defcap GOVERNANCE ()
+    "Autonomous"
+    (enforce-guard (at-after-date (time "2021-06-07T00:00:00Z")))
+  )
+)
+
+(commit-tx)
+
+(begin-tx)
+(env-keys ["storage-user", "operate"])
+(namespace 'storage)
+
+(module dao-gov GOVERNANCE
+
+  (defcap GOVERNANCE () (enforce-keyset (keyset-ref-guard 'storage-user-keyset)) )
+
+  (defun create-gov-guard:guard () (create-user-guard (gov-guard)) )
+
+  (defun gov-guard ()
+    (with-capability (dao.dao-contract.GOVERNANCE) true)
+  )
+)
+
+(commit-tx)
+
+(begin-tx)
+(env-chain-data {"block-time": (time "2021-06-08T00:00:00Z")})
+(env-keys [])
+(namespace 'dao)
+(module dao-contract GOVERNANCE
+  (use util.guards)
+  (defcap GOVERNANCE ()
+    "Autonomous"
+    (enforce-guard (at-after-date (time "2021-06-07T00:00:00Z")))
+  )
+)
+(commit-tx)
