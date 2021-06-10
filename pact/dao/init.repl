@@ -14,7 +14,7 @@
 (env-data
  { 'ns-admin-keyset: ["admin"]
  , 'ns-operate-keyset: ["operate"]
- , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
+ , 'ns-init-keyset: { "keys": [], "pred": "="} })
 (load "../root/fungible-v2.pact")
 (load "../root/coin.pact")
 (load "../root/ns.pact")
@@ -27,7 +27,7 @@
   })
 (env-keys ["operate", "dao-admin"])
 
-(load "dao-ns.pact")
+(load "init-ns.pact")
 
 (env-data { 'dao-ns: "dao" })
 (env-chain-data
@@ -38,12 +38,12 @@
   ,"gas-price": 0.0
   ,"prev-block-hash": ""
   ,"sender": ""})
-(load "dao.pact")
-(typecheck "dao.dao-v1" true)
+(load "init.pact")
+(typecheck "dao.init" true)
 
 ; Check init State
 (coin.details DAO_ACCT_NAME)
-(use dao.dao-v1)
+(use dao.init)
 (view-state)
 (view-guardians)
 (view-ambassadors)
@@ -52,7 +52,7 @@
 
 (begin-tx)
 (load "tests/populate-users.repl")
-(use dao.dao-v1)
+(use dao.init)
 
 ; -----------------------------------------------------------------------------
 ; basic guardian functionality tests
@@ -93,7 +93,7 @@
 (expect "3 guardians" 3 (at 'guardian-count (view-state)))
 (expect "DAO has right balance" (* 3 GUARDIAN_KDA_REQUIRED) (dao-acct-balance))
 (expect-failure "cannot unregister guardians"
-  "dao-v1 needs to be upgraded to enable withdrawls"
+  "init needs to be upgraded to enable withdrawls"
   (unregister-guardian 'guardian1))
 
 (env-sigs [
@@ -149,7 +149,7 @@
 ; ----
 ; is-ambassador, is-guardian and rotate-abm/grd tests
 (begin-tx)
-(use dao.dao-v1)
+(use dao.init)
 (env-data {
   'guardian0: ["guardian0"],
   'guardian0b: ["guardian0b"],
@@ -211,7 +211,7 @@
 ; freezer tests
 ; -----------------------------------------------------------------------------
 (begin-tx)
-(use dao.dao-v1)
+(use dao.init)
 (env-sigs [
   { 'key: 'ambassador0
   , 'caps:[(AMBASSADOR 'ambassador0)]},
@@ -292,7 +292,7 @@
   {"block-time": (time "2021-07-11T12:00:01Z")})
 (expect-failure "bounds check on upgrades"
   "Proposal has timed out"
-  (dao.dao-v1.check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
+  (dao.init.check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
 (rollback-tx)
 
 ; Check that upgrade can happen w/ only governance approval
@@ -308,6 +308,6 @@
   ,"prev-block-hash": ""
   ,"sender": ""})
 
-(module dao-v1 EMPTY
+(module init EMPTY
   (defcap EMPTY () (enforce false "empty module for testing")))
 (rollback-tx)

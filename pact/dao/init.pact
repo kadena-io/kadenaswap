@@ -2,7 +2,7 @@
 
 (namespace (read-msg 'dao-ns))
 
-(module dao-v1 GOVERNANCE
+(module init GOVERNANCE
   @doc
   "This is the start of the KDA DAO, not the end. \
   \It's not even something that should set a precedence. \
@@ -23,8 +23,8 @@
     (enforce (>= end start) (format "bounding start {} must come before end {}" [start end]))
     (and (>= ts start) (<= ts end)))
 
-  (defconst DAO_MODULE_NAME "dao-v1")
-  (defconst DAO_ACCT_NAME "dao-v1") ; we'll change this
+  (defconst DAO_MODULE_NAME "init")
+  (defconst DAO_ACCT_NAME "init") ; we'll change this
   (defun dao-acct-balance () (coin.get-balance DAO_ACCT_NAME))
   (defcap INTERNAL ()
     "mark some functions as internal only"
@@ -93,7 +93,7 @@
     false)
 
   ; ----
-  ; Guardians are the dao-v1's actors, the entites that will actually do things like run the bridge and upgrade the dao
+  ; Guardians are the init's actors, the entites that will actually do things like run the bridge and upgrade the dao
   (defschema guardian
       k:string
       guard:guard
@@ -263,4 +263,4 @@
 (create-table state)
 (create-table ambassadors)
 (create-table guardians)
-(dao.dao-v1.init)
+(dao.init.init)
