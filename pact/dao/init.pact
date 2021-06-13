@@ -188,6 +188,7 @@
         (adjust-ambassador-count 1)))
       true)
   (defun deactivate-ambassador:bool (guardian:string ambassador:string)
+  @doc "disable an ambassador, with a rate limit of DEACTIVATE_COOLDOWN"
     (with-capability (GUARDIAN guardian)
       (let ((lst-deactivate (at 'last-ambassador-deactivation (read state DAO_STATE_KEY))))
         (enforce (> (chain-time) (add-time lst-deactivate DEACTIVATE_COOLDOWN)) "Deactivate Cooldown Failure")
@@ -211,6 +212,7 @@
     true)
 
   (defun freeze:string (ambassador:string)
+  @doc "allow any ambassador to freeze the DAO, assuming that sufficent votes have been cast"
     (with-capability (AMBASSADOR ambassador)
     (let* ((live-ambs
               (map (at "voted-to-freeze")
@@ -233,7 +235,12 @@
     (is-dao-frozen); if it's frozen, bail
     (check-hash-approval (tx-hash)))
 
+  (defun create-gov-guard:guard ()
+  @doc "primarily for namespace usage"
+    (create-module-guard DAO_ACCT_NAME))
+
   (defun check-hash-approval:bool (hsh:string)
+  @doc "verify that the a given transaction hash has been approved by a majority of the guardians"
     (with-read state DAO_STATE_KEY
       {'proposed-upgrade-time:=prp-time
       ,'guardian-count:=grd-cnt}

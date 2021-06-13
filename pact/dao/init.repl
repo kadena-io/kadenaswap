@@ -18,14 +18,16 @@
 (load "../root/fungible-v2.pact")
 (load "../root/coin.pact")
 (load "../root/ns.pact")
+(commit-tx)
 
+(begin-tx)
 (env-data
-  { 'dao-ns-user: { "keys": [], "pred": "="}
+  { 'dao-ns-user: ["dao-user"]
   , 'dao-ns-admin: ["dao-admin"]
   , 'dao-ns: "dao"
   , 'upgrade: false
   })
-(env-keys ["operate", "dao-admin"])
+(env-keys ["operate", "dao-admin", "dao-user"])
 
 (load "init-ns.pact")
 
@@ -39,6 +41,13 @@
   ,"prev-block-hash": ""
   ,"sender": ""})
 (load "init.pact")
+
+; redefine namespace to use DAO governance guard only
+(define-namespace
+  (read-msg 'dao-ns)
+  (dao.init.create-gov-guard)
+  (keyset-ref-guard 'dao-ns-admin)
+)
 (typecheck "dao.init" true)
 
 ; Check init State
@@ -298,33 +307,39 @@
 ; Check that upgrade can happen w/ only governance approval
 (begin-tx)
 (env-data { 'dao-ns: "dao" })
-(namespace (read-msg 'dao-ns ))
+(expect-failure "governance fails"
+  "Proposal has timed out"
+  (namespace (read-msg 'dao-ns )))
 (env-chain-data
-  {"block-height": 1675410
-  ,"block-time": (time "2021-07-09T12:00:01Z")
-  ,"chain-id": "0"
-  ,"gas-limit": 10000000
-  ,"gas-price": 0.0
-  ,"prev-block-hash": ""
-  ,"sender": ""})
+  {"block-time": (time "2021-07-09T12:00:01Z")})
+(env-data { 'dao-ns: "dao" })
+(namespace (read-msg 'dao-ns ))
 
 (module init EMPTY
   (defcap EMPTY () (enforce false "empty module for testing")))
 (rollback-tx)
 
 ; Check that no one else can install into the module
+; part one -- timeout
 (begin-tx)
-(env-data { 'dao-ns: "dao" })
-(namespace (read-msg 'dao-ns ))
 (env-chain-data
-  {"block-height": 1775410
-  ,"block-time": (time "2021-10-09T12:00:01Z")
-  ,"chain-id": "0"
-  ,"gas-limit": 10000000
-  ,"gas-price": 0.0
-  ,"prev-block-hash": ""
-  ,"sender": ""})
+  {"block-time": (time "2021-10-09T12:00:01Z")})
+(env-data { 'dao-ns: "dao" })
+(expect-failure
+  "namespace user guard fails due to timeout"
+  "Proposal has timed out"
+  (namespace (read-msg 'dao-ns )))
+(rollback-tx)
 
-(module bar EMPTY
-  (defcap EMPTY () (enforce false "empty module for testing")))
+; Check that no one else can install into the module
+; part two -- tx-hash
+(begin-tx)
+(env-chain-data
+  {"block-time": (time "2021-07-09T12:00:01Z")})
+(env-hash (hash "not the defaul hash"))
+(env-data { 'dao-ns: "dao" })
+(expect-failure
+  "namespace user guard fails due to tx hash"
+  "Upgrade not approved, 0 of 3 for -9Bd20mnf7ChLqZzABsGRqJU7Im2LbyLWk6GqrdvRNo"
+  (namespace (read-msg 'dao-ns )))
 (rollback-tx)
