@@ -306,7 +306,7 @@
           , 'fee:= fee
           }
           (let* ( (elapsed (elapsed-days date))
-                  (risk-fee (if (< activity min-activity) 0.0
+                  (risk-fee (if (> min-activity activity) 0.0
                                  (* balance (* rate elapsed))))
                   (activity-fee (* activity fee))
                   (fees (+ risk-fee activity-fee))
