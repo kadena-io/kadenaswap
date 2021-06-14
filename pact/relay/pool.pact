@@ -370,12 +370,12 @@
           { 'picks:=picks, 'inactives:= inactives }
           (if (= inactives []) ""
             (update pools pool
-              { 'active: (filter (in-list inactives) active) }))
+              { 'active: (filter (not-in-list inactives) active) }))
           picks)))
   )
 
-  (defun in-list:bool (l:list i)
-    (contains i l))
+  (defun not-in-list:bool (l:list i)
+    (not (contains i l)))
 
 
   (defschema picks

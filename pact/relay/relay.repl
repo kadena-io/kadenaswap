@@ -261,9 +261,15 @@
     ["Bob:2021-01-01" "Bob:2021-01-03" "Bob:2021-01-02"
      "Alice:2021-01-03" "Alice:2021-01-02"]]}]
   (map (remove 'module-hash) (env-events true)))
+
+(expect "active list after proposal"
+  ["Bob:2021-01-01" "Alice:2021-01-01" "Bob:2021-01-02" "Alice:2021-01-02" "Bob:2021-01-03" "Alice:2021-01-03" "Carol:2021-01-03"]
+  (at 'active (test.pool.get-pool test.relay.POOL)))
 (expect-failure "not validated 0"
   "Not accepted"
   (test.relay.validate (read-msg 'header)))
+
+(filter (= 2) [1 2 3])
 
 ;; endorser simple failures
 (expect-failure "no sig"
