@@ -8,15 +8,9 @@
     (enforce-guard (keyset-ref-guard 'relay-ns-admin)))
 
   (defschema header
-    ;; difficulty:string
     hash:string
-    ;; mix-hash:string
-    ;; nonce:string
     number:integer
-    ;; parent-hash:string
     receipts-root:string
-    ;; timestamp:integer
-    ;; transactions-root:string
   )
 
   (defconst POOL "kda-relay-pool")
@@ -62,6 +56,16 @@
     true
   )
 
+  (defcap DENOUNCE
+    ( height:integer
+      hash:string
+      denouncer:string
+      denouncers:[string]
+    )
+    @event
+    true
+  )
+
   (defcap ENDORSE
     ( hash:string
       endorser:string
@@ -70,6 +74,16 @@
     @event
     true
   )
+
+  (defcap ENDORSE-DENOUNCE
+    ( hash:string
+      endorser:string
+      denounced:bool
+    )
+    @event
+    true
+  )
+
   (defcap BONDER ( bond:string )
     (enforce-guard (at 'guard (pool.get-bond bond)))
   )
@@ -94,7 +108,7 @@
                       (not (contains hash inactive)))
                     "Duplicate proposal")
         (enforce (= proposed "") "Already active proposal")
-        (let ((endorsers (pool.pick-active pool PICK_ENDORSE proposer)))
+        (let ((endorsers (pool.pick-active pool PICK_ENDORSE [proposer])))
           (with-capability
             (PROPOSE (at 'number header) hash proposer endorsers) 1)
           (with-capability (BONDER proposer)
@@ -141,7 +155,7 @@
                 , 'status: (if is-accepted BLOCK_ACCEPTED BLOCK_PROPOSED)
                 })
               (if is-accepted
-                [ (enforce (= "" accepted) "Height already accepted")
+                [ (enforce (!= hash accepted) "Hash already accepted at height")
                   (update heights height { 'proposed:"", 'accepted:hash}) ]
                 [])
               (pool.record-activity endorser))))))
@@ -156,6 +170,77 @@
         { 'header:=stored }
         (enforce (= header stored) "Header mismatch")))
     true)
+
+
+  (defun denounce
+    ( header:object{header} denouncer:string )
+    (let ( (height (get-height header))
+           (hash (at 'hash header))
+           (bond (at 'pool (pool.get-active-bond denouncer)))
+         )
+      (with-read heights height
+        { 'accepted:=accepted }
+        (enforce (= hash accepted) "Block not accepted at height")
+        (with-read proposals hash
+          { 'header:=stored
+          , 'status:=status
+          , 'endorser:=endorser
+          , 'endorsers:=endorsers
+          , 'denouncer:=old-denouncer }
+          (enforce (= header stored) "Header mismatch")
+          (enforce (= status BLOCK_ACCEPTED) "Invalid status")
+          (enforce (= "" old-denouncer) "Already denounced")
+          (let*
+            ( (skip (+ [denouncer endorser] endorsers))
+              (denouncers (pool.pick-active pool PICK_DENOUNCE skip))
+            )
+            (emit-event
+              (DENOUNCE (at 'number header) hash denouncer denouncers))
+            (with-capability (BONDER denouncer)
+              (update proposals hash
+                { 'header:header
+                , 'denouncer: denouncer
+                , 'denouncers: denouncers
+                }))))))
+  )
+
+
+  (defun endorse-denounce
+    ( header:object{header} endorser:string )
+    (let ((hash (at 'hash header))
+          (height (get-height header)))
+      (with-read heights height
+        { 'accepted:= accepted, 'inactive:= inactive }
+        (enforce (= hash accepted) "Block not accepted at height")
+        (with-read proposals hash
+          { 'header:=stored, 'pool:=pool-id, 'status:=status
+          , 'proposer:=proposer, 'endorsers:=endorsers
+          , 'denouncers:=denouncers, 'denounced:=denounced }
+          (enforce (= header stored) "Header mismatch")
+          (enforce (= status BLOCK_ACCEPTED) "Invalid status")
+          (enforce (contains endorser denouncers) "Invalid endorser")
+          (enforce (not (contains endorser denounced)) "Duplicate denounce")
+          (with-capability (BONDER endorser)
+            (let*
+              ( (pool (pool.get-pool pool-id))
+                (count (+ 1 (length denounced)))
+                (needed (ceiling (* (at 'confirm pool) (length denouncers))))
+                (is-denounced (>= count needed))
+              )
+              (emit-event (ENDORSE-DENOUNCE hash endorser is-denounced))
+              (update proposals hash
+                { 'denounced: (+ [endorser] denounced)
+                , 'status: (if is-denounced BLOCK_DENOUNCED BLOCK_ACCEPTED)
+                })
+              (if is-denounced
+                [ (update heights height
+                    { 'accepted:""
+                    , 'inactive: (+ [hash] inactive) })
+                  (pool.slash proposer)
+                  (map (pool.slash) endorsers) ]
+                [])
+              (pool.record-activity endorser))))))
+  )
 
   (defun pool-module-guard () (create-module-guard "pool"))
 

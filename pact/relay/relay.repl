@@ -40,7 +40,6 @@
    ]
   (map (remove 'module-hash) (env-events true)))
 (commit-tx)
-
 ;;
 ;; upgrade tests
 ;;
@@ -382,7 +381,11 @@
 (rollback-tx)
 
 ;;
-;; test renew
+;; test renew/unbond
+;;
+
+;;
+;; renew Bob1
 ;;
 
 (begin-tx)
@@ -421,7 +424,11 @@
   ]
   (map (remove 'module-hash) (env-events true)))
 (expect "Bob 1 renew balance" 120005.0 (coin.get-balance "Bob"))
-;; propose succeeds, add two to get to risk fee limit
+
+;;
+;; propose/endorse to qualify Bob 2 for risk fee
+;;
+
 (expect "Alice 2 propose 2.1 succeeds with renew (enough bonders)"
   "Write succeeded"
   (test.relay.propose (read-msg 'header21) "Alice:2021-01-02"))
@@ -443,16 +450,54 @@
 (env-events true)
 (commit-tx) ;; keep proposals 2.1, 3.1, renewed Bob 1
 
+;;
+;; test unbond Bob 2 w/ risk fee
+;;
+
 (begin-tx)
-(env-chain-data
-  { 'block-time: (parse-time "%F" "2021-02-01")} )
+
 (env-sigs
   [ {'key: "bob",'caps: [
     (test.pool.BONDER "Bob:2021-01-02")
     ] }
-    {'key: "alice", 'caps: [
-    (test.pool.BONDER "Alice:2021-01-02")
-    (test.relay.BONDER "Alice:2021-01-02")
+  ])
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-02-01")} )
+(expect-failure "unbond Bob 2: too early"
+  "Lockup or unlock in force"
+  (test.pool.unbond "Bob:2021-01-02"))
+
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-02-23")} )
+(expect "unbond Bob 2"
+  "Write succeeded"
+  (test.pool.unbond "Bob:2021-01-02"))
+(expect "compute fee check"
+  261.6
+  (+ (* 3 5.0) ;; activity fee
+     (* 10000 (* 0.000822 30)))) ;; risk fee for unlock period
+(expect "unbond Bob 2 events"
+   [{"name": "test.pool.BONDER","params": ["Bob:2021-01-02"]}
+   {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 10261.6]} ;;246.6+15
+   {"name": "test.pool.FEE","params": ["kda-relay-pool" "Bob:2021-01-02" 261.6]}
+   {"name": "test.pool.UNBOND","params": ["kda-relay-pool" "Bob:2021-01-02" 10000.0]}
+   {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 60000.0 99733.4]}
+   ]
+  (map (remove 'module-hash) (env-events true)))
+(expect "Bob 2 renew balance" 130266.6 (coin.get-balance "Bob"))
+(rollback-tx) ;; rollback Bob 2 unbond
+
+;;
+;; test renew Bob 2 w/ risk fee
+;;
+
+(begin-tx)
+(env-chain-data
+  ;; T=lockup + 1 to exercise risk fee being only for lockup period
+  { 'block-time: (parse-time "%F" "2021-02-02")} )
+(env-sigs
+  [ {'key: "bob",'caps: [
+    (test.pool.BONDER "Bob:2021-01-02")
     ] }
   ])
 (expect "renew Bob 2"
@@ -460,7 +505,7 @@
   (test.pool.renew "Bob:2021-01-02"))
 (expect "renew Bob 2 events"
    [{"name": "test.pool.BONDER","params": ["Bob:2021-01-02"]}
-   {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 261.6]} ;;246.6+15
+   {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 261.6]}
    {"name": "test.pool.FEE","params": ["kda-relay-pool" "Bob:2021-01-02" 261.6]}
    {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 10000.0 30 1]}
    {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 70000.0 99733.4]}
@@ -468,6 +513,21 @@
   (map (remove 'module-hash) (env-events true)))
 (expect "Bob 2 renew balance" 120266.6 (coin.get-balance "Bob"))
 (commit-tx) ;; keep Bob 2 renewed
+
+;; ensure bob can't unbond now
+(begin-tx)
+(env-sigs
+  [ {'key: "bob",'caps: [
+    (test.pool.BONDER "Bob:2021-01-02")
+    ] }
+  ])
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-02-02")} )
+(expect-failure "unbond Bob 2"
+  "Lockup or unlock in force"
+  (test.pool.unbond "Bob:2021-01-02"))
+(rollback-tx)
+
 
 (begin-tx)
 (env-sigs
@@ -494,3 +554,19 @@
 (expect "Carol 3 terminated" true (at 'terminated (test.pool.get-bond "Carol:2021-01-03")))
 (expect "bonded check" 60000.0 (at 'bonded (test.pool.get-pool test.relay.POOL)))
 (expect "reserve check" 99723.4 (at 'reserve (test.pool.get-pool test.relay.POOL)))
+(commit-tx) ;; save carol unbond
+;; ensure carol can't dupe unbond/renew
+(begin-tx)
+(env-sigs
+  [ {'key: "carol", 'caps: [
+    (test.pool.BONDER "Carol:2021-01-03")
+    ] }
+  ])
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-02-23")} )
+(expect-failure "carol 3 unbond: terminated"
+  "Terminated"
+  (test.pool.unbond "Carol:2021-01-03"))
+(expect-failure "carol 3 renew: terminated"
+  "Terminated"
+  (test.pool.renew "Carol:2021-01-03"))
