@@ -242,8 +242,8 @@
   (defcap POSTER (acct:string)
     "Guardians or active Ambassadors can aquire POSTER cap"
     (with-default-read guardians acct
-      {"k":"", "guard":false}
-      {"k":=k, "guard":=g}
+      {"k":"", "moderate-guard":false}
+      {"k":=k, "moderate-guard":=g}
       (if (!= k "")
         (enforce-guard g)
         (with-read ambassadors acct
