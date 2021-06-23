@@ -25,9 +25,11 @@
   { 'dao-ns-user: ["dao-user"]
   , 'dao-ns-admin: ["dao-admin"]
   , 'dao-ns: "dao"
+  , 'init-dev-admin: ["init-dev-admin"]
   , 'upgrade: false
   })
-(env-keys ["operate", "dao-admin", "dao-user"])
+(env-keys ["operate", "dao-admin", "dao-user", "init-dev-admin"])
+(define-keyset 'init-dev-admin)
 
 (load "init-ns.pact")
 
@@ -79,7 +81,7 @@
   , 'caps:
       [(coin.TRANSFER 'guardian2 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
   ])
-(register-guardian 'guardian0 (read-keyset 'guardian0))
+(register-guardian 'guardian0 (read-keyset 'guardian0) (read-keyset 'guardian0))
 
 ; quickly poke at the just-one and just-two guardian scenarios
 (propose-dao-upgrade 'guardian0 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
@@ -92,12 +94,12 @@
 (expect "1 of 1 allows for upgrade"
   true
   (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
-(register-guardian 'guardian1 (read-keyset 'guardian1 ))
+(register-guardian 'guardian1 (read-keyset 'guardian1 ) (read-keyset 'guardian1))
 (expect-failure "50% vote"
   "Upgrade not approved, 1 of 2"
   (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
 
-(register-guardian 'guardian2 (read-keyset 'guardian2))
+(register-guardian 'guardian2 (read-keyset 'guardian2) (read-keyset 'guardian2))
 
 (expect "3 guardians" 3 (at 'guardian-count (view-state)))
 (expect "DAO has right balance" (* 3 GUARDIAN_KDA_REQUIRED) (dao-acct-balance))
@@ -112,7 +114,7 @@
   }])
 (expect-failure "insufficient funds for guardianship"
   "Insufficient funds"
-  (register-guardian 'bob (read-keyset 'bob)))
+  (register-guardian 'bob (read-keyset 'bob) (read-keyset 'bob)))
 (view-guardians)
 
 ; -----------------------------------------------------------------------------
@@ -202,11 +204,11 @@
   "must be in ambassador table"
   "with-read: row not found: ambassador0" (is-guardian 'ambassador0 ))
 
-(rotate-guardian 'guardian0 (read-keyset 'guardian0b))
+(rotate-guardian 'guardian0 false (read-keyset 'guardian0b))
 (expect-failure
   "must pass existing guard to rotate"
   "Keyset failure (keys-all): [guardian...]"
-  (rotate-guardian 'guardian1 (read-keyset 'guardian0)))
+  (rotate-guardian 'guardian1 true (read-keyset 'guardian0)))
 (rotate-ambassador 'ambassador0 (read-keyset 'ambassador0b))
 (expect-failure
   "must pass existing guard to rotate"
@@ -343,3 +345,94 @@
   "Upgrade not approved, 0 of 3 for -9Bd20mnf7ChLqZzABsGRqJU7Im2LbyLWk6GqrdvRNo"
   (namespace (read-msg 'dao-ns )))
 (rollback-tx)
+
+(begin-tx)
+(use dao.init)
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(POSTER 'guardian0)]}
+  { 'key: 'ambassador0
+  , 'caps:[(POSTER 'ambassador0)]}
+  { 'key: 'ambassador1
+  , 'caps:[(POSTER 'ambassador1)]}
+  ])
+
+(post-topic "topic 0" "ambassador0" "topic 0 body")
+(post-topic "topic 0" "ambassador1" "topic 0 body")
+(post-topic "topic 2" "guardian0" "topic 2 body")
+(modify-topic "1" "topic 1" "topic 1 body")
+(post-comment "ambassador1" "comment 0 topic 2" "2")
+; (view-topics)
+; (view-comments)
+; (view-topic-comments "2")
+(modify-comment "3" "## MODDED comment" )
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(POSTER 'guardian0)]}
+  { 'key: 'ambassador0
+  , 'caps:[(POSTER 'ambassador0)]}
+  ])
+(expect-failure
+  "only the poster can modify"
+  (modify-topic "1" "foo" "bar"))
+(expect-failure
+  "ambassador3 is disabled"
+  (post-topic "topic 4" "ambassador3" "topic 4 body"))
+(expect-failure
+  "only the author can modify the comment"
+  (modify-comment "3" "## MODDED comment" ))
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(MODERATE 'guardian0)]}
+  { 'key: 'ambassador0
+  , 'caps:[(MODERATE 'ambassador0)]}
+  ])
+(delete-topic "guardian0" "2")
+(view-deleted-topics)
+(expect-failure
+  "No MODERATE cap for guardian1"
+  (delete-topic "guardian1" "1"))
+(expect-failure
+  "Ambassador is not a MODERATE-er"
+  (delete-topic "ambassador0" "1"))
+(undelete-topic "guardian0" "2")
+(lock-topic "guardian0" "2")
+(unlock-topic "guardian0" "2")
+(expect-failure
+  "Ambassador0 is not a mod"
+  (lock-topic "ambassador0" "2"))
+(delete-comment "guardian0" "3")
+(expect
+  "removed comment is gone"
+  []
+  (at 'comments (view-topic "2")))
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(POSTER 'guardian0)]}
+  { 'key: 'ambassador0
+  , 'caps:[(POSTER 'ambassador0)]}
+  ])
+(vote-on-topic "guardian0" "0" true)
+(expect
+  "guardian voted for"
+  ["guardian0"]
+  (at 'upvotes (view-topic "0")))
+(vote-on-topic "ambassador0" "0" false)
+(expect
+  "ambassdor voted against"
+  ["ambassador0"]
+  (at 'downvotes (view-topic "0")))
+(vote-on-topic "guardian0" "0" false)
+(expect
+  "guardian switch vote"
+  ["ambassador0" "guardian0"]
+  (at 'downvotes (view-topic "0")))
+(expect
+  "guardian switch vote, no more upvotes"
+  []
+  (at 'upvotes (view-topic "0")))
+(view-modlogs)
+(view-comments)
+(view-topic "0")
