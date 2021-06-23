@@ -12,7 +12,8 @@
   'ambassador5: ["ambassador5"],
   'always-true: { "keys": [], "pred": "="},
   'bob: ["bob"],
-  'alice: ["alice"]
+  'alice: ["alice"],
+  'mjolnir: ["mjolnir"]
   })
 
 (test-capability (coin.COINBASE))

@@ -55,8 +55,7 @@
     dao-frozen-until:time
     last-ambassador-deactivation:time
     proposed-upgrade-hash:string
-    proposed-upgrade-time:time
-    next-uuid:integer)
+    proposed-upgrade-time:time)
   (deftable state:{dao-state})
   (defun init-state:string ()
     (let ((default-time (add-time (chain-time) (days -7))))
@@ -67,8 +66,7 @@
           ,'dao-frozen-until:default-time
           ,'last-ambassador-deactivation:default-time
           ,'proposed-upgrade-hash:""
-          ,'proposed-upgrade-time:default-time
-          ,'next-uuid:0})))
+          ,'proposed-upgrade-time:default-time})))
   (defun view-state:object{dao-state} ()
     (read state DAO_STATE_KEY))
 
@@ -87,12 +85,6 @@
       (update state DAO_STATE_KEY
         {'guardian-count: (+ adjustment cnt)}))
     true)
-
-  (defun uuid:string ()
-    (require-capability (INTERNAL))
-    (with-read state DAO_STATE_KEY {'next-uuid:=i}
-      (update state DAO_STATE_KEY {'next-uuid: (+ 1 i)})
-      (format "{}" [i])))
 
   (defun is-dao-frozen:bool ()
     ; check the time of tx vs state.frozenuntil... but I think this can be done better via a guard
@@ -184,7 +176,8 @@
   (defun is-ambassador:bool (ambassador:string)
     (with-capability (AMBASSADOR ambassador)
       (with-read ambassadors ambassador {"active":= active}
-        (enforce active (format "{} is inactive" [ambassador])))))
+        (enforce active (format "{} is inactive" [ambassador]))))
+    true)
   (defun rotate-ambassador:bool (ambassador:string new-guard:guard)
     (with-capability (AMBASSADOR ambassador)
       (update ambassadors ambassador {"guard": new-guard})
@@ -218,246 +211,6 @@
         (adjust-ambassador-count 1)))
       true)
 
-  ; ----
-  ; suggestion functionality
-
-  (defconst MAXIMUM_TOPIC_HEADLINE_LENGTH 256)
-  (defconst MAXIMUM_TOPIC_BODY_LENGTH 5000)
-  (defconst MAXIMUM_COMMENT_BODY_LENGTH 2500)
-
-  (defun validate-markdown (subj:string txt:string max:integer)
-    (let ((txt-length (length txt)))
-      (enforce
-        (>= txt-length 3)
-        (format
-          "{} does not conform to the coin contract min length '{}': {}..."
-          [subj, 3, (take 30 txt)]))
-      (enforce
-        (<= txt-length max)
-        (format
-          "{} does not conform to the coin contract max length '{}': {}..."
-          [subj, max, (take 30 txt)]))))
-
-
-  (defcap POSTER (acct:string)
-    "Guardians or active Ambassadors can aquire POSTER cap"
-    (with-default-read guardians acct
-      {"k":"", "moderate-guard":false}
-      {"k":=k, "moderate-guard":=g}
-      (if (!= k "")
-        (enforce-guard g)
-        (with-read ambassadors acct
-          {"guard":= ambGrd, "active":=active}
-          (enforce active (format "Ambassador '{}' is disabled" [acct]))
-          (enforce-guard ambGrd)))))
-  (defcap MODERATE (guardian:string)
-    (with-read guardians guardian {'moderate-guard := moderate-guard}
-      (enforce-guard moderate-guard))
-    true)
-
-  (defschema modlog
-    author:string
-    timestamp:time
-    action:string)
-  (deftable modlogs:{modlog})
-  (defun view-modlogs ()
-    (map (read modlogs) (keys modlogs)))
-  (defun log-mod-action (author:string action:string)
-    (with-capability (MODERATE author)
-      (with-capability (INTERNAL)
-        (let ((index (uuid)))
-          (insert modlogs index
-            {'author: author
-            ,'timestamp:(chain-time)
-            ,'action: action})))))
-
-  (defschema comment
-    index:string
-    topic-index:string
-    author:string
-    timestamp:time
-    modified:bool
-    deleted:bool
-    locked:bool
-    body:string)
-  (deftable comments:{comment})
-  (defun view-comments ()
-    (map (read comments) (keys comments)))
-  (defun view-topic-comments (topic-index:string)
-    (sort [ 'index ]
-      (select comments [ 'index 'author 'timestamp 'modified 'body ]
-        (where 'topic-index (= topic-index)))))
-
-  (defschema topic
-    index:string
-    headline:string
-    author:string
-    timestamp:time
-    modified:bool
-    body:string
-    deleted:bool
-    locked:bool
-    upvotes:[string]
-    downvotes:[string]
-    comment-indexs:[string])
-  (deftable topics:{topic})
-  (defun view-topic (topic-index)
-    (with-read topics topic-index
-        { 'index := index
-        , 'headline := headline
-        , 'author := author
-        , 'timestamp := timestamp
-        , 'modified := modified
-        , 'body := body
-        , 'deleted := deleted
-        , 'locked := locked
-        , 'upvotes := upvotes
-        , 'downvotes := downvotes
-        , 'comment-indexs := comment-indexs }
-      { 'index : index
-      , 'headline : headline
-      , 'author : author
-      , 'timestamp : timestamp
-      , 'modified : modified
-      , 'body : body
-      , 'deleted : deleted
-      , 'locked : locked
-      , 'upvotes : upvotes
-      , 'downvotes : downvotes
-      , 'comments : (map (read comments) comment-indexs) }))
-  (defun undeleted-topic-keys:[string] ()
-    (sort
-      (map (at 'index)
-      (select topics [ 'index ] (where 'deleted (= false))))))
-  (defun view-topics ()
-    (map (view-topic) (undeleted-topic-keys)))
-  (defun view-deleted-topics ()
-    (select topics [ 'index 'headline ] (where 'deleted (= true))))
-  (defun view-topic-raw (topic-index:string)
-    (read topics topic-index))
-
-  (defun post-topic:bool (headline:string author:string body:string)
-    (with-capability (POSTER author)
-      (validate-markdown "topic headline" headline MAXIMUM_TOPIC_HEADLINE_LENGTH)
-      (validate-markdown "topic body" body MAXIMUM_TOPIC_BODY_LENGTH)
-      (with-capability (INTERNAL)
-        (let ((index (uuid)))
-          (insert topics index
-             { 'index : index
-             , 'headline : headline
-             , 'author : author
-             , 'timestamp : (chain-time)
-             , 'modified : false
-             , 'body : body
-             , 'deleted : false
-             , 'locked : false
-             , 'upvotes : []
-             , 'downvotes : []
-             , 'comment-indexs: []})))
-      )
-    true)
-
-  (defun modify-topic:bool (index:string headline:string body:string)
-    (with-read topics index
-        { 'author := author
-        , 'deleted := deleted
-        , 'locked := locked }
-      (enforce (and (not deleted) (not locked)) "Deleted/Locked posts can't be modified")
-      (validate-markdown "topic headline" headline MAXIMUM_TOPIC_HEADLINE_LENGTH)
-      (validate-markdown "topic body" body MAXIMUM_TOPIC_BODY_LENGTH)
-      (with-capability (POSTER author)
-        (update topics index
-           { 'headline : headline
-           , 'timestamp : (chain-time)
-           , 'modified : true
-           , 'body : body })))
-    true)
-
-  (defun delete-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Deleting topic {}" [topic-index]))
-    (update topics topic-index {'deleted:true})
-    true)
-
-  (defun undelete-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Undeleting topic {}" [topic-index]))
-    (update topics topic-index {'deleted:false})
-    true)
-
-  (defun lock-comment (comment-index:string)
-    (require-capability (INTERNAL))
-    (update comments comment-index {'locked:true})
-    true)
-  (defun unlock-comment (comment-index:string)
-    (require-capability (INTERNAL))
-    (update comments comment-index {'locked:false})
-    true)
-
-  (defun lock-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Locking topic {}" [topic-index]))
-      (with-read topics topic-index {'comment-indexs := comment-indexs}
-        (update topics topic-index {'locked : true})
-        (with-capability (INTERNAL)
-          (map (lock-comment) comment-indexs)))
-    true)
-  (defun unlock-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Unlocking topic {}" [topic-index]))
-      (with-read topics topic-index {'comment-indexs := comment-indexs}
-        (update topics topic-index {'locked : false})
-        (with-capability (INTERNAL)
-          (map (unlock-comment) comment-indexs)))
-    true)
-
-  (defun post-comment:bool (author:string body:string topic-index:string)
-    (with-capability (POSTER author)
-      (validate-markdown "comment body" body MAXIMUM_COMMENT_BODY_LENGTH)
-      (with-capability (INTERNAL)
-        (let ((index (uuid)))
-          (with-read topics topic-index {'comment-indexs := comment-indexs}
-            (update topics topic-index
-              {'comment-indexs: (+ comment-indexs [index])}))
-          (insert comments index
-             { 'index : index
-             , 'topic-index : topic-index
-             , 'author : author
-             , 'timestamp : (chain-time)
-             , 'modified : false
-             , 'locked : false
-             , 'body : body
-             , 'deleted : false })))
-      )
-    true)
-
-  (defun modify-comment:bool (index:string body:string)
-    (with-read comments index
-        { 'author := author
-        , 'deleted := deleted
-        , 'locked := locked }
-      (validate-markdown "comment body" body MAXIMUM_COMMENT_BODY_LENGTH)
-      (enforce (and (not deleted) (not locked)) "Deleted/Locked comments can't be modified")
-      (with-capability (POSTER author)
-        (update comments index
-           { 'timestamp : (chain-time)
-           , 'modified : true
-           , 'body : body })))
-    true)
-
-  (defun delete-comment:bool (guardian:string comment-index:string)
-    (with-read comments comment-index {'topic-index := topic-index}
-      (log-mod-action guardian (format "Deleted comment {} from topic {}" [comment-index topic-index]))
-      (update comments comment-index {'deleted : true})
-      (with-read topics topic-index {'comment-indexs := comment-indexs}
-        (update topics topic-index {'comment-indexs : (filter (!= comment-index) comment-indexs)})))
-    true)
-
-  (defun vote-on-topic:bool (account:string topic-index:string vote-for:bool)
-    (with-capability (POSTER account)
-      (with-read topics topic-index {'upvotes:=upvotes, 'downvotes:=downvotes}
-        (let ((vu (filter (!= account) upvotes))
-              (vd (filter (!= account) downvotes)))
-            (if vote-for
-              (update topics topic-index {'upvotes:(+ vu [account]), 'downvotes:vd})
-              (update topics topic-index {'upvotes:vu, 'downvotes:(+ vd [account])})))))
-    true)
 
   ; ----
   ; Freeze the DAO
@@ -519,7 +272,7 @@
     ; Initialize the DAO
     (defun init:string ()
       (init-state)
-      (enforce-guard 'init-dev-admin)
+      (enforce-guard 'init-dev-admin )
       (coin.create-account
         DAO_ACCT_NAME
         (create-module-guard DAO_ACCT_NAME)))
@@ -529,7 +282,4 @@
 (create-table state)
 (create-table ambassadors)
 (create-table guardians)
-(create-table comments)
-(create-table topics)
-(create-table modlogs)
 (init.init)
