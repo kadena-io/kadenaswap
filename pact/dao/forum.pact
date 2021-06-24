@@ -1,4 +1,4 @@
-(enforce-pact-version "3.7")
+(enforce-pact-version "4.0")
 
 (namespace (read-msg 'dao-ns))
 
@@ -161,17 +161,20 @@
   (defschema comment
     index:string
     parent-index:string
+    topic-index:string
     author:string
     timestamp:time
     modified:bool
     deleted:bool
     locked:bool
     body:string
+    upvotes:[string]
+    downvotes:[string]
     child-indexs:[string])
   (deftable comments:{comment})
   (defun view-comments ()
     (map (read comments) (keys comments)))
-  (defun view-comment-with-refs (comment-index:string)
+  (defun view-comment (comment-index:string)
     (with-read comments comment-index
         { 'index := index
         , 'parent-index := parent-index
@@ -190,7 +193,7 @@
       , 'deleted : deleted
       , 'locked : locked
       , 'body : body
-      , 'child-indexs : (map view-comment-with-refs child-indexs) }))
+      , 'children : (map (read comments) child-indexs) }))
 
   (defschema topic
     index:string
@@ -203,7 +206,8 @@
     locked:bool
     upvotes:[string]
     downvotes:[string]
-    comment-indexs:[string])
+    comment-indexs:[string]
+    all-comments:[string])
   (deftable topics:{topic})
   (defun view-topic (topic-index)
     (with-read topics topic-index
@@ -217,7 +221,8 @@
         , 'locked := locked
         , 'upvotes := upvotes
         , 'downvotes := downvotes
-        , 'comment-indexs := comment-indexs }
+        , 'comment-indexs := comment-indexs
+        , 'all-comments := all-comments}
       { 'index : index
       , 'headline : headline
       , 'author : author
@@ -228,7 +233,8 @@
       , 'locked : locked
       , 'upvotes : upvotes
       , 'downvotes : downvotes
-      , 'comments : (map (read comments) comment-indexs) }))
+      , 'comment-indexs : comment-indexs
+      , 'all-comments : (map (read comments) all-comments) }))
   (defun undeleted-topic-keys:[string] ()
     (sort
       (map (at 'index)
@@ -240,7 +246,7 @@
   (defun view-topic-raw (topic-index:string)
     (read topics topic-index))
 
-  (defun post-topic:bool (headline:string author:string body:string)
+  (defun post-topic:string (headline:string author:string body:string)
     (with-capability (MEMBER author)
       (validate-markdown "topic headline" headline MAXIMUM_TOPIC_HEADLINE_LENGTH)
       (validate-markdown "topic body" body MAXIMUM_TOPIC_BODY_LENGTH)
@@ -257,9 +263,9 @@
              , 'locked : false
              , 'upvotes : []
              , 'downvotes : []
-             , 'comment-indexs: []})))
-      )
-    true)
+             , 'comment-indexs: []
+             , 'all-comments: []})
+          index))))
 
   (defun modify-topic:bool (index:string headline:string body:string)
     (with-read topics index
@@ -298,11 +304,12 @@
 
   (defun lock-topic:bool (guardian:string topic-index:string)
     (log-mod-action guardian (format "Locking topic {}" [topic-index]))
-      (with-read topics topic-index {'comment-indexs := comment-indexs}
-        (update topics topic-index {'locked : true})
-        (with-capability (FORUM-INTERNAL)
-          (map (lock-comment) comment-indexs)))
+      (update topics topic-index {'locked : true})
+      (with-capability (FORUM-INTERNAL)
+        (with-read topics topic-index {"all-comments":=all-comments}
+          (map (lock-comment) all-comments)))
     true)
+
   (defun unlock-topic:bool (guardian:string topic-index:string)
     (log-mod-action guardian (format "Unlocking topic {}" [topic-index]))
       (with-read topics topic-index {'comment-indexs := comment-indexs}
@@ -311,25 +318,59 @@
           (map (unlock-comment) comment-indexs)))
     true)
 
-  (defun post-comment:bool (author:string body:string topic-index:string)
+  (defun post-topic-comment:string (author:string body:string topic-index:string)
     (with-capability (MEMBER author)
       (validate-markdown "comment body" body MAXIMUM_COMMENT_BODY_LENGTH)
       (with-capability (FORUM-INTERNAL)
         (let ((index (forum-uuid)))
-          (with-read topics topic-index {'comment-indexs := comment-indexs}
+          (with-read topics topic-index
+              {'comment-indexs := comment-indexs
+              ,'all-comments := all-comments}
             (update topics topic-index
-              {'comment-indexs: (+ comment-indexs [index])}))
+              {'comment-indexs: (+ comment-indexs [index])
+              ,'all-comments: (+ all-comments [index])}))
           (insert comments index
              { 'index : index
+             , 'parent-index : topic-index
              , 'topic-index : topic-index
              , 'author : author
              , 'timestamp : (chain-time)
              , 'modified : false
              , 'locked : false
              , 'body : body
-             , 'deleted : false })))
-      )
-    true)
+             , 'deleted : false
+             , 'upvotes : []
+             , 'downvotes : []
+             , 'child-indexs : [] })
+          index))))
+
+  (defun post-comment-comment:string (author:string body:string parent-index:string)
+    (with-capability (MEMBER author)
+      (validate-markdown "comment body" body MAXIMUM_COMMENT_BODY_LENGTH)
+      (with-capability (FORUM-INTERNAL)
+        (let ((index (forum-uuid)))
+          (with-read comments parent-index
+              {'child-indexs := child-indexs
+              ,"topic-index" := topic-index}
+            (with-read topics topic-index {'all-comments := all-comments}
+            (update topics topic-index
+              {'all-comments: (+ all-comments [index])})
+            (update comments parent-index
+              {'child-indexs: (+ child-indexs [index])})
+            (insert comments index
+               { 'index : index
+               , 'parent-index : parent-index
+               , 'topic-index : topic-index
+               , 'author : author
+               , 'timestamp : (chain-time)
+               , 'modified : false
+               , 'locked : false
+               , 'body : body
+               , 'deleted : false
+               , 'upvotes : []
+               , 'downvotes : []
+               , 'child-indexs : [] })))
+            index))))
 
   (defun modify-comment:bool (index:string body:string)
     (with-read comments index
@@ -345,24 +386,62 @@
            , 'body : body })))
     true)
 
-  (defun delete-comment:bool (guardian:string comment-index:string)
-    (with-read comments comment-index {'topic-index := topic-index}
+  (defun delete-topic-comment:bool (guardian:string comment-index:string)
+    (with-read comments comment-index {'parent-index := topic-index}
       (log-mod-action guardian (format "Deleted comment {} from topic {}" [comment-index topic-index]))
       (update comments comment-index {'deleted : true})
-      (with-read topics topic-index {'comment-indexs := comment-indexs}
-        (update topics topic-index {'comment-indexs : (filter (!= comment-index) comment-indexs)})))
+      (with-read topics topic-index
+          {'all-comments := all-comments, 'comment-indexs := comment-indexs}
+        (update topics topic-index
+          {'comment-indexs : (filter (!= comment-index) comment-indexs)
+          ,'all-comments : (filter (!= comment-index) all-comments)}
+          )))
     true)
 
-  (defun vote-on-topic:bool (account:string topic-index:string vote-for:bool)
+  (defun delete-comment-comment:bool (guardian:string comment-index:string)
+    (with-read comments comment-index {'parent-index := parent-index}
+      (log-mod-action guardian (format "Deleted comment {} from comment {}" [comment-index parent-index]))
+      (update comments comment-index {'deleted : true})
+      (with-read comments parent-index
+          {'topic-index := topic-index, 'child-indexs := child-indexs}
+        (with-read topics topic-index {'all-comments := all-comments}
+          (update topics topic-index
+            {'all-comments : (filter (!= comment-index) all-comments)})
+          (update comments parent-index
+            {'child-indexs : (filter (!= comment-index) child-indexs)}))))
+    true)
+
+  (defun vote-on-topic:bool (account:string topic-index:string vote:string)
     (with-capability (MEMBER account)
       (with-read topics topic-index {'upvotes:=upvotes, 'downvotes:=downvotes}
         (let ((vu (filter (!= account) upvotes))
               (vd (filter (!= account) downvotes)))
-            (if vote-for
+          (if (= vote "upvote")
               (update topics topic-index {'upvotes:(+ vu [account]), 'downvotes:vd})
-              (update topics topic-index {'upvotes:vu, 'downvotes:(+ vd [account])})))))
+          (if (= vote "downvote")
+              (update topics topic-index {'upvotes:vu, 'downvotes:(+ vd [account])})
+          (if (= vote "remove")
+              (update topics topic-index {'upvotes:vu, 'downvotes:vd})
+          ;else
+              (format "for typecheck {}" [(enforce false "votes must be one of: ['upvote' 'downvote' 'remove']")])
+    ))))))
     true)
 
+  (defun vote-on-comment:bool (account:string comment-index:string vote:string)
+    (with-capability (MEMBER account)
+      (with-read comments comment-index {'upvotes:=upvotes, 'downvotes:=downvotes}
+        (let ((vu (filter (!= account) upvotes))
+              (vd (filter (!= account) downvotes)))
+          (if (= vote "upvote")
+              (update comments comment-index {'upvotes:(+ vu [account]), 'downvotes:vd})
+          (if (= vote "downvote")
+              (update comments comment-index {'upvotes:vu, 'downvotes:(+ vd [account])})
+          (if (= vote "remove")
+              (update comments comment-index {'upvotes:vu, 'downvotes:vd})
+          ;else
+              (format "for typecheck {}" [(enforce false "votes must be one of: ['upvote' 'downvote' 'remove']")])
+    ))))))
+    true)
   ;
   (defun init (mjolnir-guard:guard)
     (init-forum-state mjolnir-guard))

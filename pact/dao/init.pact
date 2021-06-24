@@ -1,4 +1,4 @@
-(enforce-pact-version "3.7")
+(enforce-pact-version "4.0")
 
 (namespace (read-msg 'dao-ns))
 

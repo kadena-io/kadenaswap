@@ -348,7 +348,7 @@
   (namespace (read-msg 'dao-ns )))
 (rollback-tx)
 
-
+; -----------------
 ; Form tests
 (begin-tx)
 (use dao.init)
@@ -374,6 +374,7 @@
   ])
 (env-keys ["guardian0" "ambassador0" 'ambassador1 'bob 'ambassador3 'mjolnir])
 
+; signup and rotation
 (become-moderator "guardian0" (read-keyset 'guardian0))
 (become-member "ambassador0" (read-keyset 'ambassador0))
 (expect-failure
@@ -388,18 +389,19 @@
   "Ambassador 'ambassador3' is not active"
   (become-member "ambassador3" (read-keyset 'ambassador3 )))
 
-
+; MJOLNIR tests
 (mjolnir-create-member "ambassador3" (read-keyset 'ambassador3) false)
 (view-forum-state)
 (view-members)
 (disable-member "guardian0" "ambassador3")
 
+; topic posting + topic comment posting + modification tests
 (post-topic "topic 0" "ambassador0" "topic 0 body")
 (post-topic "topic 0" "ambassador1" "topic 0 body")
 (post-topic "topic 2" "guardian0" "topic 2 body")
 (view-topics)
 (modify-topic "3" "topic 1" "topic 1 body")
-(post-comment "ambassador1" "comment 0 topic 2" "2")
+(post-topic-comment "ambassador1" "comment 0 topic 2" "2")
 (modify-comment "5" "## MODDED comment" )
 
 (env-sigs [
@@ -420,6 +422,11 @@
   "only the author can modify the comment"
   (modify-comment "3" "## MODDED comment" ))
 
+; comment comment posting and modification tests
+(view-comments)
+(post-comment-comment "ambassador0" "comment 3 comment body" "5")
+
+(view-comment "6")
 (env-sigs [
   { 'key: 'guardian0
   , 'caps:[(MODERATOR 'guardian0)]}
@@ -440,28 +447,38 @@
 (expect-failure
   "Ambassador0 is not a mod"
   (lock-topic "ambassador0" "2"))
-(delete-comment "guardian0" "5")
+(delete-topic-comment "guardian0" "5")
+(view-topic-raw "2")
 (expect
-  "removed comment is gone"
-  []
-  (at 'comments (view-topic "2")))
+  "removed comment is gone, but comment's comment stays in all-comments"
+  [[],["6"]]
+  [(at 'comment-indexs (view-topic "2"))
+   (at 'all-comments (view-topic-raw "2"))
+   ])
+(delete-comment-comment "guardian0" "6")
+(expect
+  "removed comment is gone, but comment's comment stays in all-comments"
+  [[],[]]
+  [(at 'comment-indexs (view-topic "2"))
+   (at 'all-comments (view-topic-raw "2"))
+   ])
 (env-sigs [
   { 'key: 'guardian0
   , 'caps:[(MEMBER 'guardian0)]}
   { 'key: 'ambassador0
   , 'caps:[(MEMBER 'ambassador0)]}
   ])
-(vote-on-topic "guardian0" "2" true)
+(vote-on-topic "guardian0" "2" "upvote")
 (expect
   "guardian voted for"
   ["guardian0"]
   (at 'upvotes (view-topic "2")))
-(vote-on-topic "ambassador0" "2" false)
+(vote-on-topic "ambassador0" "2" "downvote")
 (expect
   "ambassdor voted against"
   ["ambassador0"]
   (at 'downvotes (view-topic "2")))
-(vote-on-topic "guardian0" "2" false)
+(vote-on-topic "guardian0" "2" "downvote")
 (expect
   "guardian switch vote"
   ["ambassador0" "guardian0"]
