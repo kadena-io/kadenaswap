@@ -4,17 +4,22 @@
 
 (module forum GOVERNANCE
 
-  (defcap GOVERNANCE ()
-    (require-capability (MJOLNIR))
-    true)
-
-  (use util.guards)
-  (use dao.init)
-
   (defconst FORUM_MODULE_NAME "forum")
   (defcap FORUM-INTERNAL ()
     "mark some functions as internal only"
     true)
+
+  (defcap GOVERNANCE ()
+    (with-read forum-state FORUM_STATE_KEY {'mjolnir-guard:=mjolnir}
+      (enforce-guard mjolnir)))
+
+  (defun create-forum-gov-guard:guard ()
+  @doc "primarily for namespace usage"
+    (create-module-guard FORUM_MODULE_NAME))
+
+
+  (use util.guards)
+  (use dao.init)
 
   ; ----
   ; DAO State
@@ -105,9 +110,14 @@
     (log-mjolnir-action (format "Disabled: {}" [moderator]))
     (update members moderator {"disabled":true}))
 
-  (defun mjolnir-create-member (member:string member-guard:guard is-moderator:bool)
+  (defun enable-moderator (moderator:string)
+    (log-mjolnir-action (format "enabled: {}" [moderator]))
+    (update members moderator {"disabled":false}))
+
+  (defun mjolnir-write-member (member:string member-guard:guard is-moderator:bool)
+    "use this to directly mutate members"
     (log-mjolnir-action (format "Creating new member: {}" [member]))
-    (insert members member
+    (write members member
       {'name:member
       ,'guard:member-guard
       ,'moderator:is-moderator
@@ -184,6 +194,8 @@
         , 'deleted := deleted
         , 'locked := locked
         , 'body := body
+        , 'upvotes := upvotes
+        , 'downvotes := downvotes
         , 'child-indexs := child-indexs }
       { 'index : index
       , 'parent-index : parent-index
@@ -193,6 +205,8 @@
       , 'deleted : deleted
       , 'locked : locked
       , 'body : body
+      , 'upvotes : upvotes
+      , 'downvotes : downvotes
       , 'children : (map (read comments) child-indexs) }))
 
   (defschema topic

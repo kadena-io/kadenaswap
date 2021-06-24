@@ -2,6 +2,30 @@
 
 (namespace (read-msg 'dao-ns))
 
+(module auto-guards GOV
+  (defcap GOV () (enforce false "no upgrades"))
+
+  (defun guard-one:guard (gs:[guard])
+    "Evaluates guards in a pure-context, does not short curcuit. \
+    \Impure caps that the guards depend on must be triggered earlier in the tx. \
+    \`prep-impure-module-admin-cap` can be used for this."
+    (create-user-guard (enforce-one-guard gs)))
+
+  (defun enforce-one-guard (gs:[guard])
+    (let ((rs (map (try-wrap-enforce-guard) gs)))
+      (enforce (< 0 (length (filter (= true) rs))) "all guards failed")
+    ))
+
+  (defun try-wrap-enforce-guard (g:guard)
+    (try false (enforce-guard g)))
+
+  (defun prep-impure-module-admin-cap:bool (t:table)
+    "By attempting to access a module's internal table, we trip the module admin cap. \
+    \Run this before `guard-one` is called to execute any module governance caps \
+    \and put them in scope for the subsequent PURE call to `guard-one`"
+    (take 1 (keys t))
+    true))
+
 (module init GOVERNANCE
   @doc
   "This is the start of the KDA DAO, not the end. \
@@ -19,9 +43,12 @@
   \A DEACTIVATE_COOLDOWN avoids a red wedding. "
 
   (use util.guards)
+  (use dao.auto-guards)
   (defun btwn-incl:bool (start:time end:time ts:time)
     (enforce (>= end start) (format "bounding start {} must come before end {}" [start end]))
     (and (>= ts start) (<= ts end)))
+
+
 
   (defconst DAO_MODULE_NAME "init")
   (defconst DAO_ACCT_NAME "init") ; we'll change this
@@ -112,11 +139,9 @@
   (defun is-guardian:bool (guardian:string)
     (with-capability (GUARDIAN guardian)
       true))
-  (defun rotate-guardian:bool (guardian:string rotate-mod-guard:bool new-guard:guard)
+  (defun rotate-guardian:bool (guardian:string new-guard:guard)
     (with-capability (GUARDIAN guardian)
-      (if rotate-mod-guard
-        (update guardians guardian {"moderate-guard": new-guard})
-        (update guardians guardian {"guard": new-guard}))
+      (update guardians guardian {"guard": new-guard})
       true))
 
   (defun register-guardian:bool (acct:string guard:guard moderate-guard:guard)
@@ -135,8 +160,7 @@
   ; For now, registration is a one-way street
   (defun unregister-guardian (acct:string)
     (enforce false
-      (format "{} needs to be upgraded to enable withdrawls" [DAO_MODULE_NAME]))
-    (is-dao-frozen))
+      (format "{} needs to be upgraded to enable withdrawls" [DAO_MODULE_NAME])))
 
   (defun propose-dao-upgrade (acct:string hsh:string)
     (with-capability (GUARDIAN acct)
@@ -239,7 +263,7 @@
 
   ; ----
   ; Upgrade the DAO
-  (defcap GOVERNANCE ()
+  (defcap GOVERNANCE:bool ()
     ; remove this before mainnet
     (if (try false (enforce-guard 'init-dev-admin ))
       true
