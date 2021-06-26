@@ -50,8 +50,8 @@
 
 
 
-  (defconst DAO_MODULE_NAME "init")
-  (defconst DAO_ACCT_NAME "init") ; we'll change this
+  (defconst DAO_MODULE_NAME "dao.init")
+  (defconst DAO_ACCT_NAME "dao.init") ; we'll change this
   (defun dao-acct-balance () (coin.get-balance DAO_ACCT_NAME))
   (defcap INTERNAL ()
     "mark some functions as internal only"
@@ -139,9 +139,11 @@
   (defun is-guardian:bool (guardian:string)
     (with-capability (GUARDIAN guardian)
       true))
-  (defun rotate-guardian:bool (guardian:string new-guard:guard)
+  (defun rotate-guardian:bool (guardian:string new-guard:guard new-mod-guard:guard)
     (with-capability (GUARDIAN guardian)
-      (update guardians guardian {"guard": new-guard})
+      (update guardians guardian
+        {"guard": new-guard
+        ,"moderate-guard": new-mod-guard})
       true))
 
   (defun register-guardian:bool (acct:string guard:guard moderate-guard:guard)

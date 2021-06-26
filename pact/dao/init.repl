@@ -208,11 +208,11 @@
   "must be in ambassador table"
   "with-read: row not found: ambassador0" (is-guardian 'ambassador0 ))
 
-(rotate-guardian 'guardian0 (read-keyset 'guardian0b))
+(rotate-guardian 'guardian0 (read-keyset 'guardian0b) (read-keyset 'guardian0b))
 (expect-failure
   "must pass existing guard to rotate"
   "Keyset failure (keys-all): [guardian...]"
-  (rotate-guardian 'guardian1 (read-keyset 'guardian0)))
+  (rotate-guardian 'guardian1 (read-keyset 'guardian0) (read-keyset 'guardian0)))
 (rotate-ambassador 'ambassador0 (read-keyset 'ambassador0b))
 (expect-failure
   "must pass existing guard to rotate"
