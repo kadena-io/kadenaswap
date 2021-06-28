@@ -781,6 +781,9 @@
 
 
 (begin-tx)
+(expect-failure "withdraw guarded by admin"
+  "Keyset failure"
+  (test.pool.withdraw-reserve test.relay.POOL 'Admin 10.0))
 (env-sigs [{'key: 'admin, 'caps: []}])
 (expect-failure "withdraw over reserve"
   "insufficient reserve"
