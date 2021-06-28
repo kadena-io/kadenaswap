@@ -178,7 +178,12 @@
         , 'reserve:=reserve
         , 'bonded:=bonded
         , 'account:=pool-account
+        , 'rate:=rate
         }
+        (enforce (> reserve amount) "withdraw-reserve: insufficient reserve")
+        (let ((committed (* (* rate 365) bonded)))
+          (enforce (>= committed amount)
+            "withdraw-reserve: violation of committed reserve"))
         (install-capability (token::TRANSFER pool-account account amount))
         (token::transfer pool-account account amount)
         (let ((new-reserve (- reserve amount)))

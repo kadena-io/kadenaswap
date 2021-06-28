@@ -777,3 +777,18 @@
 (expect "bonded check"
   110000.0
   (at 'bonded (test.pool.get-pool test.relay.POOL)))
+(commit-tx)
+
+
+(begin-tx)
+(env-sigs [{'key: 'admin, 'caps: []}])
+(expect-failure "withdraw over reserve"
+  "insufficient reserve"
+  (test.pool.withdraw-reserve test.relay.POOL 'Admin 120000.0))
+(expect-failure "withdraw over committed"
+  "violation of committed reserve"
+  (test.pool.withdraw-reserve test.relay.POOL 'Admin 33003.4))
+(* (* 365 0.000822) 110000.0)
+(expect "withdraw success"
+  "Write succeeded"
+  (test.pool.withdraw-reserve test.relay.POOL 'Admin 33003.3))
