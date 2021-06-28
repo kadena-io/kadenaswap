@@ -82,8 +82,8 @@ function Home() {
     }
     return requestContent[requestState];
   }
-  console.log(process.env)
-  if (process.env.TESTNET) {
+
+  if (!process.env.TESTNET) {
     return (
       <div className="App">
         <header className="App-header">
@@ -111,7 +111,7 @@ function Home() {
                 onChange={(e) => setKey(e.target.value)}
                 action= {
                   <Button
-                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1}
+                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || key === wallet.account.guard.keys[0]}
                     icon="add"
                     onClick={() => {
                       setPublicKeys([...publicKeys, key])
