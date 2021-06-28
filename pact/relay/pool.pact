@@ -417,7 +417,9 @@
           { 'picks:=picks, 'inactives:= inactives }
           (if (= inactives []) ""
             (update pools pool
-              { 'active: (filter (in-list inactives) active) }))
+              { 'active:
+                (filter (compose (in-list inactives) (not)) active) 
+              }))
           picks)))
   )
 
