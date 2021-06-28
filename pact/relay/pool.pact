@@ -361,6 +361,16 @@
               { 'activity: new-activity })))))
   )
 
+  (defun update-actives (pool:string)
+    (with-read pools pool { 'active:= active }
+      (update pools pool
+        { 'active:
+          (filter
+            (compose (get-bond) (is-active))
+            active) }))
+  )
+
+
   (defun slash (bond:string)
     (with-read bonds bond
       { 'activity:= activity
@@ -392,6 +402,7 @@
   (defun pick-active (pool:string endorse:bool bonders:[string])
     " Pick random selection of active bonders, without BONDERS, from POOL. \
     \ Count is if ENDORSE endorsers otherwise denouncers from pool config."
+    (update-actives pool)
     (with-read pools pool
       { 'active:=active
       , 'endorsers:= endorsers
@@ -406,21 +417,14 @@
           (>= (length cands) count)
           (format "pick-active: not enough active bonders {}, need {}"
             [(length cands) count]))
-        (bind (fold (pick count)
+        (sort (at 'picks
+          (fold (pick count)
             { 'hash: h
             , 'cands: cands
             , 'picks: []
             , 'picked: 0
-            , 'inactives: []
             }
-            active)
-          { 'picks:=picks, 'inactives:= inactives }
-          (if (= inactives []) ""
-            (update pools pool
-              { 'active:
-                (filter (compose (in-list inactives) (not)) active) 
-              }))
-          picks)))
+            active)))))
   )
 
   (defun in-list:bool (l:list i)
@@ -432,8 +436,7 @@
     hash:string
     cands:[string]
     picks:[string]
-    picked:integer
-    inactives:[string])
+    picked:integer)
 
   (defun pick:object{picks} (count:integer o:object{picks} x_)
     " Accumulator to pick COUNT random active candidates using hash value, \
@@ -446,14 +449,12 @@
         (let* ( (h0 (at 'hash o))
                 (i (mod (str-to-int 64 h0) cand-count))
                 (p (at i cands))
-                (active (is-active (get-bond p)))
               )
           { 'hash: (hash h0)
           , 'cands: (+ (take i cands)
                        (take (- (+ i 1) cand-count) cands))
-          , 'picks: (+ (if active [p] []) (at 'picks o))
-          , 'picked: (+ (if active 1 0) (at 'picked o))
-          , 'inactives: (+ (if active [] [p]) (at 'inactives o))
+          , 'picks: (+ [p] (at 'picks o))
+          , 'picked: (+ 1 (at 'picked o))
           })))
     )
 

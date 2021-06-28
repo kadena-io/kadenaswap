@@ -215,6 +215,7 @@
         (with-read proposals hash
           { 'header:=stored, 'pool:=pool-id, 'status:=status
           , 'proposer:=proposer, 'endorsers:=endorsers
+          , 'endorsed:=endorsed
           , 'denouncers:=denouncers, 'denounced:=denounced }
           (enforce (= header stored) "Header mismatch")
           (enforce (= status BLOCK_ACCEPTED) "Invalid status")
@@ -237,7 +238,7 @@
                     { 'accepted:""
                     , 'inactive: (+ [hash] inactive) })
                   (pool.slash proposer)
-                  (map (pool.slash) endorsers) ]
+                  (map (pool.slash) endorsed) ]
                 [])
               (pool.record-activity endorser))))))
   )
