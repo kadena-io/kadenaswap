@@ -80,6 +80,10 @@
     @event true
   )
 
+  (defcap SLASH ( pool:string bond:string slashed:decimal )
+    @event true
+  )
+
   (defcap UPDATE ( pool:string bonded:decimal reserve:decimal )
     @event true)
 
@@ -174,7 +178,12 @@
         , 'reserve:=reserve
         , 'bonded:=bonded
         , 'account:=pool-account
+        , 'rate:=rate
         }
+        (enforce (> reserve amount) "withdraw-reserve: insufficient reserve")
+        (let ((committed (* (* rate 365) bonded)))
+          (enforce (>= committed amount)
+            "withdraw-reserve: violation of committed reserve"))
         (install-capability (token::TRANSFER pool-account account amount))
         (token::transfer pool-account account amount)
         (let ((new-reserve (- reserve amount)))
@@ -255,11 +264,10 @@
           , 'unlock:= unlock
           , 'fee:= fee
           }
-          (let* ( (elapsed (elapsed-days date))
-                  (risk-fee (if (< activity min-activity) 0.0
-                                 (* balance (* rate elapsed))))
-                  (activity-fee (* activity fee))
-                  (fees (+ risk-fee activity-fee))
+          (let* ( (fees
+                    (compute-fees lockup activity min-activity
+                      balance rate fee))
+                  (elapsed (elapsed-days date))
                   (total (+ balance fees))
                   (new-bonded (- bonded balance))
                   (new-reserve (- reserve fees))
@@ -305,11 +313,10 @@
           , 'unlock:= unlock
           , 'fee:= fee
           }
-          (let* ( (elapsed (elapsed-days date))
-                  (risk-fee (if (< activity min-activity) 0.0
-                                 (* balance (* rate elapsed))))
-                  (activity-fee (* activity fee))
-                  (fees (+ risk-fee activity-fee))
+          (let* ( (fees
+                    (compute-fees lockup activity min-activity
+                      balance rate fee))
+                  (elapsed (elapsed-days date))
                   (new-reserve (- reserve fees))
                   (new-renewed (+ 1 renewed))
                 )
@@ -331,6 +338,20 @@
               })))))
   )
 
+  (defun compute-fees
+    ( lockup:integer
+      activity:integer
+      min-activity:integer
+      balance:decimal
+      rate:decimal
+      fee:decimal )
+    (let*
+      ( (risk-fee (if (< activity min-activity) 0.0
+                     (* balance (* rate lockup))))
+        (activity-fee (* activity fee))
+      )
+      (+ risk-fee activity-fee))
+  )
 
   (defun record-activity
     ( bond:string )
@@ -345,33 +366,70 @@
               { 'activity: new-activity })))))
   )
 
+  (defun update-actives (pool:string)
+    (with-read pools pool { 'active:= active }
+      (update pools pool
+        { 'active:
+          (filter
+            (compose (get-bond) (is-active))
+            active) }))
+  )
 
 
+  (defun slash (bond:string)
+    (with-read bonds bond
+      { 'activity:= activity
+      , 'pool:=pool
+      , 'balance:=balance
+      }
+      (with-read pools pool
+        { 'guard:= guard
+        , 'token:= token:module{fungible-v2}
+        , 'account:= pool-account
+        , 'bonded:= bonded
+        , 'reserve:= reserve
+        }
+        (enforce-guard guard)
+        (let*
+          ( (slashed (* balance 0.5))
+            (new-balance (- balance slashed))
+            (new-bonded (- bonded slashed))
+            (new-reserve (+ reserve slashed))
+          )
+          (emit-event (SLASH pool bond slashed))
+          (update bonds bond { 'balance: new-balance })
+          (emit-event (UPDATE pool new-bonded new-reserve))
+          (update pools pool
+            { 'reserve: new-reserve
+            , 'bonded: new-bonded }))))
+  )
 
-  (defun pick-active (pool:string endorse:bool bonder:string)
-    " Pick random selection of active bonders, without BONDER, from POOL. \
+  (defun pick-active (pool:string endorse:bool bonders:[string])
+    " Pick random selection of active bonders, without BONDERS, from POOL. \
     \ Count is if ENDORSE endorsers otherwise denouncers from pool config."
+    (update-actives pool)
     (with-read pools pool
-      { 'active:=active, 'endorsers:= endorsers, 'denouncers:= denouncers }
+      { 'active:=active
+      , 'endorsers:= endorsers
+      , 'denouncers:= denouncers
+      , 'guard:= guard }
+      (enforce-guard guard)
       (let ( (count (if endorse endorsers denouncers))
              (h (hash [(at 'prev-block-hash (chain-data)) (tx-hash)]))
+             (cands (filter (compose (in-list bonders) (not)) active))
            )
         (enforce
-          (>= (length active) count)
-          "Not enough active bonders")
-        (bind (fold (pick count)
+          (>= (length cands) count)
+          (format "pick-active: not enough active bonders {}, need {}"
+            [(length cands) count]))
+        (sort (at 'picks
+          (fold (pick count)
             { 'hash: h
-            , 'cands: (filter (!= bonder) active)
+            , 'cands: cands
             , 'picks: []
             , 'picked: 0
-            , 'inactives: []
             }
-            active)
-          { 'picks:=picks, 'inactives:= inactives }
-          (if (= inactives []) ""
-            (update pools pool
-              { 'active: (filter (in-list inactives) active) }))
-          picks)))
+            active)))))
   )
 
   (defun in-list:bool (l:list i)
@@ -383,8 +441,7 @@
     hash:string
     cands:[string]
     picks:[string]
-    picked:integer
-    inactives:[string])
+    picked:integer)
 
   (defun pick:object{picks} (count:integer o:object{picks} x_)
     " Accumulator to pick COUNT random active candidates using hash value, \
@@ -393,18 +450,16 @@
       (let* ( (cands (at 'cands o))
               (cand-count (length cands))
             )
-        (enforce (> cand-count 0) "Not enough active bonders")
+        (enforce (> cand-count 0) "pick: insufficent active bonders")
         (let* ( (h0 (at 'hash o))
                 (i (mod (str-to-int 64 h0) cand-count))
                 (p (at i cands))
-                (active (is-active (get-bond p)))
               )
           { 'hash: (hash h0)
           , 'cands: (+ (take i cands)
                        (take (- (+ i 1) cand-count) cands))
-          , 'picks: (+ (if active [p] []) (at 'picks o))
-          , 'picked: (+ (if active 1 0) (at 'picked o))
-          , 'inactives: (+ (if active [] [p]) (at 'inactives o))
+          , 'picks: (+ [p] (at 'picks o))
+          , 'picked: (+ 1 (at 'picked o))
           })))
     )
 
