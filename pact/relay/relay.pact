@@ -176,7 +176,7 @@
     ( header:object{header} denouncer:string )
     (let ( (height (get-height header))
            (hash (at 'hash header))
-           (bond (at 'pool (pool.get-active-bond denouncer)))
+           (pool (at 'pool (pool.get-active-bond denouncer)))
          )
       (with-read heights height
         { 'accepted:=accepted }
@@ -184,14 +184,14 @@
         (with-read proposals hash
           { 'header:=stored
           , 'status:=status
-          , 'endorser:=endorser
+          , 'proposer:=proposer
           , 'endorsers:=endorsers
           , 'denouncer:=old-denouncer }
           (enforce (= header stored) "Header mismatch")
           (enforce (= status BLOCK_ACCEPTED) "Invalid status")
           (enforce (= "" old-denouncer) "Already denounced")
           (let*
-            ( (skip (+ [denouncer endorser] endorsers))
+            ( (skip (+ [denouncer proposer] endorsers))
               (denouncers (pool.pick-active pool PICK_DENOUNCE skip))
             )
             (emit-event

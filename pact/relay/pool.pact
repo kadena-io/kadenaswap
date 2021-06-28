@@ -379,7 +379,7 @@
           ( (slashed (* balance 0.5))
             (new-balance (- balance slashed))
             (new-bonded (- bonded slashed))
-            (new-reserve (+ reserve bonded))
+            (new-reserve (+ reserve slashed))
           )
           (emit-event (SLASH pool bond slashed))
           (update bonds bond { 'balance: new-balance })
@@ -404,7 +404,8 @@
            )
         (enforce
           (>= (length cands) count)
-          "Not enough active bonders")
+          (format "pick-active: not enough active bonders {}, need {}"
+            [(length cands) count]))
         (bind (fold (pick count)
             { 'hash: h
             , 'cands: cands
@@ -439,7 +440,7 @@
       (let* ( (cands (at 'cands o))
               (cand-count (length cands))
             )
-        (enforce (> cand-count 0) "Not enough active bonders")
+        (enforce (> cand-count 0) "pick: insufficent active bonders")
         (let* ( (h0 (at 'hash o))
                 (i (mod (str-to-int 64 h0) cand-count))
                 (p (at i cands))
