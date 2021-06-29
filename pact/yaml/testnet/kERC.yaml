@@ -1,0 +1,17 @@
+codeFile: ../../relay/kerc/kERC.pact
+signers:
+  - public: dfb16b13e4032a6878fd98506b22cb0d6e5932c541e656b7ee5d69d72e6eb76e
+data:
+  ns: "free"
+  upgrade: false
+  minimum-depth: 10
+  erc-address: 0x5679f3797da4073298284fc47c95b98a74e7eba7 # Kovan erc address
+  locker-account: 0xc7eBC02Ec03d33716FB47b6702498B6C3dEBa83e # Kovan locker account
+networkId: testnet04
+nonce: install-testnet-kERC
+publicMeta:
+  chainId: "0"
+  sender: "heekyun"
+  gasLimit: 3000
+  gasPrice: 0.0000000001
+  ttl: 26600
