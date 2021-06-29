@@ -115,7 +115,7 @@ const LiquidityContainer = (props) => {
         if (fromValues.amount.length < 5) {
           throttle(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) }))
         } else {
-          debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, fromValues.precision) }))
+          debounce(500, setToValues({ ...toValues, amount: reduceBalance(fromValues.amount / pact.ratio, toValues.precision) }))
         }
       }
     }
@@ -133,7 +133,7 @@ const LiquidityContainer = (props) => {
         if (toValues.amount.length < 5) {
           throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
         } else {
-          debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, toValues.precision) }))
+          debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(toValues.amount * pact.ratio, fromValues.precision) }))
         }
       }
     }
