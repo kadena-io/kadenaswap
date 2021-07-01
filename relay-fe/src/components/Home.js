@@ -99,16 +99,17 @@ function Home() {
           <h5>Create and manage Kadena Chain Relay Bonds on Testnet
           </h5>
 
-          <Form success={status().success}
-                error={status().error}
-                warning={status().warning}
-                inverted
-                >
+          <Form
+            success={status().success}
+            error={status().error}
+            warning={status().warning}
+            inverted
+          >
 
             <Form.Field
-              style={{marginTop: "10px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}
+              style={{marginTop: "10px", marginBottom: 5, width: "360px", marginLeft: "auto", marginRight: "auto"}}
               >
-              <label style={{color: "#18A33C", textAlign: "left" }}>
+              <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left" }}>
                 Create a New Bond
               </label>
               <Input
@@ -121,7 +122,7 @@ function Home() {
                 onChange={(e) => setKey(e.target.value)}
                 action= {
                   <Button
-                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1}
+                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || wallet.account.guard && wallet.account.guard.keys.includes(key)}
                     icon="add"
                     onClick={() => {
                       setPublicKeys([...publicKeys, key])
@@ -142,9 +143,9 @@ function Home() {
              </List>
             </Form.Field>
 
-            <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
+            <Form.Field style={{marginTop: -10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
               <Button
-                disabled={wallet.account.account === "" || publicKeys.length === 0}
+                disabled={wallet.account.account === "" || wallet.account.account === null || publicKeys.length === 0}
                 style={{
                   backgroundColor: "#18A33C",
                   color: "white",
@@ -158,8 +159,8 @@ function Home() {
               </Button>
             </Form.Field>
 
-            <Form.Field  style={{ marginTop: "0px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}} >
-            <label style={{color: "#18A33C", textAlign: "left" }}>
+            <Form.Field  style={{ marginTop: "20px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}} >
+            <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left" }}>
               Unbond / Renew Bond
             </label>
               <Form.Input

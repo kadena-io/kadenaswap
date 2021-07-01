@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import '../App.css';
 import { Button, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
-// import { Wallet } from '../../../wallet/Wallet.js'
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
 import Pact from 'pact-lang-api';

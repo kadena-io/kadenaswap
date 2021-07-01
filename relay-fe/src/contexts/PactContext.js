@@ -16,6 +16,7 @@ export const PactProvider = (props) => {
   const [error, setError] = useState("");
   const [transaction, setTransaction] = useState(null);
   const [localRes, setLocalRes] = useState(null);
+  const [bondInfo, setBondInfo] = useState({});
 
   let wallet = useContext(WalletContext);
   const {
@@ -39,7 +40,10 @@ export const PactProvider = (props) => {
       }
     try {
       let data = await Pact.fetch.local(cmd, apiHost(NETWORK_ID, CHAIN_ID));
-      if (data.result.status === "success") return true;
+      if (data.result.status === "success") {
+        setBondInfo(data.result.data)
+        return true;
+      }
       else return false;
     } catch (e){
       console.log(e)
@@ -48,7 +52,7 @@ export const PactProvider = (props) => {
   }
 
 
-  const newBond = async (acct,keys) => {
+  const newBond = async (acct, keys, wallet=true) => {
     const cmd = {
       pactCode: `(relay.pool.new-bond relay.relay.POOL (read-msg 'account) (read-keyset 'ks))`,
       caps: [
@@ -68,14 +72,17 @@ export const PactProvider = (props) => {
         }
       }
     }
-    if (signing.method === "sign"){
-       sendBondWallet(cmd);}
+    console.log(signing)
+    if (signing.method==="sign"){
+      console.log("signing")
+       sendBondWallet(cmd);
+    }
     else {
       sendBondLocal(cmd);
     }
   }
 
-  const unBond = async (acct, bond, key) => {
+  const unBond = async (acct, bond, key, wallet=true) => {
     const cmd = {
         pactCode: `(relay.pool.unbond (read-msg 'bond))`,
         caps: [
@@ -92,13 +99,13 @@ export const PactProvider = (props) => {
           bond: bond
         }
       }
-      if (signing.method === "sign") sendBondWallet(cmd);
+      if (wallet) sendBondWallet(cmd);
       else {
         sendBondLocal(cmd, key);
       }
     }
 
-  const renewBond = async (bond, key) => {
+  const renewBond = async (bond, key, wallet) => {
     const cmd = {
         pactCode: `(relay.pool.renew (read-msg 'bond))`,
         caps: [
@@ -196,6 +203,7 @@ export const PactProvider = (props) => {
 
   const sendBondWallet = async (signCmd) => {
       //Wallet Open
+      console.log(signCmd)
       setRequestState(1);
       try {
           //Sign wallet
@@ -261,13 +269,13 @@ export const PactProvider = (props) => {
       } catch(err){
         alert("you cancelled the TX or you did not have the wallet app open")
       }
-
     }
 
     return (
       <PactContext.Provider
         value={{
           getBond,
+          bondInfo,
           newBond,
           unBond,
           renewBond,
