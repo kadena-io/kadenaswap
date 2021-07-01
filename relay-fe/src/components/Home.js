@@ -54,6 +54,7 @@ function Home() {
                      <p><b>Result:</b> {JSON.stringify(res.result.error.message)}</p>
                    </div>,
           hidden: false,
+          error: true,
           warning: true
         }
       } else if (res.result && res.result.status === "success"){
@@ -64,7 +65,7 @@ function Home() {
                      <p><b>Block Height:</b> {res.metaData.blockHeight}</p>
                      <p><b>Block Hash:</b> {res.metaData.blockHash}</p>
                      <p><b>Result:</b> {JSON.stringify(res.result.data)}</p>
-                     <p>Check Your TX <a href="https://balance.chainweb.com"><b>here</b></a></p>
+                     <p>Check Your TX <a href={`https://explorer.chainweb.com/testnet/tx/${res.reqKey}`}><b>here</b></a></p>
                    </div>,
           hidden: false,
           success: true
@@ -169,9 +170,9 @@ function Home() {
                 iconPosition='left'
                 placeholder='Bond Name'
                 value={bond}
-                onChange={(e) => setBond(e.target.value)}
-                onBlur={async () => {
-                  let res = await pact.getBond(bond);
+                onChange={async e => {
+                  setBond(e.target.value)
+                  let res = await pact.getBond(e.target.value);
                   if (res) setBondExist(true);
                 }}
               />

@@ -72,9 +72,7 @@ export const PactProvider = (props) => {
         }
       }
     }
-    console.log(signing)
     if (signing.method==="sign"){
-      console.log("signing")
        sendBondWallet(cmd);
     }
     else {
@@ -179,15 +177,10 @@ export const PactProvider = (props) => {
         setRequestKey(reqKey.requestKeys[0])
         setRequestState(3);
         return reqKey.requestKeys[0]
-      }).then(reqKey => {
+      }).then(async reqKey => {
         //Listening for result
         setRequestState(4);
-        return Pact.fetch.listen({"listen": reqKey }, apiHost(NETWORK_ID, CHAIN_ID))
-      })
-      .then(res => {
-        //Result came back
-        setRequestState(5);
-        setResponse(res);
+        const res =  await poll(reqKey, apiHost(NETWORK_ID, CHAIN_ID));
         return res
       })
       .then(res => {
@@ -203,7 +196,6 @@ export const PactProvider = (props) => {
 
   const sendBondWallet = async (signCmd) => {
       //Wallet Open
-      console.log(signCmd)
       setRequestState(1);
       try {
           //Sign wallet
@@ -258,6 +250,7 @@ export const PactProvider = (props) => {
               setRequestState(6);
               setError("Signing was unsuccessful");
             } else if (typeof e === "object"){
+              console.log(e)
               setRequestState(6);
               setError("Open your wallet");
             } else {
@@ -269,6 +262,30 @@ export const PactProvider = (props) => {
       } catch(err){
         alert("you cancelled the TX or you did not have the wallet app open")
       }
+    }
+
+    async function poll(reqKey, apiHost, maxCount=300) {
+      let repeat = true;
+      let count = 0;
+      while (repeat) {
+        const result = await Pact.fetch.poll({"requestKeys": [reqKey]}, apiHost)
+        if (result[reqKey]) {
+          return result[reqKey];
+        }
+        await wait();
+        count++;
+        if (count > maxCount) {
+          repeat = false;
+          return result;
+        }
+      }
+      return false
+    }
+
+    async function wait(ms = 1000) {
+      return new Promise(resolve => {
+        setTimeout(resolve, ms);
+      });
     }
 
     return (

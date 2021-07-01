@@ -4,7 +4,7 @@ import styled from 'styled-components/macro';
 import { Button as SUIButton } from 'semantic-ui-react';
 
 const StyledButton = styled(SUIButton)`
-  font-family: neue-bold !important;
+
   font-size: ${({ fontSize }) => (fontSize ? fontSize + ' !important' : '16px !important')};
   color: ${({ color }) => (color ? color + ' !important' : 'white !important')};
   background: ${({ disabled, background, theme: { buttonBackgroundGradient } }) => {
