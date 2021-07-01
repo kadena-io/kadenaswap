@@ -24,7 +24,6 @@
     "styled-components": "^5.2.0",
     "sweetalert": "^2.1.2",
     "throttle-debounce": "^3.0.1",
-    "web3": "^1.4.0",
     "yup": "^0.29.3"
   },
   "scripts": {
