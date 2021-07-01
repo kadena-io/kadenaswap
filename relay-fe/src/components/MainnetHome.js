@@ -198,7 +198,7 @@ function MainnetHome() {
               hidden={status().hidden}
             >
               <Message.Header>{status().header}</Message.Header>
-              <div>{status().content}</div>
+                <div>{status().content}</div>
                 <Message hidden={requestState!==8}>
                   <Button
                     disabled={status().error}

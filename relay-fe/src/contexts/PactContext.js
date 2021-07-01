@@ -27,6 +27,27 @@ export const PactProvider = (props) => {
     decryptKey
   } = wallet;
 
+
+  const getBond = async (bond) => {
+    const cmd = {
+        pactCode: `(relay.pool.get-bond (read-msg 'bond))`,
+        meta: Pact.lang.mkMeta("", CHAIN_ID, GAS_PRICE, 2000, creationTime(), 1000),
+        chainId: CHAIN_ID,
+        envData: {
+          bond: bond
+        }
+      }
+    try {
+      let data = await Pact.fetch.local(cmd, apiHost(NETWORK_ID, CHAIN_ID));
+      if (data.result.status === "success") return true;
+      else return false;
+    } catch (e){
+      console.log(e)
+    }
+
+  }
+
+
   const newBond = async (acct,keys) => {
     const cmd = {
       pactCode: `(relay.pool.new-bond relay.relay.POOL (read-msg 'account) (read-keyset 'ks))`,
@@ -54,7 +75,7 @@ export const PactProvider = (props) => {
     }
   }
 
-  const unBond = async (acct, bond) => {
+  const unBond = async (acct, bond, key) => {
     const cmd = {
         pactCode: `(relay.pool.unbond (read-msg 'bond))`,
         caps: [
@@ -73,11 +94,11 @@ export const PactProvider = (props) => {
       }
       if (signing.method === "sign") sendBondWallet(cmd);
       else {
-        sendBondLocal(cmd);
+        sendBondLocal(cmd, key);
       }
     }
 
-  const renewBond = async (bond) => {
+  const renewBond = async (bond, key) => {
     const cmd = {
         pactCode: `(relay.pool.renew (read-msg 'bond))`,
         caps: [
@@ -95,13 +116,12 @@ export const PactProvider = (props) => {
       }
       if (signing.method === "sign") sendBondWallet(cmd);
       else {
-        sendBondLocal(cmd);
+        sendBondLocal(cmd, key);
       }
     }
-
-  const sendBondLocal = async (signCmd) => {
+  const sendBondLocal = async (signCmd, key) => {
     try {
-      let privKey = signing.key
+      let privKey = key || signing.key
       if (signing.method === 'pk+pw') {
         const pw = await pwPrompt();
         privKey = await decryptKey(pw)
@@ -109,11 +129,12 @@ export const PactProvider = (props) => {
       if (privKey.length !== 64) {
         return
       }
+      let kp = Pact.crypto.restoreKeyPairFromSecretKey(privKey)
       const cmd = {
           pactCode: signCmd.pactCode,
           keyPairs: {
-            publicKey: account.guard.keys[0],
-            secretKey: privKey,
+            publicKey: kp.publicKey,
+            secretKey: kp.secretKey,
             clist: signCmd.caps.map(cap => {
               return cap.cap;
             })
@@ -123,8 +144,12 @@ export const PactProvider = (props) => {
           networkId: NETWORK_ID
       }
       let data = await Pact.fetch.local(cmd, apiHost(NETWORK_ID, CHAIN_ID));
-      setTransaction(cmd);
-      if (data.result.status === "success"){
+      setTransaction(cmd)
+      if (!data.result) {
+        setLocalRes(data);
+        setRequestState(7);
+      }
+      else if (data.result.status === "success"){
         setLocalRes(data.result.data);
         setRequestState(8);
       } else {
@@ -133,6 +158,7 @@ export const PactProvider = (props) => {
       }
       return data;
     } catch (e) {
+      console.log(e)
       setLocalRes({});
       return -1
     }
@@ -241,6 +267,7 @@ export const PactProvider = (props) => {
     return (
       <PactContext.Provider
         value={{
+          getBond,
           newBond,
           unBond,
           renewBond,
