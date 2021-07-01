@@ -12,7 +12,7 @@ function Relay() {
   const [hash, setHash] = React.useState("")
 
     return (
-          <Form inverted>
+          <Form inverted hidden>
             <Form.Field
               style={{marginTop: "10px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}
               >
