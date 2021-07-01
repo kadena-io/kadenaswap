@@ -51,11 +51,15 @@
 ; redefine namespace to use DAO governance guard only
 (define-namespace
   (read-msg 'dao-ns)
-  (auto-guards.guard-one [(create-gov-guard) (create-forum-gov-guard)])
+  (auto-guards.guard-one [
+    (dao.init.create-gov-guard)
+    (dao.forum.create-forum-gov-guard)
+    ])
   (keyset-ref-guard 'dao-ns-admin)
 )
 
-
+(use coin)
+(use dao.init)
 ; Check init State
 (coin.details DAO_ACCT_NAME)
 (use dao.init)
@@ -85,7 +89,7 @@
   , 'caps:
       [(coin.TRANSFER 'guardian2 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
   ])
-(register-guardian 'guardian0 (read-keyset 'guardian0) (read-keyset 'guardian0))
+(register-guardian 'guardian0 (read-keyset 'guardian0))
 
 ; quickly poke at the just-one and just-two guardian scenarios
 (propose-dao-upgrade 'guardian0 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
@@ -98,12 +102,12 @@
 (expect "1 of 1 allows for upgrade"
   true
   (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
-(register-guardian 'guardian1 (read-keyset 'guardian1 ) (read-keyset 'guardian1))
+(register-guardian 'guardian1 (read-keyset 'guardian1 ))
 (expect-failure "50% vote"
   "Upgrade not approved, 1 of 2"
   (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
 
-(register-guardian 'guardian2 (read-keyset 'guardian2) (read-keyset 'guardian2))
+(register-guardian 'guardian2 (read-keyset 'guardian2))
 
 (expect "3 guardians" 3 (at 'guardian-count (view-state)))
 (expect "DAO has right balance" (* 3 GUARDIAN_KDA_REQUIRED) (dao-acct-balance))
@@ -118,7 +122,7 @@
   }])
 (expect-failure "insufficient funds for guardianship"
   "Insufficient funds"
-  (register-guardian 'bob (read-keyset 'bob) (read-keyset 'bob)))
+  (register-guardian 'bob (read-keyset 'bob)))
 (view-guardians)
 
 ; -----------------------------------------------------------------------------
@@ -208,11 +212,11 @@
   "must be in ambassador table"
   "with-read: row not found: ambassador0" (is-guardian 'ambassador0 ))
 
-(rotate-guardian 'guardian0 (read-keyset 'guardian0b) (read-keyset 'guardian0b))
+(rotate-guardian 'guardian0 (read-keyset 'guardian0b))
 (expect-failure
   "must pass existing guard to rotate"
   "Keyset failure (keys-all): [guardian...]"
-  (rotate-guardian 'guardian1 (read-keyset 'guardian0) (read-keyset 'guardian0)))
+  (rotate-guardian 'guardian1 (read-keyset 'guardian0)))
 (rotate-ambassador 'ambassador0 (read-keyset 'ambassador0b))
 (expect-failure
   "must pass existing guard to rotate"
@@ -301,6 +305,7 @@
 (guardian-approve-hash 'guardian1 "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
 (check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
 (commit-tx)
+
 
 (begin-tx)
 (env-chain-data
@@ -412,7 +417,7 @@
 
 ; MJOLNIR tests
 (mjolnir-write-member "ambassador3" (read-keyset 'ambassador3) false)
-(view-forum-state)
+(view-state)
 (view-members)
 (disable-member "guardian0" "ambassador3")
 
@@ -611,7 +616,7 @@
 (env-keys ["mjolnir"])
 
 (env-data { 'dao-ns: "dao" })
-(prep-impure-module-admin-cap forum-state)
+(prep-impure-module-admin-cap state)
 (namespace (read-msg 'dao-ns ))
 
 ;works
@@ -632,7 +637,7 @@
 (env-data { 'dao-ns: "dao" })
 (expect-failure "can't pass forum governance"
   "Keyset failure (keys-all): [mjolnir]"
-  (prep-impure-module-admin-cap forum-state))
+  (prep-impure-module-admin-cap state))
 (expect-failure "can't access namespace without either governance"
   "all guards failed"
   (namespace (read-msg 'dao-ns )))

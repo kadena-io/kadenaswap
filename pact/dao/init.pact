@@ -48,8 +48,6 @@
     (enforce (>= end start) (format "bounding start {} must come before end {}" [start end]))
     (and (>= ts start) (<= ts end)))
 
-
-
   (defconst DAO_MODULE_NAME "dao.init")
   (defconst DAO_ACCT_NAME "dao.init") ; we'll change this
   (defun dao-acct-balance () (coin.get-balance DAO_ACCT_NAME))
@@ -129,31 +127,36 @@
       approved-hash:string
       approved-date:time)
   (deftable guardians:{guardian})
+  (defschema guardian-v1
+      k:string
+      guard:guard
+      committed-kda:decimal
+      approved-hash:string
+      approved-date:time)
+  (deftable guardians-v1:{guardian-v1})
   (defcap GUARDIAN (acct:string)
     (is-dao-frozen)
-    (with-read guardians acct
+    (with-read guardians-v1 acct
       {"guard":=guard}
-      (enforce-guard guard)))
+      (enforce (enforce-guard guard) "Guardian keyset failure"))
+    true)
   (defun view-guardians ()
-      (map (read guardians) (keys guardians)))
+      (map (read guardians-v1) (keys guardians-v1)))
   (defun is-guardian:bool (guardian:string)
     (with-capability (GUARDIAN guardian)
       true))
-  (defun rotate-guardian:bool (guardian:string new-guard:guard new-mod-guard:guard)
+  (defun rotate-guardian:bool (guardian:string new-guard:guard)
     (with-capability (GUARDIAN guardian)
-      (update guardians guardian
-        {"guard": new-guard
-        ,"moderate-guard": new-mod-guard})
+      (update guardians-v1 guardian {"guard": new-guard})
       true))
 
-  (defun register-guardian:bool (acct:string guard:guard moderate-guard:guard)
+  (defun register-guardian:bool (acct:string guard:guard)
     (enforce (>= (length acct) 3) "Guardian name too short")
     (with-capability (INTERNAL)
       (coin.transfer acct DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)
-      (insert guardians acct
+      (insert guardians-v1 acct
         {"k":acct
         ,"guard":guard
-        ,"moderate-guard":moderate-guard
         ,"committed-kda":GUARDIAN_KDA_REQUIRED
         ,"approved-hash":""
         ,"approved-date":(chain-time)})
@@ -179,7 +182,7 @@
       (with-read state DAO_STATE_KEY {'proposed-upgrade-hash:=prp-hsh}
         (enforce (= prp-hsh hsh)
           (format "Upgrade hash mismatch: {} vs {}" [prp-hsh hsh])))
-      (update guardians acct
+      (update guardians-v1 acct
         {"approved-hash":hsh
         ,"approved-date":(chain-time)}))
     true)
@@ -192,27 +195,34 @@
       active:bool
       voted-to-freeze:time)
   (deftable ambassadors:{ambassador})
+  (defschema ambassador-v1
+      k:string
+      guard:guard
+      active:bool
+      voted-to-freeze:time)
+  (deftable ambassadors-v1:{ambassador-v1})
   (defcap AMBASSADOR (acct:string)
-    (with-read ambassadors acct
+    (with-read ambassadors-v1 acct
       {"guard":=guard, "active":=active}
-      (enforce-guard guard)
-      (enforce active (format "Ambassador '{}' is not active" [acct]))))
+      (enforce (enforce-guard guard) "Not a Guardian")
+      (enforce active (format "Ambassador '{}' is not active" [acct])))
+    true)
   (defun view-ambassadors ()
-      (map (read ambassadors) (keys ambassadors)))
+      (map (read ambassadors-v1) (keys ambassadors-v1)))
   (defun is-ambassador:bool (ambassador:string)
     (with-capability (AMBASSADOR ambassador)
-      (with-read ambassadors ambassador {"active":= active}
+      (with-read ambassadors-v1 ambassador {"active":= active}
         (enforce active (format "{} is inactive" [ambassador]))))
     true)
   (defun rotate-ambassador:bool (ambassador:string new-guard:guard)
     (with-capability (AMBASSADOR ambassador)
-      (update ambassadors ambassador {"guard": new-guard})
+      (update ambassadors-v1 ambassador {"guard": new-guard})
       true))
 
   (defun register-ambassador:bool (guardian:string acct:string guard:guard)
     (enforce (>= (length acct) 3) "Ambassador name too short")
     (with-capability (GUARDIAN guardian)
-      (insert ambassadors acct
+      (insert ambassadors-v1 acct
               {"k":acct
               ,"guard":guard
               ,"active":true
@@ -226,13 +236,13 @@
       (let ((lst-deactivate (at 'last-ambassador-deactivation (read state DAO_STATE_KEY))))
         (enforce (> (chain-time) (add-time lst-deactivate DEACTIVATE_COOLDOWN)) "Deactivate Cooldown Failure")
         (update state DAO_STATE_KEY {"last-ambassador-deactivation":(chain-time)})
-        (update ambassadors ambassador {"active":false}))
+        (update ambassadors-v1 ambassador {"active":false}))
       (with-capability (INTERNAL)
         (adjust-ambassador-count -1)))
       true)
   (defun reactivate-ambassador:bool (guardian:string ambassador:string)
     (with-capability (GUARDIAN guardian)
-      (update ambassadors ambassador {"active":true})
+      (update ambassadors-v1 ambassador {"active":true})
       (with-capability (INTERNAL)
         (adjust-ambassador-count 1)))
       true)
@@ -242,7 +252,7 @@
   ; Freeze the DAO
   (defun vote-to-freeze:bool (ambassador:string)
     (with-capability (AMBASSADOR ambassador)
-      (update ambassadors ambassador {"voted-to-freeze":(chain-time)}))
+      (update ambassadors-v1 ambassador {"voted-to-freeze":(chain-time)}))
     true)
 
   (defun freeze:string (ambassador:string)
@@ -250,7 +260,7 @@
     (with-capability (AMBASSADOR ambassador)
     (let* ((live-ambs
               (map (at "voted-to-freeze")
-              (select ambassadors ["voted-to-freeze"] (where 'active (= true)))))
+              (select ambassadors-v1 ["voted-to-freeze"] (where 'active (= true)))))
            (ambs-cnt (length live-ambs))
            (ambs-voted-to-freeze (length (filter (btwn-incl (add-time (chain-time) (- APPROVAL_COOLDOWN)) (chain-time)) live-ambs)))
            (dao-frz-ts (add-time (chain-time) FREEZE_TIMEOUT)))
@@ -287,7 +297,7 @@
         (format "Proposal has timed out" [(add-time prp-time APPROVAL_COOLDOWN)]))
       (let*
          ((approvals (map (at 'approved-date )
-           (select guardians (where 'approved-hash (= hsh)))))
+           (select guardians-v1 (where 'approved-hash (= hsh)))))
          (valid-aprv-start (add-time (chain-time) (- APPROVAL_TIMEOUT)))
          (valid-approvals (length (filter (<= valid-aprv-start) approvals))))
         (enforce (> (* 2 valid-approvals) grd-cnt)
@@ -298,14 +308,46 @@
     ; Initialize the DAO
     (defun init:string ()
       (init-state)
-      (enforce-guard 'init-dev-admin )
+      (enforce (enforce-guard 'init-dev-admin ) "init-dev-admin keyset failure")
       (coin.create-account
         DAO_ACCT_NAME
         (create-module-guard DAO_ACCT_NAME)))
+
+    (defun migrate-guardian (guardian:string)
+      (with-read guardians guardian
+          {"k":=k
+          ,"guard":=g
+          ,"committed-kda":=c
+          ,"approved-hash":=h
+          ,"approved-date":=t}
+        (insert guardians-v1 guardian
+          {"k":k
+          ,"guard":g
+          ,"committed-kda":c
+          ,"approved-hash":h
+          ,"approved-date":t})))
+    (defun migrate-ambassador (ambassador:string)
+      (with-read ambassadors ambassador
+          {"k":=k
+          ,"guard":=g
+          ,"active":=a
+          ,"voted-to-freeze":=t}
+          (insert ambassadors-v1 ambassador
+            {"k":k
+            ,"guard":g
+            ,"active":a
+            ,"voted-to-freeze":t})))
+
+    (defun run-table-migration-v1 ()
+      (map (migrate-guardian) (keys guardians))
+      (map (migrate-ambassador) (keys ambassadors))
+      )
 
 )
 
 (create-table state)
 (create-table ambassadors)
+(create-table ambassadors-v1)
 (create-table guardians)
+(create-table guardians-v1)
 (init.init)

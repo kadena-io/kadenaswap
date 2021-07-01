@@ -10,43 +10,43 @@
     true)
 
   (defcap GOVERNANCE ()
-    (with-read forum-state FORUM_STATE_KEY {'mjolnir-guard:=mjolnir}
-      (enforce-guard mjolnir)))
+    (with-read state STATE_KEY {'mjolnir-guard:=mjolnir}
+      (enforce (enforce-guard mjolnir) "You have failed to lift mjolnir, you are not worthy")))
 
   (defun create-forum-gov-guard:guard ()
   @doc "primarily for namespace usage"
     (create-module-guard FORUM_MODULE_NAME))
 
-
   (use util.guards)
-  (use dao.init)
+  (use dao.init [is-guardian is-ambassador])
 
   ; ----
-  ; DAO State
-  (defconst FORUM_STATE_KEY "state")
-  (defschema forum-state-obj
+  ; Forum State
+  (defconst STATE_KEY "state")
+  (defschema state-obj
     next-forum-uuid:integer
     mjolnir-guard:guard)
-  (deftable forum-state:{forum-state-obj})
-  (defun view-forum-state ()
-    (read forum-state FORUM_STATE_KEY))
-  (defun init-forum-state:bool (mjolnir-guard:guard)
-    (insert forum-state FORUM_STATE_KEY
+  (deftable state:{state-obj})
+  (defun view-state ()
+    (read state STATE_KEY))
+  (defun init-state:bool (mjolnir-guard:guard)
+    (insert state STATE_KEY
         {'next-forum-uuid:0
         ,'mjolnir-guard:mjolnir-guard})
     true)
   (defcap MJOLNIR ()
-    (with-read forum-state FORUM_STATE_KEY {'mjolnir-guard:=mjolnir}
-      (enforce-guard mjolnir)))
+    (with-read state STATE_KEY {'mjolnir-guard:=mjolnir}
+      (enforce (enforce-guard mjolnir)
+        "You have failed to lift mjolnir, you are not worthy")))
 
   (defun rotate-mjolnir (guard:guard)
     (with-capability (MJOLNIR)
-      (update forum-state FORUM_STATE_KEY {"mjolnir-guard":guard})))
+      (update state STATE_KEY {"mjolnir-guard":guard})))
 
   (defun forum-uuid:string ()
     (require-capability (FORUM-INTERNAL))
-    (with-read forum-state FORUM_STATE_KEY {'next-forum-uuid:=i}
-      (update forum-state FORUM_STATE_KEY {'next-forum-uuid: (+ 1 i)})
+    (with-read state STATE_KEY {'next-forum-uuid:=i}
+      (update state STATE_KEY {'next-forum-uuid: (+ 1 i)})
       (format "{}" [i])))
 
   ; ----
@@ -62,14 +62,14 @@
   (defcap MEMBER:bool (member:string)
     (with-read members member {"guard":=g ,"disabled":=disabled}
       (enforce (not disabled) (format "Member '{}' is disabled" [member]))
-      (enforce-guard g))
+      (enforce (enforce-guard g) "Keyset Failure"))
     true)
   (defcap MODERATOR (member:string)
     (with-read members member
       {"guard":=g ,"disabled":=disabled, "moderator":= moderator}
       (enforce (not disabled) (format "Member '{}' is disabled" [member]))
       (enforce moderator (format "Member '{}' is not a moderator" [member]))
-      (enforce-guard g))
+      (enforce (enforce-guard g) "Keyset Failure"))
     true)
 
   (defun become-moderator (guardian:string moderator-guard:guard)
@@ -106,6 +106,10 @@
     (with-capability (MEMBER member)
       (update members member {"guard":guard})))
 
+  (defun rotate-moderator (moderator:string guard:guard)
+    (with-capability (MODERATOR moderator)
+      (update members moderator {"guard":guard})))
+
   (defun disable-moderator (moderator:string)
     (log-mjolnir-action (format "Disabled: {}" [moderator]))
     (update members moderator {"disabled":true}))
@@ -136,12 +140,12 @@
       (enforce
         (>= txt-length 3)
         (format
-          "{} does not conform to the coin contract min length '{}': {}..."
+          "{} does not conform to the min length of '{}': {}..."
           [subj, 3, (take 30 txt)]))
       (enforce
         (<= txt-length max)
         (format
-          "{} does not conform to the coin contract max length '{}': {}..."
+          "{} does not conform to the max length of '{}': {}..."
           [subj, max, (take 30 txt)]))))
 
   (defschema modlog
@@ -458,13 +462,13 @@
     true)
   ;
   (defun init (mjolnir-guard:guard)
-    (init-forum-state mjolnir-guard))
+    (init-state mjolnir-guard))
 )
 
 
 (create-table comments)
 (create-table topics)
 (create-table modlogs)
-(create-table forum-state)
+(create-table state)
 (create-table members)
 (forum.init (read-keyset "mjolnir"))
