@@ -7,7 +7,7 @@ import { WalletContext } from "../wallet/contexts/WalletContext"
 import SimpleSign from './SimpleSign'
 import Relay from './Relay'
 
-function Mainnet() {
+function MainnetHome() {
   const pact = useContext(PactContext);
   const wallet = useContext(WalletContext);
 
