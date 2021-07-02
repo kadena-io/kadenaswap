@@ -3,8 +3,6 @@ import Pact from 'pact-lang-api';
 import { WalletContext } from "../wallet/contexts/WalletContext"
 
 const BOND_AMOUNT = 50000;
-const CHAIN_ID = "0";
-const NETWORK_ID = 'testnet04';
 
 export const PactContext = createContext();
 
@@ -25,7 +23,9 @@ export const PactProvider = (props) => {
     walletError,
     walletSigError,
     walletLoading,
-    decryptKey
+    decryptKey,
+    NETWORK_ID,
+    CHAIN_ID
   } = wallet;
 
   const getBond = async (bond) => {
@@ -126,7 +126,7 @@ export const PactProvider = (props) => {
         sendBondLocal(cmd, key);
       }
     }
-    
+
   const sendBondLocal = async (signCmd, key) => {
     try {
       let privKey = key || signing.key

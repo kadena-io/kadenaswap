@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import '../App.css';
-import { Button, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
+import { Button as SUIButton, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
+import Button from '../wallet/components/shared/Button';
 // import { Wallet } from '../../../wallet/Wallet.js'
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
@@ -16,6 +17,17 @@ function MainnetHome() {
   const [bond, setBond] = useState("");
   const [bondExist, setBondExist] = React.useState(false);
   const [publicKeys, setPublicKeys] = useState([]);
+
+  useEffect(()=> {
+    setKey("")
+    if(wallet.account.guard && wallet.account.guard.keys){
+      for (let i=0;i<wallet.account.guard.keys.length;i++){
+        if (!publicKeys.includes(wallet.account.guard.keys[i])){
+          setKey(wallet.account.guard.keys[i])
+        }
+      }
+    }
+  }, [wallet.account.account, publicKeys])
 
   const loading = (reqKey) => {
       return (
@@ -64,7 +76,7 @@ function MainnetHome() {
                      <p><b>Block Height:</b> {res.metaData.blockHeight}</p>
                      <p><b>Block Hash:</b> {res.metaData.blockHash}</p>
                      <p><b>Result:</b> {JSON.stringify(res.result.data)}</p>
-                     <p>Check Your TX <a href={`https://explorer.chainweb.com/mainnet/tx/${res.reqKey}`}><b>here</b></a></p>
+                     <p>Check Your TX <a href={`https://explorer.chainweb.com/testnet/tx/${res.reqKey}`}><b>here</b></a></p>
                    </div>,
           hidden: false,
           success: true
@@ -108,10 +120,11 @@ function MainnetHome() {
             <Form.Field
               style={{marginTop: "10px", marginBottom: 5, width: "360px", marginLeft: "auto", marginRight: "auto"}}
               >
-              <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left" }}>
+              <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left", width: "360px", }}>
                 Create a New Bond
               </label>
               <Input
+                value={key}
                 error={wallet.account.guard && wallet.account.guard.keys.includes(key)}
                 style={{width: "360px"}}
                 icon='key'
@@ -120,8 +133,8 @@ function MainnetHome() {
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
                 action= {
-                  <Button
-                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || wallet.account.guard && wallet.account.guard.keys.includes(key)}
+                  <SUIButton
+                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || (false && wallet.account.guard && wallet.account.guard.keys.includes(key))}
                     icon="add"
                     onClick={() => {
                       setPublicKeys([...publicKeys, key])
@@ -130,7 +143,7 @@ function MainnetHome() {
                   />
                 }
               />
-              {(wallet.account.guard && wallet.account.guard.keys.includes(key))
+              {(false && wallet.account.guard && wallet.account.guard.keys.includes(key))
                 ?
                 <Label pointing color="red" hidden >
                   Please use a key that is not used in your Kadena account
@@ -190,7 +203,7 @@ function MainnetHome() {
               />
             </Form.Field>
 
-            <Form.Field style={{width: 500, margin: "auto"}}>
+            <Form.Field style={{width: 670, margin: "auto"}}>
               <Message
                 success={status().success}
                 warning={status().warning}
