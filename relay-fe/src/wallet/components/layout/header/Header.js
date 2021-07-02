@@ -117,7 +117,7 @@ const Header = () => {
           <Label
             style={{ padding: '10px 16px', color:"white", fontSize: 16 }}
           >
-            LIVE TESTNET (CHAIN 0)
+            LIVE {pact.NETWORK_ID === "testnet04" ? "TESTNET" : ""} ON CHAIN {pact.CHAIN_ID}
           </Label>
           </Item>
           {pact?.account.account ? (

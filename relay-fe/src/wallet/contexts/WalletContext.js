@@ -17,10 +17,10 @@ const savedNetwork = localStorage.getItem('network');
 const savedSlippage = localStorage.getItem('slippage');
 const savedSigning = localStorage.getItem('signing');
 const savedTtl = localStorage.getItem('ttl');
-const chainId = "0";
+const CHAIN_ID = "2";
 const PRECISION = 12;
-const NETWORKID = 'testnet04';
-const network = `https://api.testnet.chainweb.com/chainweb/0.0/${NETWORKID}/chain/${chainId}/pact`;
+const NETWORK_ID = 'mainnet01';
+const network = `https://api.chainweb.com/chainweb/0.0/${NETWORK_ID}/chain/${CHAIN_ID}/pact`;
 
 const creationTime = () => Math.round((new Date).getTime()/1000)-10;
 const GAS_PRICE = 0.000000000001;
@@ -91,7 +91,7 @@ export const WalletProvider = (props) => {
     try {
       let data = await Pact.fetch.local({
         pactCode: `(coin.details ${JSON.stringify(accountName)})`,
-        meta: Pact.lang.mkMeta("", chainId ,GAS_PRICE,3000,creationTime(), 600),
+        meta: Pact.lang.mkMeta("", CHAIN_ID ,GAS_PRICE,3000,creationTime(), 600),
       }, network);
       if (data.result.status === "success"){
         await localStorage.setItem('acct', JSON.stringify(data.result.data));
@@ -251,6 +251,8 @@ var parseRes = async function (raw) {
     <WalletContext.Provider
       value={{
         GAS_PRICE,
+        CHAIN_ID,
+        NETWORK_ID,
         apiHost,
         account,
         setVerifiedAccount,
