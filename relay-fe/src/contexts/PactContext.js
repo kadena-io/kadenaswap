@@ -61,6 +61,7 @@ export const PactProvider = (props) => {
       sender: 'relay-free-gas',
       gasLimit: 2000,
       gasPrice: GAS_PRICE,
+      networkId: NETWORK_ID,
       chainId: CHAIN_ID,
       ttl: 1500,
       signingPubKey: wallet.account.guard.keys[0],
@@ -92,6 +93,7 @@ export const PactProvider = (props) => {
         signingPubKey: key,
         gasLimit: 2000,
         gasPrice: GAS_PRICE,
+        networkId: NETWORK_ID,
         chainId: CHAIN_ID,
         ttl: 1500,
         envData: {
@@ -114,6 +116,7 @@ export const PactProvider = (props) => {
         sender: 'relay-free-gas',
         gasLimit: 2000,
         gasPrice: GAS_PRICE,
+        networkId: NETWORK_ID, 
         chainId: CHAIN_ID,
         ttl: 1000,
         signingPubKey: key,
