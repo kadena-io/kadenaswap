@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import '../App.css';
-import { Modal, Button, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
+import { Modal, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
+import Button from '../wallet/components/shared/Button';
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
 import MainnetHome from "./MainnetHome"

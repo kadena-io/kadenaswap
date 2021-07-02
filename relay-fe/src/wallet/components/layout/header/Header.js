@@ -111,7 +111,6 @@ const Header = () => {
   return (
       <Container>
         <LeftContainer>
-          <KDALogo style={{ cursor: 'pointer' }} />
         </LeftContainer>
         <RightContainer>
           <Item className="mobile-none" to="#">

@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import '../App.css';
-import { Button, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
+import { Button as SUIButton, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
+import Button from '../wallet/components/shared/Button';
 // import { Wallet } from '../../../wallet/Wallet.js'
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
@@ -110,7 +111,7 @@ function Home() {
             <Form.Field
               style={{marginTop: "10px", marginBottom: 5, width: "360px", marginLeft: "auto", marginRight: "auto"}}
               >
-              <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left" }}>
+              <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left", width: "360px", }}>
                 Create a New Bond
               </label>
               <Input
@@ -122,7 +123,7 @@ function Home() {
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
                 action= {
-                  <Button
+                  <SUIButton
                     disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || wallet.account.guard && wallet.account.guard.keys.includes(key)}
                     icon="add"
                     onClick={() => {
