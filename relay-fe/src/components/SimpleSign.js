@@ -48,7 +48,7 @@ const SimpleSign = (props) => {
         onClose={() => setFirstOpen(false)}
         onOpen={() => setFirstOpen(true)}
         open={firstOpen}
-        style={{width: "550px"}}
+        style={{width: "750px", margin: 40}}
         trigger={
           <Button
             disabled={!bondExist}
@@ -62,16 +62,18 @@ const SimpleSign = (props) => {
           </Button>
         }
       >
-        <Modal.Header>{activity} "{bond}"</Modal.Header>
+        <Modal.Header style={{textAlign:'center'}}>
+        {activity}<br/>"{bond}"
+        </Modal.Header>
         <Modal.Content >
           <Modal.Description>
             <BondInfo
             style={{marginLeft: "10px"}}/>
           </Modal.Description>
         </Modal.Content>
-        <Modal.Actions>
+        <Modal.Actions style={{textAlign:'center'}}>
           {activity === "Unbond" ?
-          <div>
+          <div >
             <Button
               onClick={() => {
                 setFirstOpen(false)
