@@ -19,6 +19,17 @@ function Home() {
   const [bondExist, setBondExist] = React.useState(false);
   const [publicKeys, setPublicKeys] = useState([]);
 
+  useEffect(()=> {
+    setKey("")
+    if(wallet.account.guard && wallet.account.guard.keys){
+      for (let i=0;i<wallet.account.guard.keys.length;i++){
+        if (!publicKeys.includes(wallet.account.guard.keys[i])){
+          setKey(wallet.account.guard.keys[i])
+        }
+      }
+    }
+  }, [wallet.account.account, publicKeys])
+
   const loading = (reqKey) => {
       return (
         <div>
@@ -115,6 +126,7 @@ function Home() {
                 Create a New Bond
               </label>
               <Input
+                value={key}
                 error={wallet.account.guard && wallet.account.guard.keys.includes(key)}
                 style={{width: "360px"}}
                 icon='key'
@@ -124,7 +136,7 @@ function Home() {
                 onChange={(e) => setKey(e.target.value)}
                 action= {
                   <SUIButton
-                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || wallet.account.guard && wallet.account.guard.keys.includes(key)}
+                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || (false && wallet.account.guard && wallet.account.guard.keys.includes(key))}
                     icon="add"
                     onClick={() => {
                       setPublicKeys([...publicKeys, key])
@@ -133,7 +145,7 @@ function Home() {
                   />
                 }
               />
-              {(wallet.account.guard && wallet.account.guard.keys.includes(key))
+              {(false && wallet.account.guard && wallet.account.guard.keys.includes(key))
                 ?
                 <Label pointing color="red" hidden >
                   Please use a key that is not used in your Kadena account
@@ -193,7 +205,7 @@ function Home() {
               />
             </Form.Field>
 
-            <Form.Field style={{width: 500, margin: "auto"}}>
+            <Form.Field style={{width: 670, margin: "auto"}}>
               <Message
                 success={status().success}
                 warning={status().warning}
