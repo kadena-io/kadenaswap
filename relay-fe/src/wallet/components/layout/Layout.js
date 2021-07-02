@@ -4,7 +4,7 @@ import Wrapper from '../shared/Container';
 import Header from './header/Header';
 
 const MainContent = styled.div`
-  margin-top: ${({ theme: { header } }) => `${header.height}px`};
+  /* margin-top: ${({ theme: { header } }) => `${header.height}px`}; */
   height: 100%;
 
   & > div:first-child {
