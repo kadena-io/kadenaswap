@@ -1,4 +1,4 @@
-import React, { useState, useContext, createContext }  from 'react';
+import React, { useState, useContext, useEffect, createContext }  from 'react';
 import Pact from 'pact-lang-api';
 import { WalletContext } from "../wallet/contexts/WalletContext"
 
@@ -15,6 +15,7 @@ export const PactProvider = (props) => {
   const [transaction, setTransaction] = useState(null);
   const [localRes, setLocalRes] = useState(null);
   const [bondInfo, setBondInfo] = useState({});
+  const [tvl, setTVL] = useState(0);
 
   let wallet = useContext(WalletContext);
   const {
@@ -27,6 +28,11 @@ export const PactProvider = (props) => {
     NETWORK_ID,
     CHAIN_ID
   } = wallet;
+
+
+  useEffect(()=> {
+    getTVL();
+  }, [])
 
   const getBond = async (bond) => {
     const cmd = {
@@ -50,6 +56,26 @@ export const PactProvider = (props) => {
 
   }
 
+
+    const getTVL = async () => {
+      console.log("function called")
+      const cmd = {
+          pactCode: `(fold (+) 0.0 (map (compose (relay.pool.get-bond) (at 'balance )) (at 'active (relay.pool.get-pool relay.relay.POOL))))`,
+          meta: Pact.lang.mkMeta("", CHAIN_ID, GAS_PRICE, 2000, creationTime(), 1000),
+          chainId: CHAIN_ID,
+        }
+      try {
+        let data = await Pact.fetch.local(cmd, apiHost(NETWORK_ID, CHAIN_ID));
+        console.log(data)
+        if (data.result.status === "success") {
+          setTVL(data.result.data)
+          return true;
+        }
+        else return false;
+      } catch (e){
+        console.log(e)
+      }
+  }
 
   const newBond = async (acct, keys) => {
     const cmd = {
@@ -116,7 +142,7 @@ export const PactProvider = (props) => {
         sender: 'relay-free-gas',
         gasLimit: 2000,
         gasPrice: GAS_PRICE,
-        networkId: NETWORK_ID, 
+        networkId: NETWORK_ID,
         chainId: CHAIN_ID,
         ttl: 1000,
         signingPubKey: key,
@@ -298,6 +324,7 @@ export const PactProvider = (props) => {
         value={{
           getBond,
           bondInfo,
+          tvl,
           newBond,
           unBond,
           renewBond,

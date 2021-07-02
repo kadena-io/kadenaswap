@@ -5,19 +5,23 @@ import Button from '../wallet/components/shared/Button';
 // import { Wallet } from '../../../wallet/Wallet.js'
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
-import MainnetHome from "./MainnetHome"
 import SimpleSign from './SimpleSign'
 import Relay from './Relay'
 
 function Home() {
   const pact = useContext(PactContext);
   const wallet = useContext(WalletContext);
+  const network = wallet.NETWORK_ID === "mainnet01" ? "mainnet" : "testnet";
 
   const {requestState, requestKey, response, localRes, error} = pact;
   const [key, setKey] = useState("");
   const [bond, setBond] = useState("");
   const [bondExist, setBondExist] = React.useState(false);
   const [publicKeys, setPublicKeys] = useState([]);
+  const totalBonded = pact.tvl;
+  console.log(totalBonded/1000000, "MM")
+
+
 
   useEffect(()=> {
     setKey("")
@@ -77,7 +81,7 @@ function Home() {
                      <p><b>Block Height:</b> {res.metaData.blockHeight}</p>
                      <p><b>Block Hash:</b> {res.metaData.blockHash}</p>
                      <p><b>Result:</b> {JSON.stringify(res.result.data)}</p>
-                     <p>Check Your TX <a href={`https://explorer.chainweb.com/testnet/tx/${res.reqKey}`}><b>here</b></a></p>
+                     <p>Check Your TX <a href={`https://explorer.chainweb.com/${network}/tx/${res.reqKey}`}><b>here</b></a></p>
                    </div>,
           hidden: false,
           success: true
@@ -101,15 +105,19 @@ function Home() {
     return requestContent[requestState];
   }
 
-  if (false) {
     return (
       <div className="App">
+        <h5
+          style={{ color:"yellow", position:"fixed", top:15, left: "5%", textAlign: "center", fontSize: 16 }}
+        >
+         {`${totalBonded/1000000} MM KDA TVL`}
+        </h5>
         <header className="App-header">
           <img src={require("../kadena.png")} style={{height:100, marginBottom: 10}}/>
           <h1>
-            Kadena Testnet Chain Relay
+            Kadena {network === "mainnet01" ? "" : "Testnet"} Chain Relay
           </h1>
-          <h5>Create and manage Kadena Chain Relay Bonds on Testnet
+          <h5>Create and manage Kadena Chain Relay Bonds {network === "mainnet01" ? "" : "on Testnet"}
           </h5>
 
           <Form
@@ -230,12 +238,7 @@ function Home() {
           </Form>
           <Relay/>
         </header>
-      </div>
-    );
-  } else {
-    return <MainnetHome/>
-  }
-
+      </div>)
 }
 
 export default Home;
