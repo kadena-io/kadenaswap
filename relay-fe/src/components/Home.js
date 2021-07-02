@@ -1,17 +1,22 @@
 import React, { useState, useContext, useEffect } from 'react';
 import '../App.css';
-import { Button, Form, Message, Icon, List } from 'semantic-ui-react';
+import { Button as SUIButton, Form, Message, Icon, List, Input, Label } from 'semantic-ui-react';
+import Button from '../wallet/components/shared/Button';
 // import { Wallet } from '../../../wallet/Wallet.js'
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
 import MainnetHome from "./MainnetHome"
+import SimpleSign from './SimpleSign'
+import Relay from './Relay'
 
 function Home() {
   const pact = useContext(PactContext);
   const wallet = useContext(WalletContext);
+
   const {requestState, requestKey, response, localRes, error} = pact;
   const [key, setKey] = useState("");
   const [bond, setBond] = useState("");
+  const [bondExist, setBondExist] = React.useState(false);
   const [publicKeys, setPublicKeys] = useState([]);
 
   const loading = (reqKey) => {
@@ -29,6 +34,7 @@ function Home() {
         </div>
       )
     }
+
 
    const renderRes = (res) => {
      if (!res) {
@@ -49,6 +55,7 @@ function Home() {
                      <p><b>Result:</b> {JSON.stringify(res.result.error.message)}</p>
                    </div>,
           hidden: false,
+          error: true,
           warning: true
         }
       } else if (res.result && res.result.status === "success"){
@@ -59,7 +66,7 @@ function Home() {
                      <p><b>Block Height:</b> {res.metaData.blockHeight}</p>
                      <p><b>Block Hash:</b> {res.metaData.blockHash}</p>
                      <p><b>Result:</b> {JSON.stringify(res.result.data)}</p>
-                     <p>Check Your TX <a href="https://balance.chainweb.com"><b>here</b></a></p>
+                     <p>Check Your TX <a href={`https://explorer.chainweb.com/testnet/tx/${res.reqKey}`}><b>here</b></a></p>
                    </div>,
           hidden: false,
           success: true
@@ -82,8 +89,8 @@ function Home() {
     }
     return requestContent[requestState];
   }
-  console.log(process.env)
-  if (process.env.TESTNET) {
+
+  if (true) {
     return (
       <div className="App">
         <header className="App-header">
@@ -94,15 +101,21 @@ function Home() {
           <h5>Create and manage Kadena Chain Relay Bonds on Testnet
           </h5>
 
-          <Form success={status().success}
-                error={status().error}
-                warning={status().warning}>
+          <Form
+            success={status().success}
+            error={status().error}
+            warning={status().warning}
+            inverted
+          >
 
-            <Form.Field  style={{marginTop: "10px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}>
-              <label style={{color: "#18A33C", textAlign: "left" }}>
+            <Form.Field
+              style={{marginTop: "10px", marginBottom: 5, width: "360px", marginLeft: "auto", marginRight: "auto"}}
+              >
+              <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left", width: "360px", }}>
                 Create a New Bond
               </label>
-              <Form.Input
+              <Input
+                error={wallet.account.guard && wallet.account.guard.keys.includes(key)}
                 style={{width: "360px"}}
                 icon='key'
                 iconPosition='left'
@@ -110,8 +123,8 @@ function Home() {
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
                 action= {
-                  <Button
-                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1}
+                  <SUIButton
+                    disabled={key.length  !== 64 || publicKeys.indexOf(key)!==-1 || wallet.account.guard && wallet.account.guard.keys.includes(key)}
                     icon="add"
                     onClick={() => {
                       setPublicKeys([...publicKeys, key])
@@ -120,14 +133,21 @@ function Home() {
                   />
                 }
               />
+              {(wallet.account.guard && wallet.account.guard.keys.includes(key))
+                ?
+                <Label pointing color="red" hidden >
+                  Please use a key that is not used in your Kadena account
+                </Label>
+                : ""
+              }
               <List celled style={{overflowX: "auto"}}>
               {publicKeys.map(item =>  <List.Item icon='key' style={{color: "white"}} content={item} key={item}/>)}
              </List>
             </Form.Field>
 
-            <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
+            <Form.Field style={{marginTop: -10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
               <Button
-                disabled={wallet.account.account === "" || publicKeys.length === 0}
+                disabled={wallet.account.account === "" || wallet.account.account === null || publicKeys.length === 0}
                 style={{
                   backgroundColor: "#18A33C",
                   color: "white",
@@ -141,45 +161,36 @@ function Home() {
               </Button>
             </Form.Field>
 
-            <Form.Field  style={{marginTop: "0px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}} >
-            <label style={{color: "#18A33C", textAlign: "left" }}>
+            <Form.Field  style={{ marginTop: "20px", marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}} >
+            <label style={{color: "#18A33C", marginBottom: 5, textAlign: "left" }}>
               Unbond / Renew Bond
             </label>
               <Form.Input
-                style={{width: "360px"}}
+                style={{ width: "360px" }}
                 icon='money bill alternate outline'
                 iconPosition='left'
                 placeholder='Bond Name'
                 value={bond}
-                onChange={(e) => setBond(e.target.value)}
+                onChange={async e => {
+                  setBond(e.target.value)
+                  let res = await pact.getBond(e.target.value);
+                  if (res) setBondExist(true);
+                }}
               />
             </Form.Field>
-
             <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
-              <Button
-                disabled={wallet.account.account === "" || bond === ""}
-                style={{
-                backgroundColor: "#18A33C",
-                color: "white",
-                width: 360,
-                }}
-                onClick={() => pact.unBond(wallet.account.account, bond)}
-              >
-                Unbond
-              </Button>
-            </Form.Field>
-            <Form.Field style={{marginTop: 10, marginBottom: 10, width: "360px", marginLeft: "auto", marginRight: "auto"}}  >
-              <Button
+              <SimpleSign
                 disabled={bond === ""}
-                style={{
-                backgroundColor: "#18A33C",
-                color: "white",
-                width: 360,
-                }}
-                onClick={() => pact.renewBond(bond)}
-              >
-                Renew
-              </Button>
+                activity="Unbond"
+                bond={bond}
+                bondExist={bondExist}
+              />
+              <SimpleSign
+                disabled={bond === ""}
+                activity="Renew"
+                bond={bond}
+                bondExist={bondExist}
+              />
             </Form.Field>
 
             <Form.Field style={{width: 500, margin: "auto"}}>
@@ -205,6 +216,7 @@ function Home() {
               </Message>
             </Form.Field>
           </Form>
+          <Relay/>
         </header>
       </div>
     );

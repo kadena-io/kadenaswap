@@ -80,12 +80,9 @@ export default function Account(props) {
       }}
       open={props.open}
     >
-    <Container>
+    <Container style={{margin: 40, marginBottom: 20}}>
       <Modal.Content image>
           <Modal.Description>
-            <Header style={{ marginBottom: 24 }}>
-              <span style={{ fontSize: 24, color: '#3a4750' }}>Your KDA Account (chain 0)</span>
-            </Header>
             <Input
               placeholder="Enter Account"
               error={pact.account.account === null && temp !== ''}
@@ -96,18 +93,15 @@ export default function Account(props) {
                 setTemp(value);
                 await pact.setVerifiedAccount(value);
               }}
+              leftLabel={
+                <>
+                <Header>
+                  <span style={{ color: "black", fontSize: 24 }}>Account Name</span>
+                </Header>
+                </>
+              }
               rightLabel={
                 <>
-                <div style={{}}>
-                  Please download
-                  <a
-                    style={{ marginLeft: 3}}
-                    href="https://github.com/ZelCore-io/ZelCore/releases/tag/v4.9.0-beta-build-2615"
-                    target="_blank"
-                  >
-                    Latest version
-                  </a>
-                </div>
                 <Button
                   onClick={async () => {
                     setLoading(true);
@@ -129,29 +123,22 @@ export default function Account(props) {
                 >
                   get zelcore accounts
                 </Button>
-                <div style={{}}>
-                  Still Confused? Watch
-                  <a
-                    style={{ marginLeft: 3}}
-                    href="https://www.youtube.com/watch?v=Mv-UtypPsZ4&feature=youtu.be"
-                    target="_blank"
-                  >
-                    The tutorial
-                  </a>
-                </div>
                 </>
               }
             />
             {pact.account.account ? (
               <>
-                <Header>
-                  <span style={{ fontSize: 24, color: theme.colors.primary }}>Account Details</span>
-                </Header>
-                <Message color='purple'>
-                  <Message.Header style={{ display: 'flex', justifyContent: 'center', margin: 10 }}>
-                    <span>{JSON.stringify(pact.account.guard, null, '\t')}</span>
-                  </Message.Header>
-                </Message>
+              <Header>
+                <span style={{ fontSize: 24, color: theme.colors.primary }}>Account Details</span>
+              </Header>
+              <Message color='green'>
+                <Message.Header style={{ display: 'flex', justifyContent: 'center', margin: 10 }}>
+                  <span>{JSON.stringify(pact.account.guard.pred, null, '\n')}</span>
+                  :
+                  <br/>
+                  <span>{JSON.stringify(pact.account.guard.keys, null, '\n')}</span>
+                </Message.Header>
+              </Message>
               </>
             ) : temp === '' ? (
               <></>
@@ -167,8 +154,8 @@ export default function Account(props) {
                 <span>
                 <Button
                   background="white"
-                  color="purple"
-                  buttonStyle={{ border: '1px solid purple' }}
+                  color="green"
+                  buttonStyle={{ border: '1px solid green' }}
                   fontSize={16}
                   onClick={() => {
                     setLocked(false)
@@ -182,7 +169,7 @@ export default function Account(props) {
                 : <></>
               }
             </Header>
-            <Menu color="purple" widths={3}>
+            <Menu color="green" widths={3}>
               <Menu.Item
                 name="pk"
                 active={method === 'pk'}
@@ -190,7 +177,7 @@ export default function Account(props) {
                 disabled={locked}
               >
                 <Icon name="warning sign" />
-                Plain Private Key (unsafe)
+                Plain Private Key
               </Menu.Item>
 
               <Menu.Item
@@ -200,17 +187,18 @@ export default function Account(props) {
                 disabled={locked}
               >
                 <Icon name="lock" />
-                Private Key + Password (safe)
+                Private Key + Password
               </Menu.Item>
 
               <Menu.Item
                 name="sign"
                 active={method === 'sign'}
+                style={{margin:5}}
                 onClick={() => setMethod('sign')}
                 disabled={locked}
               >
                 <Icon name="signup" />
-                Chainweaver / Zelcore Signing (safest)
+                Chainweaver / Zelcore Signing
               </Menu.Item>
             </Menu>
             </div>
@@ -297,11 +285,11 @@ export default function Account(props) {
             }
           </Modal.Description>
       </Modal.Content>
-      <Modal.Actions>
+      <Modal.Actions style={{textAlign: 'center', marginTop: 40}}>
         <Button
           background="white"
-          color="purple"
-          buttonStyle={{ border: '1px solid purple', padding: '10px 50px' }}
+          color="green"
+          buttonStyle={{ border: '1px solid green', padding: '10px 50px' }}
           fontSize={16}
           onClick={() => {
             resetValues();

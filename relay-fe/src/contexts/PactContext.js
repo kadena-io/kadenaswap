@@ -16,6 +16,7 @@ export const PactProvider = (props) => {
   const [error, setError] = useState("");
   const [transaction, setTransaction] = useState(null);
   const [localRes, setLocalRes] = useState(null);
+  const [bondInfo, setBondInfo] = useState({});
 
   let wallet = useContext(WalletContext);
   const {
@@ -27,7 +28,30 @@ export const PactProvider = (props) => {
     decryptKey
   } = wallet;
 
-  const newBond = async (acct,keys) => {
+  const getBond = async (bond) => {
+    const cmd = {
+        pactCode: `(relay.pool.get-bond (read-msg 'bond))`,
+        meta: Pact.lang.mkMeta("", CHAIN_ID, GAS_PRICE, 2000, creationTime(), 1000),
+        chainId: CHAIN_ID,
+        envData: {
+          bond: bond
+        }
+      }
+    try {
+      let data = await Pact.fetch.local(cmd, apiHost(NETWORK_ID, CHAIN_ID));
+      if (data.result.status === "success") {
+        setBondInfo(data.result.data)
+        return true;
+      }
+      else return false;
+    } catch (e){
+      console.log(e)
+    }
+
+  }
+
+
+  const newBond = async (acct, keys) => {
     const cmd = {
       pactCode: `(relay.pool.new-bond relay.relay.POOL (read-msg 'account) (read-keyset 'ks))`,
       caps: [
@@ -39,6 +63,7 @@ export const PactProvider = (props) => {
       gasPrice: GAS_PRICE,
       chainId: CHAIN_ID,
       ttl: 1500,
+      signingPubKey: wallet.account.guard.keys[0],
       envData: {
         account: acct,
         ks: {
@@ -47,14 +72,15 @@ export const PactProvider = (props) => {
         }
       }
     }
-    if (signing.method === "sign"){
-       sendBondWallet(cmd);}
+    if (signing.method==="sign"){
+       sendBondWallet(cmd);
+    }
     else {
       sendBondLocal(cmd);
     }
   }
 
-  const unBond = async (acct, bond) => {
+  const unBond = async (acct, bond, key, signWallet=true) => {
     const cmd = {
         pactCode: `(relay.pool.unbond (read-msg 'bond))`,
         caps: [
@@ -63,6 +89,7 @@ export const PactProvider = (props) => {
           Pact.lang.mkCap("Bonder", "Bond", "relay.pool.BONDER", [bond])
         ],
         sender: 'relay-free-gas',
+        signingPubKey: key,
         gasLimit: 2000,
         gasPrice: GAS_PRICE,
         chainId: CHAIN_ID,
@@ -71,13 +98,13 @@ export const PactProvider = (props) => {
           bond: bond
         }
       }
-      if (signing.method === "sign") sendBondWallet(cmd);
+      if (signWallet) sendBondWallet(cmd);
       else {
-        sendBondLocal(cmd);
+        sendBondLocal(cmd, key);
       }
     }
 
-  const renewBond = async (bond) => {
+  const renewBond = async (bond, key, signWallet=true) => {
     const cmd = {
         pactCode: `(relay.pool.renew (read-msg 'bond))`,
         caps: [
@@ -89,19 +116,20 @@ export const PactProvider = (props) => {
         gasPrice: GAS_PRICE,
         chainId: CHAIN_ID,
         ttl: 1000,
+        signingPubKey: key,
         envData: {
           bond: bond
         }
       }
-      if (signing.method === "sign") sendBondWallet(cmd);
+      if (signWallet) sendBondWallet(cmd);
       else {
-        sendBondLocal(cmd);
+        sendBondLocal(cmd, key);
       }
     }
-
-  const sendBondLocal = async (signCmd) => {
+    
+  const sendBondLocal = async (signCmd, key) => {
     try {
-      let privKey = signing.key
+      let privKey = key || signing.key
       if (signing.method === 'pk+pw') {
         const pw = await pwPrompt();
         privKey = await decryptKey(pw)
@@ -109,11 +137,12 @@ export const PactProvider = (props) => {
       if (privKey.length !== 64) {
         return
       }
+      let kp = Pact.crypto.restoreKeyPairFromSecretKey(privKey)
       const cmd = {
           pactCode: signCmd.pactCode,
           keyPairs: {
-            publicKey: account.guard.keys[0],
-            secretKey: privKey,
+            publicKey: kp.publicKey,
+            secretKey: kp.secretKey,
             clist: signCmd.caps.map(cap => {
               return cap.cap;
             })
@@ -123,8 +152,12 @@ export const PactProvider = (props) => {
           networkId: NETWORK_ID
       }
       let data = await Pact.fetch.local(cmd, apiHost(NETWORK_ID, CHAIN_ID));
-      setTransaction(cmd);
-      if (data.result.status === "success"){
+      setTransaction(cmd)
+      if (!data.result) {
+        setLocalRes(data);
+        setRequestState(7);
+      }
+      else if (data.result.status === "success"){
         setLocalRes(data.result.data);
         setRequestState(8);
       } else {
@@ -133,6 +166,7 @@ export const PactProvider = (props) => {
       }
       return data;
     } catch (e) {
+      console.log(e)
       setLocalRes({});
       return -1
     }
@@ -146,15 +180,10 @@ export const PactProvider = (props) => {
         setRequestKey(reqKey.requestKeys[0])
         setRequestState(3);
         return reqKey.requestKeys[0]
-      }).then(reqKey => {
+      }).then(async reqKey => {
         //Listening for result
         setRequestState(4);
-        return Pact.fetch.listen({"listen": reqKey }, apiHost(NETWORK_ID, CHAIN_ID))
-      })
-      .then(res => {
-        //Result came back
-        setRequestState(5);
-        setResponse(res);
+        const res =  await poll(reqKey, apiHost(NETWORK_ID, CHAIN_ID));
         return res
       })
       .then(res => {
@@ -235,12 +264,37 @@ export const PactProvider = (props) => {
       } catch(err){
         alert("you cancelled the TX or you did not have the wallet app open")
       }
+    }
 
+    async function poll(reqKey, apiHost, maxCount=300) {
+      let repeat = true;
+      let count = 0;
+      while (repeat) {
+        const result = await Pact.fetch.poll({"requestKeys": [reqKey]}, apiHost)
+        if (result[reqKey]) {
+          return result[reqKey];
+        }
+        await wait();
+        count++;
+        if (count > maxCount) {
+          repeat = false;
+          return result;
+        }
+      }
+      return false
+    }
+
+    async function wait(ms = 1000) {
+      return new Promise(resolve => {
+        setTimeout(resolve, ms);
+      });
     }
 
     return (
       <PactContext.Provider
         value={{
+          getBond,
+          bondInfo,
           newBond,
           unBond,
           renewBond,

@@ -84,7 +84,7 @@ const HamburgerListContainer = styled.div`
 const HamburgerItem = styled.div`
   display: flex;
   align-items: center;
-  font-family: neue-regular;
+  font-family: neue-bold;
   font-size: 16px;
   color: ${({ theme: { colors } }) => colors.primary};
   &:hover {
@@ -111,14 +111,13 @@ const Header = () => {
   return (
       <Container>
         <LeftContainer>
-          <KDALogo style={{ cursor: 'pointer' }} />
         </LeftContainer>
         <RightContainer>
           <Item className="mobile-none" to="#">
           <Label
             style={{ padding: '10px 16px', color:"white", fontSize: 16 }}
           >
-            Chain Relay live on Testnet
+            LIVE TESTNET (CHAIN 0)
           </Label>
           </Item>
           {pact?.account.account ? (
