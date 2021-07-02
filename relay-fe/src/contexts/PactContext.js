@@ -28,7 +28,6 @@ export const PactProvider = (props) => {
     decryptKey
   } = wallet;
 
-
   const getBond = async (bond) => {
     const cmd = {
         pactCode: `(relay.pool.get-bond (read-msg 'bond))`,
@@ -52,7 +51,7 @@ export const PactProvider = (props) => {
   }
 
 
-  const newBond = async (acct, keys, wallet=true) => {
+  const newBond = async (acct, keys) => {
     const cmd = {
       pactCode: `(relay.pool.new-bond relay.relay.POOL (read-msg 'account) (read-keyset 'ks))`,
       caps: [
@@ -64,6 +63,7 @@ export const PactProvider = (props) => {
       gasPrice: GAS_PRICE,
       chainId: CHAIN_ID,
       ttl: 1500,
+      signingPubKey: wallet.account.guard.keys[0],
       envData: {
         account: acct,
         ks: {
@@ -80,7 +80,7 @@ export const PactProvider = (props) => {
     }
   }
 
-  const unBond = async (acct, bond, key, wallet=true) => {
+  const unBond = async (acct, bond, key, signWallet=true) => {
     const cmd = {
         pactCode: `(relay.pool.unbond (read-msg 'bond))`,
         caps: [
@@ -89,6 +89,7 @@ export const PactProvider = (props) => {
           Pact.lang.mkCap("Bonder", "Bond", "relay.pool.BONDER", [bond])
         ],
         sender: 'relay-free-gas',
+        signingPubKey: key,
         gasLimit: 2000,
         gasPrice: GAS_PRICE,
         chainId: CHAIN_ID,
@@ -97,13 +98,13 @@ export const PactProvider = (props) => {
           bond: bond
         }
       }
-      if (wallet) sendBondWallet(cmd);
+      if (signWallet) sendBondWallet(cmd);
       else {
         sendBondLocal(cmd, key);
       }
     }
 
-  const renewBond = async (bond, key, wallet) => {
+  const renewBond = async (bond, key, signWallet=true) => {
     const cmd = {
         pactCode: `(relay.pool.renew (read-msg 'bond))`,
         caps: [
@@ -115,15 +116,17 @@ export const PactProvider = (props) => {
         gasPrice: GAS_PRICE,
         chainId: CHAIN_ID,
         ttl: 1000,
+        signingPubKey: key,
         envData: {
           bond: bond
         }
       }
-      if (signing.method === "sign") sendBondWallet(cmd);
+      if (signWallet) sendBondWallet(cmd);
       else {
         sendBondLocal(cmd, key);
       }
     }
+    
   const sendBondLocal = async (signCmd, key) => {
     try {
       let privKey = key || signing.key
@@ -250,7 +253,6 @@ export const PactProvider = (props) => {
               setRequestState(6);
               setError("Signing was unsuccessful");
             } else if (typeof e === "object"){
-              console.log(e)
               setRequestState(6);
               setError("Open your wallet");
             } else {

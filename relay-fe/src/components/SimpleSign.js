@@ -84,7 +84,6 @@ const SimpleSign = (props) => {
               onClick={() => {
                 setSecondOpen(true)
                 // setOpen(false)
-                pact.unBond(pact.bondInfo.account, bond, key, false)
               }}
               primary
               >
@@ -105,7 +104,6 @@ const SimpleSign = (props) => {
             <Button
               onClick={() => {
                 setSecondOpen(true)
-                pact.renewBond(bond, key)
               }}
               primary
               >
@@ -166,7 +164,7 @@ const SimpleSign = (props) => {
               onClick={() => {
                 setFirstOpen(false)
                 setSecondOpen(false)
-                pact.renewBond(bond, key)
+                pact.renewBond(bond, key, false)
               }}
               primary
               disabled={key.length!==64}
