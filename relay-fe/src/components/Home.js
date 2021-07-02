@@ -12,16 +12,13 @@ function Home() {
   const pact = useContext(PactContext);
   const wallet = useContext(WalletContext);
   const network = wallet.NETWORK_ID === "mainnet01" ? "mainnet" : "testnet";
-
+ 
   const {requestState, requestKey, response, localRes, error} = pact;
   const [key, setKey] = useState("");
   const [bond, setBond] = useState("");
   const [bondExist, setBondExist] = React.useState(false);
   const [publicKeys, setPublicKeys] = useState([]);
   const totalBonded = pact.tvl;
-  console.log(totalBonded/1000000, "MM")
-
-
 
   useEffect(()=> {
     setKey("")
@@ -115,9 +112,9 @@ function Home() {
         <header className="App-header">
           <img src={require("../kadena.png")} style={{height:100, marginBottom: 10}}/>
           <h1>
-            Kadena {network === "mainnet01" ? "" : "Testnet"} Chain Relay
+            Kadena {network === "mainnet" ? "" : "Testnet"} Chain Relay
           </h1>
-          <h5>Create and manage Kadena Chain Relay Bonds {network === "mainnet01" ? "" : "on Testnet"}
+          <h5>Create and manage Kadena Chain Relay Bonds {network === "mainnet" ? "" : "on Testnet"}
           </h5>
 
           <Form
