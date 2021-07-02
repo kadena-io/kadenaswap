@@ -80,7 +80,7 @@ export default function Account(props) {
       }}
       open={props.open}
     >
-    <Container style={{margin: 40}}>
+    <Container style={{margin: 40, marginBottom: 20}}>
       <Modal.Content image>
           <Modal.Description>
             <Input
@@ -285,7 +285,7 @@ export default function Account(props) {
             }
           </Modal.Description>
       </Modal.Content>
-      <Modal.Actions>
+      <Modal.Actions style={{textAlign: 'center', marginTop: 40}}>
         <Button
           background="white"
           color="green"
