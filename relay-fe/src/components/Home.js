@@ -12,6 +12,7 @@ function Home() {
   const pact = useContext(PactContext);
   const wallet = useContext(WalletContext);
   const network = wallet.NETWORK_ID === "mainnet01" ? "mainnet" : "testnet";
+  console.log(network)
 
   const {requestState, requestKey, response, localRes, error} = pact;
   const [key, setKey] = useState("");
@@ -115,9 +116,9 @@ function Home() {
         <header className="App-header">
           <img src={require("../kadena.png")} style={{height:100, marginBottom: 10}}/>
           <h1>
-            Kadena {network === "mainnet01" ? "" : "Testnet"} Chain Relay
+            Kadena {network === "mainnet" ? "" : "Testnet"} Chain Relay
           </h1>
-          <h5>Create and manage Kadena Chain Relay Bonds {network === "mainnet01" ? "" : "on Testnet"}
+          <h5>Create and manage Kadena Chain Relay Bonds {network === "mainnet" ? "" : "on Testnet"}
           </h5>
 
           <Form
