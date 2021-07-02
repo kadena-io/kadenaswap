@@ -4,7 +4,6 @@ import { Modal, Form, Message, Icon, List, Input, Label } from 'semantic-ui-reac
 import Button from '../wallet/components/shared/Button';
 import { PactContext } from "../contexts/PactContext";
 import { WalletContext } from "../wallet/contexts/WalletContext"
-import MainnetHome from "./MainnetHome"
 import Pact from 'pact-lang-api';
 const SimpleSign = (props) => {
   const pact = useContext(PactContext);
