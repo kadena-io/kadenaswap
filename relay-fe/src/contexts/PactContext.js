@@ -3,6 +3,7 @@ import Pact from 'pact-lang-api';
 import { WalletContext } from "../wallet/contexts/WalletContext"
 
 const BOND_AMOUNT = 50000;
+const GAS_LIMIT = 3000;
 
 export const PactContext = createContext();
 
@@ -37,7 +38,7 @@ export const PactProvider = (props) => {
   const getBond = async (bond) => {
     const cmd = {
         pactCode: `(relay.pool.get-bond (read-msg 'bond))`,
-        meta: Pact.lang.mkMeta("", CHAIN_ID, GAS_PRICE, 2000, creationTime(), 1000),
+        meta: Pact.lang.mkMeta("", CHAIN_ID, GAS_PRICE, GAS_LIMIT, creationTime(), 1000),
         chainId: CHAIN_ID,
         envData: {
           bond: bond
@@ -58,10 +59,9 @@ export const PactProvider = (props) => {
 
 
     const getTVL = async () => {
-      console.log("function called")
       const cmd = {
           pactCode: `(fold (+) 0.0 (map (compose (relay.pool.get-bond) (at 'balance )) (at 'active (relay.pool.get-pool relay.relay.POOL))))`,
-          meta: Pact.lang.mkMeta("", CHAIN_ID, GAS_PRICE, 2000, creationTime(), 1000),
+          meta: Pact.lang.mkMeta("", CHAIN_ID, GAS_PRICE, GAS_LIMIT, creationTime(), 1000),
           chainId: CHAIN_ID,
         }
       try {
@@ -85,7 +85,7 @@ export const PactProvider = (props) => {
         Pact.lang.mkCap("transfer capability", "Transfer Token to Pool", `coin.TRANSFER`, [acct, "relay-bank", BOND_AMOUNT]),
       ],
       sender: 'relay-free-gas',
-      gasLimit: 2000,
+      gasLimit: GAS_LIMIT,
       gasPrice: GAS_PRICE,
       networkId: NETWORK_ID,
       chainId: CHAIN_ID,
@@ -117,7 +117,7 @@ export const PactProvider = (props) => {
         ],
         sender: 'relay-free-gas',
         signingPubKey: key,
-        gasLimit: 2000,
+        gasLimit: GAS_LIMIT,
         gasPrice: GAS_PRICE,
         networkId: NETWORK_ID,
         chainId: CHAIN_ID,
@@ -140,7 +140,7 @@ export const PactProvider = (props) => {
           Pact.lang.mkCap("Bonder", "Bond", "relay.pool.BONDER", [bond])
         ],
         sender: 'relay-free-gas',
-        gasLimit: 2000,
+        gasLimit: GAS_LIMIT,
         gasPrice: GAS_PRICE,
         networkId: NETWORK_ID,
         chainId: CHAIN_ID,
