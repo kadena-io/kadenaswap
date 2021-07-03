@@ -144,7 +144,7 @@ export default function Account(props) {
               <></>
             ) : (
               <Header>
-                <span style={{ color: "red", fontSize: 24 }}>Account Does Not Exist</span>
+                <span style={{ color: "red", fontSize: 24 }}>Please add some funds to a wallet on Chain 2 to continue. Read more about how to use the relay <a href="https://medium.com/kadena-io/chain-relay-bonding-launch-3ee23bc95d1d">here</a></span>
               </Header>
             )}
             <div style={{ opacity: pact?.account?.account ? 1 : 0.3, marginTop: 30, marginBottom: 30 }}>
