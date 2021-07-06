@@ -27,6 +27,7 @@
     next-forum-uuid:integer
     mjolnir-guard:guard)
   (deftable state:{state-obj})
+  (deftable forum-state)
   (defun view-state ()
     (read state STATE_KEY))
   (defun init-state:bool (mjolnir-guard:guard)
@@ -443,7 +444,7 @@
   (defun undelete-comment-comment:bool (moderator:string comment-index:string)
     (with-read comments comment-index {'parent-index := parent-index}
       (log-mod-action moderator (format "Deleted comment {} from comment {}" [comment-index parent-index]))
-      (update comments comment-index {'deleted : true})
+      (update comments comment-index {'deleted : false})
       (with-read comments parent-index
           {'topic-index := topic-index, 'child-indexs := child-indexs}
         (with-read topics topic-index {'all-comments := all-comments}
@@ -487,6 +488,9 @@
   ;
   (defun init (mjolnir-guard:guard)
     (init-state mjolnir-guard))
+
+  (defun state-table-migration ()
+    (insert state STATE_KEY (read forum-state STATE_KEY)))
 )
 
 
