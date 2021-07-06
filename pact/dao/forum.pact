@@ -127,7 +127,6 @@
       ,'moderator:is-moderator
       ,'disabled:false}))
 
-
   ; ----
   ; suggestion functionality
 
@@ -211,7 +210,7 @@
       , 'body : body
       , 'upvotes : upvotes
       , 'downvotes : downvotes
-      , 'children : (map (read comments) child-indexs) }))
+      , 'child-indexs : child-indexs}))
 
   (defschema topic
     index:string
@@ -252,7 +251,7 @@
       , 'upvotes : upvotes
       , 'downvotes : downvotes
       , 'comment-indexs : comment-indexs
-      , 'all-comments : (map (read comments) all-comments) }))
+      , 'all-comments : all-comments }))
   (defun undeleted-topic-keys:[string] ()
     (sort
       (map (at 'index)
@@ -301,13 +300,13 @@
            , 'body : body })))
     true)
 
-  (defun delete-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Deleting topic {}" [topic-index]))
+  (defun delete-topic:bool (moderator:string topic-index:string)
+    (log-mod-action moderator (format "Deleting topic {}" [topic-index]))
     (update topics topic-index {'deleted:true})
     true)
 
-  (defun undelete-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Undeleting topic {}" [topic-index]))
+  (defun undelete-topic:bool (moderator:string topic-index:string)
+    (log-mod-action moderator (format "Undeleting topic {}" [topic-index]))
     (update topics topic-index {'deleted:false})
     true)
 
@@ -320,16 +319,16 @@
     (update comments comment-index {'locked:false})
     true)
 
-  (defun lock-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Locking topic {}" [topic-index]))
+  (defun lock-topic:bool (moderator:string topic-index:string)
+    (log-mod-action moderator (format "Locking topic {}" [topic-index]))
       (update topics topic-index {'locked : true})
       (with-capability (FORUM-INTERNAL)
         (with-read topics topic-index {"all-comments":=all-comments}
           (map (lock-comment) all-comments)))
     true)
 
-  (defun unlock-topic:bool (guardian:string topic-index:string)
-    (log-mod-action guardian (format "Unlocking topic {}" [topic-index]))
+  (defun unlock-topic:bool (moderator:string topic-index:string)
+    (log-mod-action moderator (format "Unlocking topic {}" [topic-index]))
       (with-read topics topic-index {'comment-indexs := comment-indexs}
         (update topics topic-index {'locked : false})
         (with-capability (FORUM-INTERNAL)
@@ -404,9 +403,9 @@
            , 'body : body })))
     true)
 
-  (defun delete-topic-comment:bool (guardian:string comment-index:string)
+  (defun delete-topic-comment:bool (moderator:string comment-index:string)
     (with-read comments comment-index {'parent-index := topic-index}
-      (log-mod-action guardian (format "Deleted comment {} from topic {}" [comment-index topic-index]))
+      (log-mod-action moderator (format "Deleted comment {} from topic {}" [comment-index topic-index]))
       (update comments comment-index {'deleted : true})
       (with-read topics topic-index
           {'all-comments := all-comments, 'comment-indexs := comment-indexs}
@@ -416,9 +415,9 @@
           )))
     true)
 
-  (defun delete-comment-comment:bool (guardian:string comment-index:string)
+  (defun delete-comment-comment:bool (moderator:string comment-index:string)
     (with-read comments comment-index {'parent-index := parent-index}
-      (log-mod-action guardian (format "Deleted comment {} from comment {}" [comment-index parent-index]))
+      (log-mod-action moderator (format "Deleted comment {} from comment {}" [comment-index parent-index]))
       (update comments comment-index {'deleted : true})
       (with-read comments parent-index
           {'topic-index := topic-index, 'child-indexs := child-indexs}
@@ -427,6 +426,31 @@
             {'all-comments : (filter (!= comment-index) all-comments)})
           (update comments parent-index
             {'child-indexs : (filter (!= comment-index) child-indexs)}))))
+    true)
+
+  (defun undelete-topic-comment:bool (moderator:string comment-index:string)
+    (with-read comments comment-index {'parent-index := topic-index}
+      (log-mod-action moderator (format "UnDeleted comment {} from topic {}" [comment-index topic-index]))
+      (update comments comment-index {'deleted : false})
+      (with-read topics topic-index
+          {'all-comments := all-comments, 'comment-indexs := comment-indexs}
+        (update topics topic-index
+          {'comment-indexs : (+ comment-indexs [comment-index])
+          ,'all-comments : (+ all-comments [comment-index])}
+          )))
+    true)
+
+  (defun undelete-comment-comment:bool (moderator:string comment-index:string)
+    (with-read comments comment-index {'parent-index := parent-index}
+      (log-mod-action moderator (format "Deleted comment {} from comment {}" [comment-index parent-index]))
+      (update comments comment-index {'deleted : true})
+      (with-read comments parent-index
+          {'topic-index := topic-index, 'child-indexs := child-indexs}
+        (with-read topics topic-index {'all-comments := all-comments}
+          (update topics topic-index
+            {'all-comments : (+ all-comments [comment-index])})
+          (update comments parent-index
+            {'child-indexs : (+ child-indexs [comment-index])}))))
     true)
 
   (defun vote-on-topic:bool (account:string topic-index:string vote:string)
