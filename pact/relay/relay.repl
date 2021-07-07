@@ -60,23 +60,25 @@
 (test.pool.update-pool
   test.relay.POOL 1 2 3.0 4 5 6 7.0 8.0 9.0 )
 (expect "pool state after update"
-   {"account": "relay-bank"
-   ,"active": []
-   ,"activity": 4
-   ,"bond": 3.0
-   ,"bonded": 0.0
-   ,"confirm": 7.0
-   ,"denouncers": 6
-   ,"endorsers": 5
-   ,"fee": 9.0
-   ,"guard": (test.relay.pool-module-guard)
-   ,"lockup": 1
-   ,"rate": 8.0
-   ,"reserve": 100000.0
-   ,"token": coin
-   ,"unlock": 2
-   }
-  (test.pool.get-pool test.relay.POOL)
+   [{ 'key: "kda-relay-pool"
+    , 'pool:
+      { "account": "relay-bank"
+       ,"active": []
+       ,"activity": 4
+       ,"bond": 3.0
+       ,"bonded": 0.0
+       ,"confirm": 7.0
+       ,"denouncers": 6
+       ,"endorsers": 5
+       ,"fee": 9.0
+       ,"guard": (test.relay.pool-module-guard)
+       ,"lockup": 1
+       ,"rate": 8.0
+       ,"reserve": 100000.0
+       ,"token": coin
+       ,"unlock": 2
+      } } ]
+  (map (test.pool.get-keyed-pool) (test.pool.pool-keys))
 )
 (rollback-tx)
 
@@ -95,7 +97,23 @@
 ])
 (expect "new-bond: success Bob 1"
   "Bob:2021-01-01"
-  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob)))
+  (test.pool.new-bond test.relay.POOL "Bob" (read-keyset 'Bob )))
+(expect "bond query"
+  [{"key": "Bob:2021-01-01"
+   ,"bond":
+    {"account": "Bob"
+    ,"activity": 0
+    ,"balance": 10000.0
+    ,"date": (time "2021-01-01T00:00:00Z")
+    ,"guard": (read-keyset 'Bob )
+    ,"lockup": 30
+    ,"pool": "kda-relay-pool"
+    ,"rate": 0.000822
+    ,"renewed": 0
+    ,"terminated": false
+    }}]
+  (map (test.pool.get-keyed-bond) (test.pool.bond-keys)))
+
 (expect "new-bond: success Alice 1"
   "Alice:2021-01-01"
   (test.pool.new-bond test.relay.POOL "Alice" (read-keyset 'Alice)))
@@ -795,3 +813,57 @@
 (expect "withdraw success"
   "Write succeeded"
   (test.pool.withdraw-reserve test.relay.POOL 'Admin 33003.3))
+(commit-tx)
+
+;;
+;; rotate Alice bond to Bob's account
+;;
+
+(begin-tx)
+(env-keys [])
+(env-data {'Alice: ['alice]})
+(expect-failure "rotate guarded by account key"
+  "Managed capability not installed"
+  (test.pool.rotate "Alice:2021-01-03" "Bob" (read-keyset 'Alice )))
+(env-sigs
+  [ {'key: "alice", 'caps: [
+    (test.pool.ROTATE "Alice:2021-01-03" 'Bob)
+    (test.pool.ROTATE "Alice:2021-01-03" 'Alice)
+    (test.pool.BONDER "Alice:2021-01-03")
+    ] }
+  ])
+(expect "rotate success"
+  "Write succeeded"
+  (test.pool.rotate "Alice:2021-01-03" "Bob" (read-keyset 'Alice )))
+(expect "rotate events"
+  [{"name": "test.pool.ROTATE","params": ["Alice:2021-01-03" "Bob"]}]
+  (map (remove 'module-hash ) (env-events true)))
+
+;; alice can no longer rotate
+(expect-failure "rotate guarded by account key"
+  "Keyset failure"
+  (test.pool.rotate "Alice:2021-01-03" "Alice" (read-keyset 'Alice )))
+;; alice can still renew etc
+(env-chain-data
+  { 'block-time: (parse-time "%F" "2021-02-15")} )
+(expect "alice can still renew"
+  "Write succeeded"
+  (test.pool.renew "Alice:2021-01-03"))
+(expect "renew events"
+  [{"name": "test.pool.BONDER","params": ["Alice:2021-01-03"]}
+  {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 5.0]}
+  {"name": "test.pool.FEE","params": ["kda-relay-pool" "Alice:2021-01-03" 5.0]}
+  {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 5000.0 30 1]}
+  {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 110000.0 86715.1]}]
+  (map (remove 'module-hash ) (env-events true)))
+
+;; Bob can rotate
+(env-sigs
+  [ {'key: "bob", 'caps: [
+    (test.pool.ROTATE "Alice:2021-01-03" 'Carol)
+    ] }
+  ])
+(expect "rotate back to alice success"
+  "Write succeeded"
+  (test.pool.rotate "Alice:2021-01-03" "Carol" (read-keyset 'Alice )))
+(rollback-tx)
