@@ -821,49 +821,36 @@
 
 (begin-tx)
 (env-keys [])
-(env-data {'Alice: ['alice]})
+(env-data {'Bob: ['bob]})
 (expect-failure "rotate guarded by account key"
   "Managed capability not installed"
-  (test.pool.rotate "Alice:2021-01-03" "Bob" (read-keyset 'Alice )))
+  (test.pool.rotate "Alice:2021-01-03" (read-keyset 'Bob )))
 (env-sigs
   [ {'key: "alice", 'caps: [
-    (test.pool.ROTATE "Alice:2021-01-03" 'Bob)
-    (test.pool.ROTATE "Alice:2021-01-03" 'Alice)
+    (test.pool.ROTATE "Alice:2021-01-03")
     (test.pool.BONDER "Alice:2021-01-03")
     ] }
   ])
 (expect "rotate success"
   "Write succeeded"
-  (test.pool.rotate "Alice:2021-01-03" "Bob" (read-keyset 'Alice )))
+  (test.pool.rotate "Alice:2021-01-03" (read-keyset 'Bob )))
 (expect "rotate events"
-  [{"name": "test.pool.ROTATE","params": ["Alice:2021-01-03" "Bob"]}]
+  [{"name": "test.pool.ROTATE","params": ["Alice:2021-01-03"]}]
   (map (remove 'module-hash ) (env-events true)))
 
-;; alice can no longer rotate
-(expect-failure "rotate guarded by account key"
-  "Keyset failure"
-  (test.pool.rotate "Alice:2021-01-03" "Alice" (read-keyset 'Alice )))
-;; alice can still renew etc
 (env-chain-data
   { 'block-time: (parse-time "%F" "2021-02-15")} )
-(expect "alice can still renew"
-  "Write succeeded"
+(expect-failure "rotated, alice cannot service"
+  "Keyset failure"
   (test.pool.renew "Alice:2021-01-03"))
-(expect "renew events"
-  [{"name": "test.pool.BONDER","params": ["Alice:2021-01-03"]}
-  {"name": "coin.TRANSFER","params": ["relay-bank" "Bob" 5.0]}
-  {"name": "test.pool.FEE","params": ["kda-relay-pool" "Alice:2021-01-03" 5.0]}
-  {"name": "test.pool.BOND","params": ["kda-relay-pool" "Bob" 5000.0 30 1]}
-  {"name": "test.pool.UPDATE","params": ["kda-relay-pool" 110000.0 86715.1]}]
-  (map (remove 'module-hash ) (env-events true)))
 
-;; Bob can rotate
 (env-sigs
   [ {'key: "bob", 'caps: [
-    (test.pool.ROTATE "Alice:2021-01-03" 'Carol)
+    (test.pool.BONDER "Alice:2021-01-03")
     ] }
   ])
-(expect "rotate back to alice success"
+(expect "bob can renew"
   "Write succeeded"
-  (test.pool.rotate "Alice:2021-01-03" "Carol" (read-keyset 'Alice )))
+  (test.pool.renew "Alice:2021-01-03"))
+  
 (rollback-tx)
