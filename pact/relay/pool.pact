@@ -5,6 +5,8 @@
   (defcap GOVERNANCE ()
     (enforce-guard (keyset-ref-guard 'relay-ns-admin))
   )
+  ;; bless v1-mainnet
+  (bless "7Nkl4CxzJJFgjTsJrxoas-4qDuWys_GvkEs9rXfeNTc")
 
   (defconst DAY:integer (* 24 (* 60 60)))
 
@@ -60,6 +62,18 @@
       (< (elapsed-days (at 'date bond)) (at 'lockup bond)))
   )
 
+  (defun pool-keys () (keys pools))
+
+  (defun bond-keys () (keys bonds))
+
+  (defun get-keyed-pool (pool:string)
+    { 'key: pool, 'pool: (get-pool pool) })
+
+  (defun get-keyed-bond (bond:string)
+    { 'key: bond, 'bond: (get-bond bond)}
+  )
+
+
   (defcap POOL_ADMIN ()
     (compose-capability (GOVERNANCE)))
 
@@ -89,6 +103,16 @@
 
   (defcap ACTIVITY ( pool:string bond:string activity:integer)
     @event true)
+
+  (defcap ROTATE (bond:string)
+    "Rotation of bond credentials requires auth from originating account."
+    @managed
+    (with-read bonds bond
+      { 'pool := pool, 'account := account }
+      (with-read pools pool
+        { 'token := token:module{fungible-v2} }
+          (enforce-guard (at 'guard (token::details account)))))
+  )
 
   (defun pool-guard () (create-module-guard "pool-bank"))
 
@@ -373,6 +397,16 @@
           (filter
             (compose (get-bond) (is-active))
             active) }))
+  )
+
+  (defun rotate
+    ( bond:string
+      guard:guard
+    )
+    "Rotate bond to new GUARD."
+    (with-capability (ROTATE bond)
+      (update bonds bond
+        { 'guard: guard }))
   )
 
 
