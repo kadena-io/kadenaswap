@@ -1,0 +1,687 @@
+(begin-tx)
+(env-data
+ { 'util-ns-users: ["util-ns-user"]
+ , 'util-ns-admin: ["util-ns-admin"]
+ })
+(env-keys ["util-ns-user", "util-ns-admin"])
+
+(load "../util/ns.pact")
+(load "../util/guards.pact")
+(load "../util/guards1.pact")
+(commit-tx)
+
+(begin-tx)
+(env-data
+ { 'ns-admin-keyset: ["admin"]
+ , 'ns-operate-keyset: ["operate"]
+ , 'ns-genesis-keyset: { "keys": [], "pred": "="} })
+(load "../root/fungible-v2.pact")
+(load "../root/coin.pact")
+(load "../root/ns.pact")
+(commit-tx)
+
+(begin-tx)
+(env-data
+  { 'dao-ns-user: ["dao-user"]
+  , 'dao-ns-admin: ["dao-admin"]
+  , 'dao-ns: "dao"
+  , 'init-dev-admin: ["init-dev-admin"]
+  , 'mjolnir: ["mjolnir"]
+  , 'upgrade: false
+  })
+(env-keys ["operate", "dao-admin", "dao-user", "init-dev-admin","mjolnir"])
+(define-keyset 'init-dev-admin)
+
+(load "init-ns.pact")
+
+(env-chain-data
+  {"block-height": 1675409
+  ,"block-time": (time "2021-05-30T12:00:00Z")
+  ,"chain-id": "0"
+  ,"gas-limit": 10000000
+  ,"gas-price": 0.0
+  ,"prev-block-hash": ""
+  ,"sender": ""})
+(load "init.pact")
+(typecheck "dao.init" true)
+(load "forum.pact")
+(typecheck "dao.forum" true)
+
+
+; redefine namespace to use DAO governance guard only
+(define-namespace
+  (read-msg 'dao-ns)
+  (auto-guards.guard-one [
+    (dao.init.create-gov-guard)
+    (dao.forum.create-forum-gov-guard)
+    ])
+  (keyset-ref-guard 'dao-ns-admin)
+)
+
+(use coin)
+(use dao.init)
+; Check init State
+(coin.details DAO_ACCT_NAME)
+(use dao.init)
+(view-state)
+(view-guardians)
+(view-ambassadors)
+(is-dao-frozen)
+(commit-tx)
+
+(begin-tx)
+(load "tests/populate-users.repl")
+(use dao.init)
+
+; -----------------------------------------------------------------------------
+; basic guardian functionality tests
+; -----------------------------------------------------------------------------
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:
+      [(coin.TRANSFER 'guardian0 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)
+       (GUARDIAN 'guardian0)]}
+  { 'key: 'guardian1
+  , 'caps:
+      [(coin.TRANSFER 'guardian1 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)
+       (GUARDIAN 'guardian1)]}
+  { 'key: 'guardian2
+  , 'caps:
+      [(coin.TRANSFER 'guardian2 DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]}
+  ])
+(register-guardian 'guardian0 (read-keyset 'guardian0))
+
+; quickly poke at the just-one and just-two guardian scenarios
+(propose-dao-upgrade 'guardian0 "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA")
+(expect-failure "proposal is too new"
+  "Proposal still in cooldown"
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+(env-chain-data
+  {"block-time": (time "2021-06-01T12:00:00Z")})
+;(expect-failure "approvals still in cooldown (but now 1 of 3)"
+(expect "1 of 1 allows for upgrade"
+  true
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+(register-guardian 'guardian1 (read-keyset 'guardian1 ))
+(expect-failure "50% vote"
+  "Upgrade not approved, 1 of 2"
+  (check-hash-approval "pwOa2NBxVO0wtVt7Xt2oeJOUkBYML_URtZnDHHK6AJA"))
+
+(register-guardian 'guardian2 (read-keyset 'guardian2))
+
+(expect "3 guardians" 3 (at 'guardian-count (view-state)))
+(expect "DAO has right balance" (* 3 GUARDIAN_KDA_REQUIRED) (dao-acct-balance))
+(expect-failure "cannot unregister guardians"
+  "init needs to be upgraded to enable withdrawls"
+  (unregister-guardian 'guardian1))
+
+(env-sigs [
+  { 'key: 'bob
+  , 'caps:
+      [(coin.TRANSFER 'bob DAO_ACCT_NAME GUARDIAN_KDA_REQUIRED)]
+  }])
+(expect-failure "insufficient funds for guardianship"
+  "Insufficient funds"
+  (register-guardian 'bob (read-keyset 'bob)))
+(view-guardians)
+
+; -----------------------------------------------------------------------------
+; basic ambassador functionality tests
+; -----------------------------------------------------------------------------
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(GUARDIAN 'guardian0)]}
+  { 'key: 'bob
+  , 'caps:[(GUARDIAN 'bob)]}
+  { 'key: 'ambassador0
+  , 'caps:[(GUARDIAN 'ambassador0)]}
+  ])
+(register-ambassador 'guardian0 'ambassador0 (read-keyset 'ambassador0))
+(expect-failure "unauthorized access"
+  "with-read: row not found: bob"
+  (register-ambassador 'bob 'ambassador1 (read-keyset 'ambassador1 )))
+(expect-failure "unauthorized access"
+  "with-read: row not found: ambassador0"
+  (register-ambassador 'ambassador0 'ambassador1 (read-keyset 'ambassador1 )))
+
+(register-ambassador 'guardian0 'ambassador1 (read-keyset 'ambassador1))
+(register-ambassador 'guardian0 'ambassador2 (read-keyset 'ambassador2))
+(register-ambassador 'guardian0 'ambassador3 (read-keyset 'ambassador3))
+(expect "4 ambassadors" 4 (at 'ambassador-count (view-state)))
+
+(deactivate-ambassador 'guardian0 'ambassador3)
+(expect "3 ambassadors" 3 (at 'ambassador-count (view-state)))
+
+(expect-failure "cooldown triggered"
+  "Deactivate Cooldown Failure"
+  (deactivate-ambassador 'guardian0 'ambassador2))
+(env-chain-data
+  {"block-time": (add-time
+      (at 'last-ambassador-deactivation (view-state))
+      (+ DEACTIVATE_COOLDOWN (days 1)))})
+(expect "cooldown triggered" true (deactivate-ambassador 'guardian0 'ambassador2))
+
+(reactivate-ambassador 'guardian0 'ambassador2)
+(commit-tx)
+
+; ----
+; is-ambassador, is-guardian and rotate-abm/grd tests
+(begin-tx)
+(use dao.init)
+(env-data {
+  'guardian0: ["guardian0"],
+  'guardian0b: ["guardian0b"],
+  'ambassador0: ["ambassador0"],
+  'ambassador0b: ["ambassador0b"]
+  })
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(GUARDIAN 'guardian0) ]},
+  { 'key: 'guardian0b
+  , 'caps:[(GUARDIAN 'guardian0) ]},
+  { 'key: 'ambassador0
+  , 'caps:[(AMBASSADOR 'ambassador0)]},
+  { 'key: 'ambassador0b
+  , 'caps:[(AMBASSADOR 'ambassador0)]},
+  { 'key: 'ambassador2
+  , 'caps:[(AMBASSADOR 'ambassador2)]}
+  ])
+(is-ambassador 'ambassador2)
+(env-chain-data
+  {"block-time": (add-time
+      (at 'last-ambassador-deactivation (view-state))
+      (+ DEACTIVATE_COOLDOWN (days 1)))})
+(deactivate-ambassador 'guardian0 'ambassador2)
+(expect-failure "fails for not active ambs"
+  "Ambassador 'ambassador2' is not active"
+  (is-ambassador 'ambassador2 ))
+
+(expect-failure
+  "must sign to prove you're an ambassador"
+  "Keyset failure (keys-all): [ambassad...]" (is-ambassador 'ambassador3 ))
+(expect-failure
+  "must be in ambassador table"
+  "with-read: row not found: guardian0" (is-ambassador 'guardian0 ))
+
+(is-guardian 'guardian0)
+(expect-failure
+  "must sign to prove you're an ambassador"
+  "Keyset failure (keys-all): [guardian...]" (is-guardian 'guardian1))
+(expect-failure
+  "must be in ambassador table"
+  "with-read: row not found: ambassador0" (is-guardian 'ambassador0 ))
+
+(rotate-guardian 'guardian0 (read-keyset 'guardian0b))
+(expect-failure
+  "must pass existing guard to rotate"
+  "Keyset failure (keys-all): [guardian...]"
+  (rotate-guardian 'guardian1 (read-keyset 'guardian0)))
+(rotate-ambassador 'ambassador0 (read-keyset 'ambassador0b))
+(expect-failure
+  "must pass existing guard to rotate"
+  "Keyset failure (keys-all): [ambassad...]"
+  (rotate-ambassador 'ambassador1 (read-keyset 'ambassador0)))
+
+
+(rollback-tx)
+
+; -----------------------------------------------------------------------------
+; freezer tests
+; -----------------------------------------------------------------------------
+(begin-tx)
+(use dao.init)
+(env-sigs [
+  { 'key: 'ambassador0
+  , 'caps:[(AMBASSADOR 'ambassador0)]},
+  { 'key: 'ambassador1
+  , 'caps:[(AMBASSADOR 'ambassador1)]},
+  { 'key: 'ambassador2
+  , 'caps:[(AMBASSADOR 'ambassador2)]}
+  ])
+(env-chain-data
+  {"block-time": (time "2021-07-01T12:00:00Z")})
+
+(vote-to-freeze 'ambassador0)
+(expect-failure "insufficent votes"
+  "Majority vote failed: 1 of 3"
+  (freeze 'ambassador0))
+(expect "not frozen" false (is-dao-frozen))
+
+(vote-to-freeze 'ambassador1)
+(freeze 'ambassador0)
+(expect-failure "DAO is frozen"
+  "DAO is Frozen"
+  (is-dao-frozen))
+
+; roll forward to the edge of the boundry
+(env-chain-data
+  {"block-time": (time "2021-07-08T11:59:59Z")})
+(expect-failure "bounds check"
+  "DAO is Frozen"
+  (is-dao-frozen))
+(expect-failure "freeze votes are timed out"
+  "Majority vote failed: 0 of 3"
+  (freeze 'ambassador0))
+
+; check that ambassadors can't refreeze while frozen
+(vote-to-freeze 'ambassador0)
+(vote-to-freeze 'ambassador1)
+(expect-failure "cannot freeze a frozen DAO"
+  "DAO is Frozen"
+  (freeze 'ambassador0))
+
+; check that freeze aborts GOVERNANCE
+(expect-failure "GOVERNANCE cap is frozen"
+  "DAO is Frozen"
+  (read state DAO_STATE_KEY))
+
+; roll forward the first second that the DAO is unfrozen
+(env-chain-data
+  {"block-time": (time "2021-07-08T12:00:01Z")})
+(expect "DAO is not frozen" false (is-dao-frozen))
+
+; -----------------------------------------------------------------------------
+; proposal tests
+; -----------------------------------------------------------------------------
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(GUARDIAN 'guardian0)]}
+  { 'key: 'guardian1
+  , 'caps:[(GUARDIAN 'guardian1)]}
+  ])
+(propose-dao-upgrade 'guardian0 "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
+(expect-failure "approvals still in cooldown"
+  (check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
+(env-chain-data
+  {"block-time": (time "2021-07-09T12:00:01Z")})
+(expect-failure "approvals still in cooldown (but now 1 of 3)"
+  "Upgrade not approved, 1 of 3 for DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"
+  (check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
+(expect-failure "wrong hash"
+  "Upgrade hash mismatch: DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g vs foo"
+  (guardian-approve-hash 'guardian1 "foo"))
+(guardian-approve-hash 'guardian1 "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
+(check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g")
+(commit-tx)
+
+
+(begin-tx)
+(env-chain-data
+  {"block-time": (time "2021-07-11T12:00:01Z")})
+(expect-failure "bounds check on upgrades"
+  "Proposal has timed out"
+  (dao.init.check-hash-approval "DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g"))
+(rollback-tx)
+
+; Check that upgrade can happen w/ only governance approval
+(begin-tx)
+(use dao.auto-guards)
+(use dao.init)
+(env-chain-data
+  {"block-time": (time "2021-07-11T12:00:01Z")})
+(env-data { 'dao-ns: "dao" })
+(expect-failure "gov cap not available"
+  "Proposal has timed out"
+  (prep-impure-module-admin-cap state))
+(expect-failure "governance fails"
+  "all guards failed"
+  (namespace (read-msg 'dao-ns )))
+(rollback-tx)
+
+(env-chain-data
+  {"block-time": (time "2021-07-09T12:00:01Z")})
+
+(begin-tx)
+(use dao.auto-guards)
+(use dao.init)
+(env-data { 'dao-ns: "dao" })
+(prep-impure-module-admin-cap state)
+(namespace (read-msg 'dao-ns ))
+
+(module init EMPTY
+  (defcap EMPTY () (enforce false "empty module for testing")))
+(rollback-tx)
+
+; Check that no one else can install into the module
+; part one -- timeout
+(begin-tx)
+(use dao.auto-guards)
+(use dao.init)
+(env-chain-data
+  {"block-time": (time "2021-10-09T12:00:01Z")})
+(env-data { 'dao-ns: "dao" })
+(expect-failure "gov cap not available"
+  "Proposal has timed out"
+  (prep-impure-module-admin-cap state))
+(expect-failure
+  "namespace user guard fails due to timeout"
+  "all guards failed"
+  (namespace (read-msg 'dao-ns )))
+(rollback-tx)
+
+; Check that no one else can install into the module
+; part two -- tx-hash
+(begin-tx)
+(env-chain-data
+  {"block-time": (time "2021-07-09T12:00:01Z")})
+(env-hash (hash "not the defaul hash"))
+(env-data { 'dao-ns: "dao" })
+(expect-failure
+  "namespace user guard fails due to tx hash"
+  "all guards failed"
+  (namespace (read-msg 'dao-ns )))
+(rollback-tx)
+
+; -----------------
+; Form tests
+(begin-tx)
+(use dao.init)
+(use dao.forum)
+(load "tests/populate-users.repl")
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(MEMBER 'guardian0 ) (GUARDIAN 'guardian0 )]}
+  { 'key: 'ambassador0
+  , 'caps:[(MEMBER 'ambassador0)
+           (AMBASSADOR "ambassador0")]}
+  { 'key: 'ambassador1
+  , 'caps:[(MEMBER 'ambassador1)
+           (AMBASSADOR "ambassador1")
+           (GUARDIAN "ambassador1")]}
+  { 'key: 'bob
+  , 'caps:[(MEMBER 'ambassador1)]}
+  { 'key: 'ambassador3
+  , 'caps:[(AMBASSADOR 'ambassador3)]}
+  { 'key: 'mjolnir
+    'caps:[(MJOLNIR)]}
+  ])
+(env-keys ["guardian0" "ambassador0" 'ambassador1 'bob 'ambassador3 'mjolnir])
+
+; signup and rotation
+(become-moderator "guardian0" (read-keyset 'guardian0))
+(become-member "ambassador0" (read-keyset 'ambassador0))
+(expect-failure
+  "only guardians can become moderators"
+  (become-moderator "ambassador1" (read-keyset 'ambassador1)))
+(become-member "ambassador1" (read-keyset 'ambassador1))
+(rotate-member "ambassador1" (read-keyset 'bob))
+(rotate-member "ambassador1" (read-keyset 'ambassador1))
+
+(expect-failure
+  "ambassador3 not active"
+  "Ambassador 'ambassador3' is not active"
+  (become-member "ambassador3" (read-keyset 'ambassador3 )))
+
+; MJOLNIR tests
+(mjolnir-write-member "ambassador3" (read-keyset 'ambassador3) false)
+(view-state)
+(view-members)
+(disable-member "guardian0" "ambassador3")
+
+
+; topic posting + topic comment posting + modification tests
+(post-topic "topic 0" "ambassador0" "topic 0 body")
+(post-topic "topic 0" "ambassador1" "topic 0 body")
+(post-topic "topic 2" "guardian0" "topic 2 body")
+(view-topics)
+(modify-topic "3" "topic 1" "topic 1 body")
+(post-topic-comment "ambassador1" "comment 0 topic 2" "2")
+(modify-comment "5" "## MODDED comment" )
+
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(MEMBER 'guardian0)]}
+  { 'key: 'ambassador0
+  , 'caps:[(MEMBER 'ambassador0)]}
+
+  ])
+(expect-failure
+  "only the poster can modify"
+  (modify-topic "1" "foo" "bar"))
+
+(expect-failure
+  "ambassador3 is disabled"
+  (post-topic "topic 4" "ambassador3" "topic 4 body"))
+(expect-failure
+  "only the author can modify the comment"
+  (modify-comment "3" "## MODDED comment" ))
+
+; comment comment posting and modification tests
+(view-comments)
+(post-comment-comment "ambassador0" "comment 3 comment body" "5")
+
+(view-comment "6")
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(MODERATOR 'guardian0)]}
+  { 'key: 'ambassador0
+  , 'caps:[(MODERATOR 'ambassador0)]}
+  ])
+(delete-topic "guardian0" "2")
+(view-deleted-topics)
+(expect-failure
+  "No MODERATOR cap for guardian1"
+  (delete-topic "guardian1" "1"))
+(expect-failure
+  "Ambassador is not a MODERATOR"
+  (delete-topic "ambassador0" "1"))
+(undelete-topic "guardian0" "2")
+(lock-topic "guardian0" "2")
+(unlock-topic "guardian0" "2")
+(expect-failure
+  "Ambassador0 is not a mod"
+  (lock-topic "ambassador0" "2"))
+(delete-topic-comment "guardian0" "5")
+(view-topic-raw "2")
+(expect
+  "removed comment is gone, but comment's comment stays in all-comments"
+  [[],["6"]]
+  [(at 'comment-indexs (view-topic "2"))
+   (at 'all-comments (view-topic-raw "2"))
+   ])
+(delete-comment-comment "guardian0" "6")
+(expect
+  "removed comment is gone, but comment's comment stays in all-comments"
+  [[],[]]
+  [(at 'comment-indexs (view-topic "2"))
+   (at 'all-comments (view-topic-raw "2"))
+   ])
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(MEMBER 'guardian0)]}
+  { 'key: 'ambassador0
+  , 'caps:[(MEMBER 'ambassador0)]}
+  ])
+
+; topic votes
+(vote-on-topic "guardian0" "2" "upvote")
+(expect
+  "guardian voted for"
+  ["guardian0"]
+  (at 'upvotes (view-topic "2")))
+(vote-on-topic "ambassador0" "2" "downvote")
+(expect
+  "ambassdor voted against"
+  ["ambassador0"]
+  (at 'downvotes (view-topic "2")))
+(vote-on-topic "guardian0" "2" "downvote")
+(expect
+  "guardian switch vote"
+  ["ambassador0" "guardian0"]
+  (at 'downvotes (view-topic "2")))
+(expect
+  "guardian switch vote, no more upvotes"
+  []
+  (at 'upvotes (view-topic "2")))
+(vote-on-topic "guardian0" "2" "remove")
+(expect
+  "guardian switch vote"
+  ["ambassador0"]
+  (at 'downvotes (view-topic "2")))
+(expect-failure "badly constructed"
+  "votes must be one of: ['upvote' 'downvote' 'remove']"
+  (vote-on-topic "guardian0" "2" "foo"))
+
+; comment votes
+(vote-on-comment "guardian0" "5" "upvote")
+(expect
+  "guardian voted for"
+  ["guardian0"]
+  (at 'upvotes (view-comment "5")))
+(vote-on-comment "ambassador0" "5" "downvote")
+(expect
+  "ambassdor voted against"
+  ["ambassador0"]
+  (at 'downvotes (view-comment "5")))
+(vote-on-comment "guardian0" "5" "downvote")
+(expect
+  "guardian switch vote"
+  ["ambassador0" "guardian0"]
+  (at 'downvotes (view-comment "5")))
+(expect
+  "guardian switch vote, no more upvotes"
+  []
+  (at 'upvotes (view-comment "5")))
+(vote-on-comment "guardian0" "5" "remove")
+(expect
+  "guardian switch vote"
+  ["ambassador0"]
+  (at 'downvotes (view-comment "5")))
+(expect-failure "badly constructed"
+  "votes must be one of: ['upvote' 'downvote' 'remove']"
+  (vote-on-comment "guardian0" "5" "foo"))
+
+(view-modlogs)
+(view-comments)
+(view-topic "2")
+(commit-tx)
+
+(begin-tx)
+; more mjolnir and govnerance tests
+(use dao.init)
+(use dao.forum)
+(load "tests/populate-users.repl")
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(MEMBER 'guardian0 ) (GUARDIAN 'guardian0 )]}
+  { 'key: 'ambassador0
+  , 'caps:[(MEMBER 'ambassador0)
+           (AMBASSADOR "ambassador0")]}
+  { 'key: 'ambassador1
+  , 'caps:[(MEMBER 'ambassador1)
+           (AMBASSADOR "ambassador1")
+           (GUARDIAN "ambassador1")]}
+  { 'key: 'bob
+  , 'caps:[(MEMBER 'ambassador1)]}
+  { 'key: 'ambassador3
+  , 'caps:[(AMBASSADOR 'ambassador3)]}
+  { 'key: 'mjolnir
+  , 'caps:[(MJOLNIR)]}
+  ])
+
+(rotate-mjolnir (read-keyset 'ambassador0))
+
+(env-sigs [
+  { 'key: 'ambassador0
+  , 'caps:[(MJOLNIR)]}
+  ])
+(log-mjolnir-action "foo")
+(env-sigs [
+  { 'key: 'mjolnir
+  , 'caps:[(MJOLNIR)]}
+  ])
+(expect-failure
+  "mjolnir key was rotated"
+  "Keyset failure (keys-all): [ambassad...]"
+  (log-mjolnir-action "bar"))
+
+(env-sigs [
+  { 'key: 'ambassador0
+  , 'caps:[(MJOLNIR)]}
+  ])
+
+(rotate-mjolnir (read-keyset 'mjolnir))
+(commit-tx)
+
+(begin-tx)
+(use dao.auto-guards)
+(use dao.forum)
+(env-sigs [
+  { 'key: 'mjolnir
+  , 'caps:[(MJOLNIR)]}
+  ])
+(env-keys ["mjolnir"])
+
+(env-data { 'dao-ns: "dao" })
+(prep-impure-module-admin-cap state)
+(namespace (read-msg 'dao-ns ))
+
+;works
+(module forum EMPTY
+  (defcap EMPTY () (enforce false "empty module for testing")))
+
+; ; forum governance cant impact init governance
+; (module init EMPTY
+;   (defcap EMPTY () (enforce false "empty module for testing")))
+;
+(rollback-tx)
+
+(begin-tx)
+(use dao.auto-guards)
+(use dao.forum)
+(env-sigs [])
+(env-keys [])
+(env-data { 'dao-ns: "dao" })
+(expect-failure "can't pass forum governance"
+  "Keyset failure (keys-all): [mjolnir]"
+  (prep-impure-module-admin-cap state))
+(expect-failure "can't access namespace without either governance"
+  "all guards failed"
+  (namespace (read-msg 'dao-ns )))
+(rollback-tx)
+
+(begin-tx)
+(use dao.forum)
+(env-sigs [
+  { 'key: 'guardian0
+  , 'caps:[(MEMBER 'guardian0 )]}
+  { 'key: 'ambassador0
+  , 'caps:[(MEMBER 'ambassador0)]}
+  { 'key: 'ambassador1
+  , 'caps:[(MEMBER 'ambassador1)]}
+  { 'key: 'bob
+  , 'caps:[(MEMBER 'ambassador1)]}
+  { 'key: 'ambassador3
+  , 'caps:[(MEMBER 'ambassador3)]}
+  { 'key: 'mjolnir
+    'caps:[(MJOLNIR)]}
+  ])
+(env-data {
+  'guardian0: ["guardian0"],
+  'guardian1: ["guardian1"],
+  'guardian2: ["guardian2"],
+  'guardian3: ["guardian3"],
+  'guardian4: ["guardian4"],
+  'ambassador0: ["ambassador0"],
+  'ambassador1: ["ambassador1"],
+  'ambassador2: ["ambassador2"],
+  'ambassador3: ["ambassador3"],
+  'ambassador4: ["ambassador4"],
+  'ambassador5: ["ambassador5"],
+  'always-true: { "keys": [], "pred": "="},
+  'bob: ["bob"],
+  'alice: ["alice"],
+  'mjolnir: ["mjolnir"]
+  })
+
+(env-keys ["guardian0" "ambassador0" 'ambassador1 'bob 'ambassador3 'mjolnir])
+
+(mjolnir-write-member "bob" (read-keyset 'bob) true)
+(disable-moderator "bob")
+(enable-moderator "bob")
+(mjolnir-write-member "bob" (read-keyset 'bob) false)
+(enable-member "guardian0" "bob")
+(commit-tx)

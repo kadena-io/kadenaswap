@@ -1,0 +1,32 @@
+(env-data {
+  'guardian0: ["guardian0"],
+  'guardian1: ["guardian1"],
+  'guardian2: ["guardian2"],
+  'guardian3: ["guardian3"],
+  'guardian4: ["guardian4"],
+  'ambassador0: ["ambassador0"],
+  'ambassador1: ["ambassador1"],
+  'ambassador2: ["ambassador2"],
+  'ambassador3: ["ambassador3"],
+  'ambassador4: ["ambassador4"],
+  'ambassador5: ["ambassador5"],
+  'always-true: { "keys": [], "pred": "="},
+  'bob: ["bob"],
+  'alice: ["alice"],
+  'mjolnir: ["mjolnir"]
+  })
+
+(test-capability (coin.COINBASE))
+(coin.coinbase 'guardian0 (read-keyset 'guardian0) 1000000.0)
+(coin.coinbase 'guardian1 (read-keyset 'guardian1) 1000000.0)
+(coin.coinbase 'guardian2 (read-keyset 'guardian2) 1000000.0)
+(coin.coinbase 'guardian3 (read-keyset 'guardian3) 1000000.0)
+(coin.coinbase 'guardian4 (read-keyset 'guardian4) 1000000.0)
+(coin.coinbase 'ambassador0 (read-keyset 'ambassador0) 1000000.0)
+(coin.coinbase 'ambassador1 (read-keyset 'ambassador1) 1000000.0)
+(coin.coinbase 'ambassador2 (read-keyset 'ambassador2) 1000000.0)
+(coin.coinbase 'ambassador3 (read-keyset 'ambassador3) 1000000.0)
+(coin.coinbase 'ambassador4 (read-keyset 'ambassador4) 1000000.0)
+(coin.coinbase 'ambassador5 (read-keyset 'ambassador5) 10000.0)
+(coin.coinbase 'bob (read-keyset 'bob) 10000.0)
+(coin.coinbase 'alice (read-keyset 'alice) 10000.0)
