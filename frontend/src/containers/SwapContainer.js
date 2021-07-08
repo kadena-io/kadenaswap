@@ -42,6 +42,7 @@ const SwapContainer = () => {
   const [showTxModal, setShowTxModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [fetchingPair, setFetchingPair] = useState(false)
+  const [noLiquidity, setNoLiquidity] = useState(false);
   const [priceImpact, setPriceImpact] = useState("")
   const pact = useContext(PactContext);
 
@@ -74,9 +75,9 @@ const SwapContainer = () => {
         if (fromValues.coin !== '' && toValues.coin !== '' && !isNaN(pact.ratio)) {
           if (toValues.amount.length < 5) {
             console.log(pact.computeIn(toValues.amount))
-            throttle(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
+            throttle(500, safeSetFrom(), fromValues.precision) }))
           } else {
-            debounce(500, setFromValues({ ...fromValues, amount: reduceBalance(pact.computeIn(toValues.amount), fromValues.precision) }))
+            debounce(500, safeSetFrom(), fromValues.precision) }))
           }
         }
       }
@@ -149,6 +150,27 @@ const SwapContainer = () => {
     }
   };
 
+  // Check if their is enough liquidity before setting the from amount
+  const safeSetFrom = () => {
+    setNoLiquidity(false);
+    if (0 >= pact.computeIn(toValues.amount)) {
+      setNoLiquidity(true);
+      setFromValues({
+        ...fromValues,
+        amount: 0,
+      });
+    }
+    else {
+      setFromValues({
+        ...fromValues,
+        amount: reduceBalance(
+          pact.computeIn(toValues.amount),
+          fromValues.precision
+        ),
+      })
+    }
+  }
+
   const onTokenClick = async ({ crypto }) => {
     let balance;
     if (crypto.code === 'coin') {
@@ -171,6 +193,7 @@ const SwapContainer = () => {
     if (!fromValues.coin || !toValues.coin) return 'Select tokens';
     if (fetchingPair) return "Fetching Pair..."
     if (isNaN(pact.ratio)) return 'Pair does not exist!'
+    if (noLiquidity) return "Insufficient liquidity";
     if (!fromValues.amount || !toValues.amount) return 'Enter an amount';
     if (fromValues.amount > fromValues.balance) return `Insufficient ${fromValues.coin} balance`
     return 'SWAP';
