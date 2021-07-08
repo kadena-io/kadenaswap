@@ -104,9 +104,15 @@
   (defcap ACTIVITY ( pool:string bond:string activity:integer)
     @event true)
 
-  (defcap ROTATE ( bond:string )
+  (defcap ROTATE (bond:string)
+    "Rotation of bond credentials requires auth from originating account."
     @managed
-    (enforce-guard (at 'guard (get-bond bond))))
+    (with-read bonds bond
+      { 'pool := pool, 'account := account }
+      (with-read pools pool
+        { 'token := token:module{fungible-v2} }
+          (enforce-guard (at 'guard (token::details account)))))
+  )
 
   (defun pool-guard () (create-module-guard "pool-bank"))
 

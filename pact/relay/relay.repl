@@ -820,24 +820,39 @@
 ;;
 
 (begin-tx)
+;; rotate Alice coin to Carol to test using account key
+(env-data {'Carol: ['carol]})
+(env-sigs
+  [ {'key: "alice", 'caps: [ (coin.ROTATE "Alice") ]}])
+(coin.rotate "Alice" (read-keyset 'Carol))
+(env-events true)
 (env-keys [])
 (env-data {'Bob: ['bob]})
-(expect-failure "rotate guarded by account key"
-  "Managed capability not installed"
-  (test.pool.rotate "Alice:2021-01-03" (read-keyset 'Bob )))
 (env-sigs
   [ {'key: "alice", 'caps: [
     (test.pool.ROTATE "Alice:2021-01-03")
-    (test.pool.BONDER "Alice:2021-01-03")
     ] }
   ])
-(expect "rotate success"
+(expect-failure "Alice can't rotate"
+  "Keyset failure"
+  (test.pool.rotate "Alice:2021-01-03" (read-keyset 'Bob )))
+(env-sigs
+  [ {'key: "carol", 'caps: [
+    (test.pool.ROTATE "Alice:2021-01-03")
+    ] }
+  ])
+(expect "Carol can rotate"
   "Write succeeded"
   (test.pool.rotate "Alice:2021-01-03" (read-keyset 'Bob )))
 (expect "rotate events"
   [{"name": "test.pool.ROTATE","params": ["Alice:2021-01-03"]}]
   (map (remove 'module-hash ) (env-events true)))
 
+(env-sigs
+  [ {'key: "alice", 'caps: [
+    (test.pool.BONDER "Alice:2021-01-03")
+    ] }
+  ])
 (env-chain-data
   { 'block-time: (parse-time "%F" "2021-02-15")} )
 (expect-failure "rotated, alice cannot service"
@@ -849,8 +864,9 @@
     (test.pool.BONDER "Alice:2021-01-03")
     ] }
   ])
-(expect "bob can renew"
+(expect "bob can service"
   "Write succeeded"
   (test.pool.renew "Alice:2021-01-03"))
-  
+
+
 (rollback-tx)
