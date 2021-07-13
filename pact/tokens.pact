@@ -39,6 +39,15 @@
 
   (defcap CREDIT (token:string receiver:string) true)
 
+  (defcap ROTATE (token:string sender:string)
+    (enforce-guard
+      (at 'guard
+        (read ledger (key token sender)))))
+
+  (defcap INIT ()
+    true
+  )
+
   (defcap ISSUE ()
     (enforce-guard (at 'guard (read issuers ISSUER_KEY)))
   )
@@ -54,6 +63,7 @@
   )
 
   (defun init-issuer (guard:guard)
+    (require-capability (INIT))
     (insert issuers ISSUER_KEY {'guard: guard})
   )
 
@@ -130,15 +140,10 @@
     )
 
   (defun rotate:string (token:string account:string new-guard:guard)
-    (with-read ledger (key token account)
-      { "guard" := old-guard }
-
-      (enforce-guard old-guard)
-
+    (with-capability (ROTATE token account)
       (update ledger (key token account)
         { "guard" : new-guard }))
-    )
-
+  )
 
   (defun precision:integer (token:string)
     MINIMUM_PRECISION)
@@ -219,7 +224,9 @@
       (update ledger (key token account)
         { "balance" : (- balance amount) }
         ))
-    (update-supply token (- amount))
+      (with-capability (ISSUE)
+        (update-supply token (- amount))
+      )
   )
 
 
@@ -246,16 +253,16 @@
         , "token"   : token
         , "account" : account
         })
-
-      (update-supply token amount)
+      (with-capability (ISSUE)
+        (update-supply token amount))
       ))
 
   (defun update-supply (token:string amount:decimal)
-    (with-capability (ISSUE)
+    (require-capability (ISSUE))
       (with-default-read supplies token
         { 'supply: 0.0 }
         { 'supply := s }
-        (write supplies token {'supply: (+ s amount)}))
+        (write supplies token {'supply: (+ s amount)})
     )
   )
 

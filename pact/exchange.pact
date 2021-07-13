@@ -1,7 +1,6 @@
 (enforce-pact-version "3.7")
 
 (namespace (read-msg 'ns))
-
 (module exchange GOVERNANCE
 
   (defcap GOVERNANCE ()
@@ -73,7 +72,8 @@
   (defconst LOCK_ACCOUNT "lock")
 
   (defun init ()
-    (tokens.init-issuer (create-module-guard "issuance"))
+    (with-capability (tokens.INIT)
+      (tokens.init-issuer (create-module-guard "issuance")))
   )
 
   (defun get-pair:object{pair}

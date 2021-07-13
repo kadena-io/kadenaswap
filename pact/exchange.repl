@@ -32,6 +32,7 @@
 (env-data
   { 'swap-ns-user: ["swap-user"]
   , 'swap-ns-admin: ["swap-admin"]
+  , 'empty-ks: []
   , 'ns: "swap"
   , 'upgrade: true })
 (env-keys ["operate", "swap-user", "swap-admin"])
@@ -39,12 +40,12 @@
 (load "ns.pact")
 (load "fungible-util.pact")
 (load "tokens.pact")
+(expect-failure "INIT capability not installed" (tokens.init-issuer (read-keyset 'empty-ks)))
 (load "exchange.pact")
 
 (begin-tx)
 (load "test/tokens-test-fungible.pact")
 (load "test/fungible.repl")
-
 (test-capability (swap.tokens.CREDIT TOKEN FUNDER_ACCT))
 (expect "fund success" true
   (test-fund FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE))
@@ -52,6 +53,7 @@
 
 ; (fungible-v2-test.suite tokens-test-fungible
 ;    fungible-test-helper-default "transfer-crosschain-tests")
+
 
 (begin-tx)
 (env-sigs [])
@@ -112,13 +114,21 @@
 (begin-tx)
 (use swap.exchange)
 
+(env-data
+  { 'bob: ["bob"]
+  , 'bob1: ["bob1"]
+  , 'alice: ["alice"]
+  })
+
 (env-sigs [
   { 'key: "bob"
   , 'caps:
     [(coin.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) 10.0)
      (swap.abc.TRANSFER "Bob" (at 'account (get-pair swap.abc coin)) 40.0)
+     (swap.tokens.ROTATE "coin:swap.abc" "Bob" )
     ]
-  }])
+  }
+])
 
 (expect "add-liquidity"
   { "liquidity": 19.9
@@ -162,6 +172,7 @@
   ]
   (env-events true))
 
+
 (expect "token liquidity for bob"
   19.9
   (swap.tokens.get-balance (get-pair-key coin swap.abc) "Bob")
@@ -174,6 +185,23 @@
   20.0
   (swap.tokens.total-supply (get-pair-key coin swap.abc))
 )
+(expect-failure "supply cannot be updated"
+  (swap.tokens.update-supply (get-pair-key coin swap.abc) 20.0)
+)
+
+(expect "Rotate bob's key to bob1" "Write succeeded" (swap.tokens.rotate (get-pair-key coin swap.abc) "Bob" (read-keyset 'bob1)))
+(expect-failure "Rotating back to old bob's key back fails" (swap.tokens.rotate (get-pair-key coin swap.abc) "Bob" (read-keyset 'bob)))
+
+(env-sigs [{ 'key: "bob1"
+  , 'caps:
+    [
+     (swap.tokens.ROTATE "coin:swap.abc" "Bob" )
+    ]
+  }])
+
+(expect "Rotating back to old bob's key back succeeds" "Write succeeded"
+  (swap.tokens.rotate (get-pair-key coin swap.abc) "Bob" (read-keyset 'bob)))
+
 (expect "kda debited for bob"
   990.0 (coin.get-balance "Bob"))
 (expect "abc debited for bob"
@@ -369,9 +397,6 @@
   MINIMUM_LIQUIDITY
   (swap.tokens.total-supply (get-pair-key coin swap.abc))
 )
-(expect-failure
-  "Update supply cannot be directly called"
-  (swap.tokens.update-supply "swap.abc" 20.0))
 (expect "kda credited for bob"
   999.9 (coin.get-balance "Bob"))
 (expect "abc credited for bob"
@@ -679,6 +704,7 @@
   (swap.xyz.get-balance (at 'account (get-pair coin swap.xyz))))
 (expect "xyz credited for alice"
   15.43287143388036 (swap.xyz.get-balance "Alice"))
+
 (expect "swap-exact-in 3-way events"
   [ { "module-hash": (at 'hash (describe-module "swap.abc"))
     , "name": "swap.abc.TRANSFER"
