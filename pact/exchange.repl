@@ -44,13 +44,14 @@
 (begin-tx)
 (load "test/tokens-test-fungible.pact")
 (load "test/fungible.repl")
+
 (test-capability (swap.tokens.CREDIT TOKEN FUNDER_ACCT))
 (expect "fund success" true
   (test-fund FUNDER_ACCT FUNDER_GUARD FUNDER_BALANCE))
 (commit-tx)
 
-(fungible-v2-test.suite tokens-test-fungible
-   fungible-test-helper-default "transfer-crosschain-tests")
+; (fungible-v2-test.suite tokens-test-fungible
+;    fungible-test-helper-default "transfer-crosschain-tests")
 
 (begin-tx)
 (env-sigs [])
@@ -368,6 +369,9 @@
   MINIMUM_LIQUIDITY
   (swap.tokens.total-supply (get-pair-key coin swap.abc))
 )
+(expect-failure
+  "Update supply cannot be directly called"
+  (swap.tokens.update-supply "swap.abc" 20.0))
 (expect "kda credited for bob"
   999.9 (coin.get-balance "Bob"))
 (expect "abc credited for bob"
@@ -675,7 +679,6 @@
   (swap.xyz.get-balance (at 'account (get-pair coin swap.xyz))))
 (expect "xyz credited for alice"
   15.43287143388036 (swap.xyz.get-balance "Alice"))
-
 (expect "swap-exact-in 3-way events"
   [ { "module-hash": (at 'hash (describe-module "swap.abc"))
     , "name": "swap.abc.TRANSFER"
