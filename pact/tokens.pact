@@ -40,7 +40,7 @@
   (defcap CREDIT (token:string receiver:string) true)
 
   (defcap ADMIN ()
-    (compose-capability (UPDATE_SUPPLY)) true)
+    (compose-capability (UPDATE_SUPPLY)))
 
   (defcap UPDATE_SUPPLY () true)
 
@@ -256,11 +256,11 @@
       ))
 
   (defun update-supply (token:string amount:decimal)
-    (with-capability (ADMIN)
+    (require-capability (UPDATE_SUPPLY))
       (with-default-read supplies token
         { 'supply: 0.0 }
         { 'supply := s }
-        (write supplies token {'supply: (+ s amount)})))
+        (write supplies token {'supply: (+ s amount)}))
   )
 
   (defpact transfer-crosschain:string
