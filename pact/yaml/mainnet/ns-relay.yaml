@@ -1,0 +1,28 @@
+codeFile: ../../relay/ns.pact
+signers:
+  - public: a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80
+  - public: 56ff9e5c1b5ec3e98172a76aa3cdc03d3ec664f147267fd99eee4dd09763c853
+data:
+  ns: "relay"
+  relay-ns-user:
+    keys:
+      - 1967cb9e97f067b44b1b5bd3371d798ceef31439f8e3422aabd1a21952579c1e
+      - d02720fd7e588f64ee97d6bb8aa1cd3510a655ec654cb92c969a3c1a09bb57e5
+      - f244d1b6873445e4e07dff0558e0282e278747f251dede8ed4b5f06cca3290f5
+      - 182d8b42661bc5aed904738734e520a1cc2323377aa2004dc7931125d2808fa1
+    pred: keys-2
+  relay-ns-admin:
+    keys:
+      - 1967cb9e97f067b44b1b5bd3371d798ceef31439f8e3422aabd1a21952579c1e
+      - d02720fd7e588f64ee97d6bb8aa1cd3510a655ec654cb92c969a3c1a09bb57e5
+      - f244d1b6873445e4e07dff0558e0282e278747f251dede8ed4b5f06cca3290f5
+      - 182d8b42661bc5aed904738734e520a1cc2323377aa2004dc7931125d2808fa1
+    pred: keys-2
+networkId: mainnet01
+nonce: install-relay-namespace
+publicMeta:
+  chainId: "2"
+  sender: "a241430816f0112add2179e3e3939ebab5336ab024be990960e684e38eb87d80"
+  gasLimit: 1000
+  gasPrice: 0.00000000001
+  ttl: 150000
