@@ -100,9 +100,10 @@
     (let ( (height (get-height header))
            (hash (at 'hash header))
            (pool (at 'pool (pool.get-active-bond proposer)))
+           (e:[string] [])
          )
       (with-default-read heights height
-        { 'proposed: "", 'accepted: "", 'inactive: []}
+        { 'proposed: "", 'accepted: "", 'inactive: e}
         { 'proposed:= proposed, 'accepted:=accepted, 'inactive:=inactive }
         (enforce (and (!= hash accepted)
                       (not (contains hash inactive)))
@@ -155,9 +156,10 @@
                 , 'status: (if is-accepted BLOCK_ACCEPTED BLOCK_PROPOSED)
                 })
               (if is-accepted
-                [ (enforce (!= hash accepted) "Hash already accepted at height")
-                  (update heights height { 'proposed:"", 'accepted:hash}) ]
-                [])
+                (let ((msg "Hash already accepted at height"))
+                  (enforce (!= hash accepted) msg)
+                  (update heights height { 'proposed:"", 'accepted:hash}))
+                "skip")
               (pool.record-activity endorser))))))
   )
 
@@ -234,12 +236,13 @@
                 , 'status: (if is-denounced BLOCK_DENOUNCED BLOCK_ACCEPTED)
                 })
               (if is-denounced
-                [ (update heights height
-                    { 'accepted:""
-                    , 'inactive: (+ [hash] inactive) })
+                (let ((new-inactive (+ [hash] inactive)))
+                  (update heights height
+                    { 'accepted: ""
+                    , 'inactive: new-inactive})
                   (pool.slash proposer)
-                  (map (pool.slash) endorsed) ]
-                [])
+                  (map (pool.slash) endorsed))
+                ["skip"])
               (pool.record-activity endorser))))))
   )
 
