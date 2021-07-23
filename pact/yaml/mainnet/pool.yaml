@@ -10,6 +10,6 @@ nonce: upgrade-pool
 publicMeta:
   chainId: "2"
   sender: "f244d1b6873445e4e07dff0558e0282e278747f251dede8ed4b5f06cca3290f5"
-  gasLimit: 3000
+  gasLimit: 6000
   gasPrice: 0.00000000001
   ttl: 26600
