@@ -343,6 +343,7 @@
       ( (rpath (reverse path))
         (path-len (length path))
         (pz (get-pair (at 0 rpath) (at 1 rpath)))
+        (e:[module{fungible-v2}] [])
         (allocs
           (fold (compute-in)
             [ { 'token-out: (at 1 rpath)
@@ -351,7 +352,7 @@
               , 'in: amountOut
               , 'idx: path-len
               , 'pair: pz
-              , 'path: []
+              , 'path: e
               }]
             (drop 1 rpath)))
         (allocs1 ;; drop dummy at end, prepend dummy for initial transfer
@@ -551,7 +552,7 @@
           })))
     )
 
-  (defun get-pair-key
+  (defun get-pair-key:string
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
     )
@@ -603,7 +604,7 @@
     (hash (+ hint (+ key (format "{}" [(at 'block-time (chain-data))]))))
   )
 
-  (defun truncate (token:module{fungible-v2} amount:decimal)
+  (defun truncate:decimal (token:module{fungible-v2} amount:decimal)
     (floor amount (token::precision))
   )
 

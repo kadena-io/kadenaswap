@@ -4,6 +4,49 @@
 
 (module tokens GOVERNANCE
 
+  @model
+    [
+     ;; prop-supply-write-issuer-guard
+     (property
+      (forall (token:string)
+       (when (row-written supplies token)
+        (row-enforced issuers 'guard ISSUER_KEY)))
+      { 'except:
+        [ transfer-crosschain ;; VACUOUS
+          debit               ;; PRIVATE
+          credit              ;; PRIVATE
+          update-supply       ;; BUG
+        ] } )
+
+     ;; prop-ledger-write-guard
+     (property
+      (forall (key:string)
+       (when (row-written ledger key)
+        (or
+         (row-enforced issuers 'guard ISSUER_KEY)    ;; issuer write
+         (row-enforced ledger 'guard key))))  ;; owner write
+      { 'except:
+        [ transfer-crosschain ;; VACUOUS
+          debit               ;; PRIVATE
+          credit              ;; PRIVATE
+          create-account      ;; prop-ledger-conserves-mass
+          transfer            ;; prop-ledger-conserves-mass
+          transfer-create     ;; prop-ledger-conserves-mass
+        ] } )
+
+
+     ;; prop-ledger-conserves-mass
+     (property
+      (= (column-delta ledger 'balance) 0.0)
+      { 'except:
+         [ transfer-crosschain ;; VACUOUS
+           debit               ;; PRIVATE
+           credit              ;; PRIVATE
+           burn                ;; prop-ledger-write-guard
+           mint                ;; prop-ledger-write-guard
+         ] } )
+    ]
+
   (defschema entry
     token:string
     account:string
@@ -265,7 +308,7 @@
       receiver-guard:guard
       target-chain:string
       amount:decimal )
-    (step (enforce false "cross chain not supported"))
+    (step (format "{}" [(enforce false "cross chain not supported")]))
     )
 
   (defun get-tokens ()
