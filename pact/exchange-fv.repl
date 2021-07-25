@@ -1,0 +1,15 @@
+
+(begin-tx)
+(load "root/fungible-v2.pact")
+
+(define-namespace "fv" (sig-keyset) (sig-keyset))
+
+(env-data {'guard: (sig-keyset), 'ns: "fv", 'upgrade: false })
+(load "fungible-util.pact")
+(load "test/tokens-noop.pact")
+(load "swap-callable.pact")
+(load "exchange.pact")
+(load "test/noop-fungible.pact")
+(env-dynref fungible-v2 noop-fungible)
+(env-dynref fv.swap-callable-v1 fv.noop-callable)
+(verify "fv.exchange")
