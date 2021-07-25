@@ -4,6 +4,68 @@
 
 (module exchange GOVERNANCE
 
+  @model
+  [
+
+   ;; prop-pairs-write-guard
+   ;; guard is never enforced, but this allows enumeration of
+   ;; every write, and forward security for newly-added functions.
+   (property
+    (forall (k:string)
+     (when (row-written pairs k)
+       (row-enforced pairs 'guard k)))
+    { 'except:
+      [ create-pair      ;; prop-admin-guard
+        add-liquidity    ;; prop-increase-liquidity
+        remove-liquidity ;; prop-decrease-liquidity
+        swap-exact-in    ;; prop-increase-liquidity
+        swap-exact-out   ;; prop-increase-liquidity
+        swap             ;; prop-increase-liquidity
+        swap-pair        ;; PRIVATE
+        swap-alloc       ;; PRIVATE
+        update-reserves  ;; PRIVATE
+      ] } )
+
+
+   ;; prop-admin-guard
+   (property
+    (forall (k:string)
+     (when (row-written pairs k)
+       (authorized-by 'swap-ns-admin)))
+    { 'only:
+      [ create-pair
+      ] } )
+
+   ;;prop-increase-liquidity
+   ;;computes constant-product variance
+   (defproperty increase-liquidity
+     ( amount0:decimal
+       amount1:decimal )
+    (forall (k:string)
+     (when (row-written pairs k)
+      (<= (* (at 'reserve (at 'leg0 (read k)))
+             (at 'reserve (at 'leg1 (read k))))
+          (* (+ amount0
+               (at 'reserve (at 'leg0 (read k))))
+             (+ amount1
+               (at 'reserve (at 'leg1 (read k)))))))))
+
+   ;;prop-decrease-liquidity
+   ;;computes constant-product variance
+   (defproperty decrease-liquidity
+     ( amount0:decimal
+       amount1:decimal )
+    (forall (k:string)
+     (when (row-written pairs k)
+      (>= (* (at 'reserve (at 'leg0 (read k)))
+             (at 'reserve (at 'leg1 (read k))))
+          (* (+ amount0
+               (at 'reserve (at 'leg0 (read k))))
+             (+ amount1
+               (at 'reserve (at 'leg1 (read k)))))))))
+
+  ]
+
   (defcap GOVERNANCE ()
     (enforce-guard (keyset-ref-guard 'swap-ns-admin)))
 
