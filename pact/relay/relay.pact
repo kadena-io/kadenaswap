@@ -2,6 +2,30 @@
 (namespace (read-msg 'ns))
 (module relay GOVERNANCE
 
+  @model [
+
+    ;; prop-write-bonder-cap
+    ;; enumerates all db writes
+    (property
+     (forall (hk:string pk:string)
+      (when (or (row-written heights hk)
+                (row-written proposals pk))
+        bonder-cap-acquired))
+     { 'except:           ;; all await bonder cap feature
+       [ propose          ;;
+         endorse          ;;
+         denounce         ;;
+         endorse-denounce ;;
+       ] } )
+
+    (defproperty bonder-cap-acquired ()
+      ;; upcoming property to enforce BONDER acquire
+      ;; using trivial prop for now
+      (= 1 1))
+
+  ]
+
+
   (use util.guards)
 
   (defcap GOVERNANCE ()
