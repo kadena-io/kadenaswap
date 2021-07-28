@@ -15,7 +15,7 @@
         [ transfer-crosschain ;; VACUOUS
           debit               ;; PRIVATE
           credit              ;; PRIVATE
-          update-supply       ;; BUG
+          update-supply       ;; PRIVATE
         ] } )
 
      ;; prop-ledger-write-guard
@@ -29,9 +29,9 @@
         [ transfer-crosschain ;; VACUOUS
           debit               ;; PRIVATE
           credit              ;; PRIVATE
-          create-account      ;; prop-ledger-conserves-mass
-          transfer            ;; prop-ledger-conserves-mass
-          transfer-create     ;; prop-ledger-conserves-mass
+          create-account      ;; prop-ledger-conserves-mass, prop-supply-conserves-mass
+          transfer            ;; prop-ledger-conserves-mass, prop-supply-conserves-mass
+          transfer-create     ;; prop-ledger-conserves-mass, prop-supply-conserves-mass
         ] } )
 
 
@@ -45,6 +45,18 @@
            burn                ;; prop-ledger-write-guard
            mint                ;; prop-ledger-write-guard
          ] } )
+
+      ;; prop-supply-conserves-mass
+      (property
+       (= (column-delta supplies 'supply) 0.0)
+       { 'except:
+        [ transfer-crosschain ;; VACUOUS
+          debit               ;; PRIVATE
+          credit              ;; PRIVATE
+          update-supply       ;; PRIVATE
+          burn                ;; prop-ledger-write-guard
+          mint                ;; prop-ledger-write-guard
+       ] } )
     ]
 
   (defschema entry
@@ -82,6 +94,9 @@
 
   (defcap CREDIT (token:string receiver:string) true)
 
+  (defcap UPDATE_SUPPLY ()
+    "private cap for update-supply"
+    true)
 
   (defcap ISSUE ()
     (enforce-guard (at 'guard (read issuers ISSUER_KEY)))
@@ -263,7 +278,8 @@
       (update ledger (key token account)
         { "balance" : (- balance amount) }
         ))
-    (update-supply token (- amount))
+    (with-capability (UPDATE_SUPPLY)
+      (update-supply token (- amount)))
   )
 
 
@@ -290,11 +306,12 @@
         , "token"   : token
         , "account" : account
         })
-
-      (update-supply token amount)
+      (with-capability (UPDATE_SUPPLY)
+        (update-supply token amount))
       ))
 
   (defun update-supply (token:string amount:decimal)
+    (require-capability (UPDATE_SUPPLY))
     (with-default-read supplies token
       { 'supply: 0.0 }
       { 'supply := s }
