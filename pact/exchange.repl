@@ -64,15 +64,17 @@
   (pair-exists swap.abc coin))
 
 ;; test governance on create-pair
-(expect-failure
-  "create pair fails without governance"
-  "Keyset failure (keys-all): 'swap-ns-admin"
+(expect
+  "create pair succeeds without governance"
+  {"key": (get-pair-key coin swap.abc), "account": (create-pair-account (get-pair-key coin swap.abc) "")}
   (create-pair coin swap.abc "")
 )
 
 (env-keys ["swap-admin"])
 
-(create-pair coin swap.abc "")
+(expect-failure
+  "Pair already exists"
+  (create-pair coin swap.abc ""))
 (create-pair coin swap.xyz "")
 (expect "create-pair (2) events" ;; TODO reverse
   [ { "name": "swap.exchange.CREATE_PAIR"
