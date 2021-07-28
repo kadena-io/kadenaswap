@@ -20,6 +20,24 @@
 (load "fungible-util.pact")
 (load "tokens.pact")
 (load "swap-callable.pact")
+(commit-tx)
+
+;; test init-issuer guard
+(begin-tx)
+(env-keys [])
+(expect-failure "only admin can init-issuer"
+  "Keyset failure"
+  (swap.tokens.init-issuer (keyset-ref-guard 'swap-ns-admin)))
+(rollback-tx)
+
+(begin-tx)
+(env-data
+  { 'swap-ns-user: ["swap-user"]
+  , 'swap-ns-admin: ["swap-admin"]
+  , 'ns: "swap"
+  , 'upgrade: false
+  })
+(env-keys ["operate", "swap-user", "swap-admin"])
 (load "exchange.pact")
 
 (env-data { 'ns: "swap", 'upgrade: false })
@@ -103,6 +121,16 @@
 (swap.abc.create-account "Alice" (read-keyset 'alice))
 (swap.abc.fund "Alice" 20000.0)
 (commit-tx)
+
+
+;; test private cap on update-supply
+(begin-tx)
+(expect-failure "update-supply private"
+  "require-capability: not granted: (swap.tokens.UPDATE_SUPPLY)"
+  (swap.tokens.update-supply
+    (at 'account (swap.exchange.get-pair swap.abc coin)) 10.0))
+(rollback-tx)
+
 
 
 ;;
