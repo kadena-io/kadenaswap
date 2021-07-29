@@ -4,12 +4,12 @@ signers:
   - public: 182d8b42661bc5aed904738734e520a1cc2323377aa2004dc7931125d2808fa1
 data:
   ns: "relay"
-  upgrade: false
+  upgrade: true
 networkId: mainnet01
-nonce: install-relay-pool
+nonce: upgrade-pool
 publicMeta:
   chainId: "2"
   sender: "f244d1b6873445e4e07dff0558e0282e278747f251dede8ed4b5f06cca3290f5"
-  gasLimit: 3000
+  gasLimit: 6000
   gasPrice: 0.00000000001
   ttl: 26600
