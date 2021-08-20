@@ -24,7 +24,17 @@
 (define-keyset 'relay-ns-admin)
 (env-keys ['admin])
 (load "pool.pact")
+
+(expect "latest tokens hash"
+  "UkcUtrD8I0oo8ftUdUmJfVlqIICb-xLu6FyT_QpdYyo"
+  (at 'hash (describe-module "test.pool")))
+
 (load "relay.pact")
+
+(expect "latest relay hash"
+  "uhbkvO7X7jt5oTIvxNTs8k7YxBp2aYYgg_1u699UQcE"
+  (at 'hash (describe-module "test.relay")))
+
 (env-data { 'Bob: ["bob"], 'Alice:["alice"]
           , 'Carol:["carol"], 'Admin:["admin"], 'Pam:["pam"]})
 (test-capability (coin.COINBASE))
