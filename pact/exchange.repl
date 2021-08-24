@@ -19,6 +19,9 @@
 (load "ns.pact")
 (load "fungible-util.pact")
 (load "tokens.pact")
+
+(verify "swap.tokens")
+
 (load "swap-callable.pact")
 (commit-tx)
 
@@ -39,6 +42,10 @@
   })
 (env-keys ["operate", "swap-user", "swap-admin"])
 (load "exchange.pact")
+
+(env-dynref fungible-v2 coin)
+(env-dynref swap.swap-callable-v1 swap.noop-callable)
+(verify "swap.exchange")
 
 (env-data { 'ns: "swap", 'upgrade: false })
 (load "test/ABC.pact")

@@ -2,6 +2,57 @@
 
 (module pool GOVERNANCE
 
+  @model [
+
+    ;; prop-pool-write-guard
+    (property
+     (forall (pool:string)
+      (when (row-written pools pool)
+       (row-enforced pools 'guard pool)))
+     { 'except:
+      [ fund-reserve     ;; UNCHECKED
+        withdraw-reserve ;; prop-admin-guard
+        renew            ;; prop-bond-write-guard
+        new-bond         ;; UNCHECKED
+        unbond           ;; prop-bond-write-guard
+        update-pool      ;; prop-admin-guard
+        init-pool        ;; prop-admin-guard
+        update-actives   ;; UNCHECKED
+      ] } )
+
+    ;; prop-bond-write-guard
+    (property
+     (forall (bond:string)
+      (when (row-written bonds bond)
+       (row-enforced bonds 'guard bond)))
+     { 'except:
+      [ new-bond         ;; UNCHECKED
+        slash            ;; prop-pool-guard
+        record-activity  ;; prop-pool-guard
+        rotate           ;; UNCHECKED
+      ] } )
+
+    ;; prop-admin-guard
+    (property
+     (authorized-by 'relay-ns-admin)
+     { 'only:
+      [ init-pool
+        update-pool
+        withdraw-reserve
+      ] } )
+
+    ;; prop-pool-guard
+    (property
+     (forall (pool:string)
+      (when (row-read pools pool)
+       (row-enforced pools 'guard pool)))
+     { 'only:
+      [ slash
+        record-activity
+      ] } )
+
+  ]
+
   (defcap GOVERNANCE ()
     (enforce-guard (keyset-ref-guard 'relay-ns-admin))
   )
@@ -114,7 +165,7 @@
           (enforce-guard (at 'guard (token::details account)))))
   )
 
-  (defun pool-guard () (create-module-guard "pool-bank"))
+  (defun pool-guard:guard () (create-module-guard "pool-bank"))
 
   (defun init-pool
     ( pool:string
@@ -181,6 +232,11 @@
       account:string
       amount:decimal
     )
+    @model [
+      ;; TODO would like to make statements about transfer operation success
+      (property (= (column-delta pools 'reserve) amount)) ;; reserve bumped
+      (property (= (column-delta pools 'bonded) 0.0))     ;; bonded constant
+      ]
     (with-read pools pool
       { 'token:= token:module{fungible-v2}
       , 'reserve:= reserve
@@ -220,6 +276,12 @@
       account:string
       guard:guard
     )
+    @model [
+     (property (= (column-delta pools 'reserve) 0.0)) ;; reserve constant
+     (property
+      (= (column-delta pools 'bonded) ;; bonded bumped by pool bond size
+         (at 'bond (read pools pool 'before))))
+    ]
     (with-read pools pool
       { 'token:= token:module{fungible-v2}
       , 'account:= pool-account
@@ -362,7 +424,7 @@
               })))))
   )
 
-  (defun compute-fees
+  (defun compute-fees:decimal
     ( lockup:integer
       activity:integer
       min-activity:integer
@@ -391,6 +453,10 @@
   )
 
   (defun update-actives (pool:string)
+    @model [
+     (property (= (column-delta pools 'bonded) 0.0)) ;; bonded unchanged
+     (property (= (column-delta pools 'reserve) 0.0)) ;; reserve unchanged
+    ]
     (with-read pools pool { 'active:= active }
       (update pools pool
         { 'active:
@@ -403,7 +469,12 @@
     ( bond:string
       guard:guard
     )
-    "Rotate bond to new GUARD."
+    @model [
+     ;; TODO need way to verify that ROTATE checks token guard.
+     (property (= (column-delta pools 'bonded) 0.0)) ;; bonded unchanged
+     (property (= (column-delta pools 'reserve) 0.0)) ;; reserve unchanged
+    ]
+    @doc "Rotate bond to new GUARD."
     (with-capability (ROTATE bond)
       (update bonds bond
         { 'guard: guard }))
@@ -438,7 +509,11 @@
             , 'bonded: new-bonded }))))
   )
 
-  (defun pick-active (pool:string endorse:bool bonders:[string])
+  (defun pick-active:[string]
+    ( pool:string
+      endorse:bool
+      bonders:[string]
+     )
     " Pick random selection of active bonders, without BONDERS, from POOL. \
     \ Count is if ENDORSE endorsers otherwise denouncers from pool config."
     (update-actives pool)
@@ -451,6 +526,7 @@
       (let ( (count (if endorse endorsers denouncers))
              (h (hash [(at 'prev-block-hash (chain-data)) (tx-hash)]))
              (cands (filter (compose (in-list bonders) (not)) active))
+             (init-picks:[string] [])
            )
         (enforce
           (>= (length cands) count)
@@ -460,13 +536,13 @@
           (fold (pick count)
             { 'hash: h
             , 'cands: cands
-            , 'picks: []
+            , 'picks: init-picks
             , 'picked: 0
             }
             active)))))
   )
 
-  (defun in-list:bool (l:list i)
+  (defun in-list:bool (l:list i:string)
     (contains i l))
 
 
@@ -477,7 +553,7 @@
     picks:[string]
     picked:integer)
 
-  (defun pick:object{picks} (count:integer o:object{picks} x_)
+  (defun pick:object{picks} (count:integer o:object{picks} x_:string)
     " Accumulator to pick COUNT random active candidates using hash value, \
     \ and re-hash hash value."
     (if (= (at 'picked o) count) o

@@ -4,6 +4,59 @@
 
 (module exchange GOVERNANCE
 
+  @model
+  [
+
+   ;; prop-pairs-write-guard
+   ;; guard is never enforced, but this allows enumeration of
+   ;; every write, and forward security for newly-added functions.
+   (property
+    (forall (k:string)
+     (when (row-written pairs k)
+       (row-enforced pairs 'guard k)))
+    { 'except:
+      [ create-pair      ;; unguarded (insert semantics)
+        add-liquidity    ;; prop-increase-liquidity
+        remove-liquidity ;; prop-decrease-liquidity
+        swap-exact-in    ;; prop-increase-liquidity
+        swap-exact-out   ;; prop-increase-liquidity
+        swap             ;; prop-increase-liquidity
+        swap-pair        ;; PRIVATE
+        swap-alloc       ;; PRIVATE
+        update-reserves  ;; PRIVATE
+      ] } )
+
+
+   ;;prop-increase-liquidity
+   ;;computes constant-product variance
+   (defproperty increase-liquidity
+     ( amount0:decimal
+       amount1:decimal )
+    (forall (k:string)
+     (when (row-written pairs k)
+      (<= (* (at 'reserve (at 'leg0 (read k)))
+             (at 'reserve (at 'leg1 (read k))))
+          (* (+ amount0
+               (at 'reserve (at 'leg0 (read k))))
+             (+ amount1
+               (at 'reserve (at 'leg1 (read k)))))))))
+
+   ;;prop-decrease-liquidity
+   ;;computes constant-product variance
+   (defproperty decrease-liquidity
+     ( amount0:decimal
+       amount1:decimal )
+    (forall (k:string)
+     (when (row-written pairs k)
+      (>= (* (at 'reserve (at 'leg0 (read k)))
+             (at 'reserve (at 'leg1 (read k))))
+          (* (+ amount0
+               (at 'reserve (at 'leg0 (read k))))
+             (+ amount1
+               (at 'reserve (at 'leg1 (read k)))))))))
+
+  ]
+
   (defcap GOVERNANCE ()
     (enforce-guard (keyset-ref-guard 'swap-ns-admin)))
 
@@ -343,6 +396,7 @@
       ( (rpath (reverse path))
         (path-len (length path))
         (pz (get-pair (at 0 rpath) (at 1 rpath)))
+        (e:[module{fungible-v2}] [])
         (allocs
           (fold (compute-in)
             [ { 'token-out: (at 1 rpath)
@@ -351,7 +405,7 @@
               , 'in: amountOut
               , 'idx: path-len
               , 'pair: pz
-              , 'path: []
+              , 'path: e
               }]
             (drop 1 rpath)))
         (allocs1 ;; drop dummy at end, prepend dummy for initial transfer
@@ -550,7 +604,7 @@
         }))
     )
 
-  (defun get-pair-key
+  (defun get-pair-key:string
     ( tokenA:module{fungible-v2}
       tokenB:module{fungible-v2}
     )
@@ -602,7 +656,7 @@
     (hash (+ hint (+ key (format "{}" [(at 'block-time (chain-data))]))))
   )
 
-  (defun truncate (token:module{fungible-v2} amount:decimal)
+  (defun truncate:decimal (token:module{fungible-v2} amount:decimal)
     (floor amount (token::precision))
   )
 

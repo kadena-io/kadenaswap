@@ -2,6 +2,30 @@
 (namespace (read-msg 'ns))
 (module relay GOVERNANCE
 
+  @model [
+
+    ;; prop-write-bonder-cap
+    ;; enumerates all db writes
+    (property
+     (forall (hk:string pk:string)
+      (when (or (row-written heights hk)
+                (row-written proposals pk))
+        bonder-cap-acquired))
+     { 'except:           ;; all await bonder cap feature
+       [ propose          ;;
+         endorse          ;;
+         denounce         ;;
+         endorse-denounce ;;
+       ] } )
+
+    (defproperty bonder-cap-acquired ()
+      ;; upcoming property to enforce BONDER acquire
+      ;; using trivial prop for now
+      (= 1 1))
+
+  ]
+
+
   (use util.guards)
 
   (defcap GOVERNANCE ()
@@ -100,9 +124,10 @@
     (let ( (height (get-height header))
            (hash (at 'hash header))
            (pool (at 'pool (pool.get-active-bond proposer)))
+           (e:[string] [])
          )
       (with-default-read heights height
-        { 'proposed: "", 'accepted: "", 'inactive: []}
+        { 'proposed: "", 'accepted: "", 'inactive: e}
         { 'proposed:= proposed, 'accepted:=accepted, 'inactive:=inactive }
         (enforce (and (!= hash accepted)
                       (not (contains hash inactive)))
@@ -155,9 +180,10 @@
                 , 'status: (if is-accepted BLOCK_ACCEPTED BLOCK_PROPOSED)
                 })
               (if is-accepted
-                [ (enforce (!= hash accepted) "Hash already accepted at height")
-                  (update heights height { 'proposed:"", 'accepted:hash}) ]
-                [])
+                (let ((msg "Hash already accepted at height"))
+                  (enforce (!= hash accepted) msg)
+                  (update heights height { 'proposed:"", 'accepted:hash}))
+                "skip")
               (pool.record-activity endorser))))))
   )
 
@@ -234,12 +260,13 @@
                 , 'status: (if is-denounced BLOCK_DENOUNCED BLOCK_ACCEPTED)
                 })
               (if is-denounced
-                [ (update heights height
-                    { 'accepted:""
-                    , 'inactive: (+ [hash] inactive) })
+                (let ((new-inactive (+ [hash] inactive)))
+                  (update heights height
+                    { 'accepted: ""
+                    , 'inactive: new-inactive})
                   (pool.slash proposer)
-                  (map (pool.slash) endorsed) ]
-                [])
+                  (map (pool.slash) endorsed))
+                ["skip"])
               (pool.record-activity endorser))))))
   )
 

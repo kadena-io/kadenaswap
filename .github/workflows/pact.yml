@@ -28,11 +28,16 @@ jobs:
         run: |
           mkdir bin
           cd bin
-          wget https://github.com/kadena-io/pact/releases/download/v4.0.1/pact-4.0.1-linux.zip
+          wget https://github.com/kadena-io/pact/releases/download/v4.1/pact-4.1-linux-18.04.zip
           unzip "pact*.zip"
           chmod +x pact
           cd ..
-
+      - name: Install z3 (ubuntu-18.04)
+        uses: pavpanchekha/setup-z3@0.2.0
+        with:
+          version: "4.8.10"
+          architecture: "x64"
+          distribution: "ubuntu-18.04"
       - name: pact/exchange.repl
         run: |
           bin/pact -t pact/exchange.repl > out.log 2>&1
