@@ -15,7 +15,7 @@
      (when (row-written pairs k)
        (row-enforced pairs 'guard k)))
     { 'except:
-      [ create-pair      ;; prop-admin-guard
+      [ create-pair      ;; unguarded (insert semantics)
         add-liquidity    ;; prop-increase-liquidity
         remove-liquidity ;; prop-decrease-liquidity
         swap-exact-in    ;; prop-increase-liquidity
@@ -26,15 +26,6 @@
         update-reserves  ;; PRIVATE
       ] } )
 
-
-   ;; prop-admin-guard
-   (property
-    (forall (k:string)
-     (when (row-written pairs k)
-       (authorized-by 'swap-ns-admin)))
-    { 'only:
-      [ create-pair
-      ] } )
 
    ;;prop-increase-liquidity
    ;;computes constant-product variance
