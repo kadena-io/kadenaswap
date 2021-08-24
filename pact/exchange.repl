@@ -23,6 +23,24 @@
 (verify "swap.tokens")
 
 (load "swap-callable.pact")
+(commit-tx)
+
+;; test init-issuer guard
+(begin-tx)
+(env-keys [])
+(expect-failure "only admin can init-issuer"
+  "Keyset failure"
+  (swap.tokens.init-issuer (keyset-ref-guard 'swap-ns-admin)))
+(rollback-tx)
+
+(begin-tx)
+(env-data
+  { 'swap-ns-user: ["swap-user"]
+  , 'swap-ns-admin: ["swap-admin"]
+  , 'ns: "swap"
+  , 'upgrade: false
+  })
+(env-keys ["operate", "swap-user", "swap-admin"])
 (load "exchange.pact")
 
 (env-dynref fungible-v2 coin)
@@ -71,15 +89,17 @@
   (pair-exists swap.abc coin))
 
 ;; test governance on create-pair
-(expect-failure
-  "create pair fails without governance"
-  "Keyset failure (keys-all): 'swap-ns-admin"
+(expect
+  "create pair succeeds without governance"
+  {"key": (get-pair-key coin swap.abc), "account": (create-pair-account (get-pair-key coin swap.abc) "")}
   (create-pair coin swap.abc "")
 )
 
 (env-keys ["swap-admin"])
 
-(create-pair coin swap.abc "")
+(expect-failure
+  "Pair already exists"
+  (create-pair coin swap.abc ""))
 (create-pair coin swap.xyz "")
 (expect "create-pair (2) events" ;; TODO reverse
   [ { "name": "swap.exchange.CREATE_PAIR"
@@ -110,6 +130,16 @@
 (swap.abc.create-account "Alice" (read-keyset 'alice))
 (swap.abc.fund "Alice" 20000.0)
 (commit-tx)
+
+
+;; test private cap on update-supply
+(begin-tx)
+(expect-failure "update-supply private"
+  "require-capability: not granted: (swap.tokens.UPDATE_SUPPLY)"
+  (swap.tokens.update-supply
+    (at 'account (swap.exchange.get-pair swap.abc coin)) 10.0))
+(rollback-tx)
+
 
 
 ;;

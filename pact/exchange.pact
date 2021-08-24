@@ -591,27 +591,26 @@
     \ If account key value is already taken in leg tokens, transaction \
     \ will fail, which is why HINT exists (which should normally be \"\"), \
     \ to further seed the hash function creating the account id."
-    (with-capability (GOVERNANCE)
-      (let* ((key (get-pair-key token0 token1))
-             (canon (is-canonical token0 token1))
-             (ctoken0 (if canon token0 token1))
-             (ctoken1 (if canon token1 token0))
-             (a (create-pair-account key hint))
-             (g (create-module-guard key))
-             (p { 'leg0: { 'token: ctoken0, 'reserve: 0.0 }
-                , 'leg1: { 'token: ctoken1, 'reserve: 0.0 }
-                , 'account: a
-                , 'guard: g
-                })
-             )
-        (with-capability (CREATE_PAIR ctoken0 ctoken1 key a)
-          (insert pairs key p)
-          (token0::create-account a g)
-          (token1::create-account a g)
-          (tokens.create-account key a g)
-          { "key": key
-          , "account": a
-          })))
+    (let* ((key (get-pair-key token0 token1))
+           (canon (is-canonical token0 token1))
+           (ctoken0 (if canon token0 token1))
+           (ctoken1 (if canon token1 token0))
+           (a (create-pair-account key hint))
+           (g (create-module-guard key))
+           (p { 'leg0: { 'token: ctoken0, 'reserve: 0.0 }
+              , 'leg1: { 'token: ctoken1, 'reserve: 0.0 }
+              , 'account: a
+              , 'guard: g
+              })
+           )
+      (with-capability (CREATE_PAIR ctoken0 ctoken1 key a)
+        (insert pairs key p)
+        (token0::create-account a g)
+        (token1::create-account a g)
+        (tokens.create-account key a g)
+        { "key": key
+        , "account": a
+        }))
     )
 
   (defun get-pair-key:string

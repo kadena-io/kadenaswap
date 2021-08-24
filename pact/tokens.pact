@@ -113,7 +113,8 @@
   )
 
   (defun init-issuer (guard:guard)
-    (insert issuers ISSUER_KEY {'guard: guard})
+    (with-capability (GOVERNANCE)
+      (insert issuers ISSUER_KEY {'guard: guard}))
   )
 
   (defun key ( token:string account:string )
