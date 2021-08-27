@@ -261,14 +261,14 @@
         , 'rate:=rate
         }
         (enforce (> reserve amount) "withdraw-reserve: insufficient reserve")
-        (let ((committed (* (* rate 365) bonded)))
-          (enforce (>= committed amount)
-            "withdraw-reserve: violation of committed reserve"))
-        (install-capability (token::TRANSFER pool-account account amount))
-        (token::transfer pool-account account amount)
-        (let ((new-reserve (- reserve amount)))
-          (with-capability (UPDATE pool bonded new-reserve) 1)
-          (update pools pool { 'reserve:new-reserve}))))
+        (let ((committed (* (* rate 365) bonded))
+              (new-reserve (- reserve amount)))
+          (enforce (>= new-reserve committed)
+            "withdraw-reserve: violation of committed reserve")
+          (install-capability (token::TRANSFER pool-account account amount))
+          (token::transfer pool-account account amount)
+            (with-capability (UPDATE pool bonded new-reserve) 1)
+            (update pools pool { 'reserve:new-reserve}))))
   )
 
   (defun new-bond:string
