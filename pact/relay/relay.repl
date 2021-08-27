@@ -26,9 +26,9 @@
 (load "pool.pact")
 
 (env-dynref fungible-v2 coin)
-; (verify "test.pool")
+(verify "test.pool")
 (load "relay.pact")
-; (verify "test.relay")
+(verify "test.relay")
 (env-data { 'Bob: ["bob"], 'Alice:["alice"]
           , 'Carol:["carol"], 'Admin:["admin"], 'Pam:["pam"]})
 (test-capability (coin.COINBASE))
