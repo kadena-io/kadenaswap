@@ -97,7 +97,6 @@
   {'key: "bob",'caps: [(coin.TRANSFER "Bob" 'relay-bank 30000.0)]}
   {'key: "alice",'caps: [(coin.TRANSFER "Alice" 'relay-bank 30000.0)]}
   {'key: "carol",'caps: [(coin.TRANSFER "Carol" 'relay-bank 10000.0)]}
-
 ])
 (expect "new-bond: success Bob 1"
   "Bob:2021-01-01"
@@ -807,16 +806,19 @@
   "Keyset failure"
   (test.pool.withdraw-reserve test.relay.POOL 'Admin 10.0))
 (env-sigs [{'key: 'admin, 'caps: []}])
+(expect "Get bonded and reserve balance"
+  {"bonded": 110000.0, "reserve": 119723.4}
+  (take ['reserve 'bonded] (test.pool.get-pool test.relay.POOL)))
 (expect-failure "withdraw over reserve"
   "insufficient reserve"
   (test.pool.withdraw-reserve test.relay.POOL 'Admin 120000.0))
 (expect-failure "withdraw over committed"
   "violation of committed reserve"
-  (test.pool.withdraw-reserve test.relay.POOL 'Admin 33003.4))
+  (test.pool.withdraw-reserve test.relay.POOL 'Admin  (- 119723.4 33003.2)))
 (* (* 365 0.000822) 110000.0)
 (expect "withdraw success"
   "Write succeeded"
-  (test.pool.withdraw-reserve test.relay.POOL 'Admin 33003.3))
+  (test.pool.withdraw-reserve test.relay.POOL 'Admin  (- 119723.4 33003.3)))
 (commit-tx)
 
 ;;
