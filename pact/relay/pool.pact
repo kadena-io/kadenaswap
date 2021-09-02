@@ -339,6 +339,7 @@
         , 'rate:= rate
         , 'terminated:= terminated
         }
+        (update-actives pool)
         (enforce (not terminated) "Terminated")
         (with-read pools pool
           { 'token:= token:module{fungible-v2}
@@ -388,6 +389,7 @@
         , 'terminated:= terminated
         , 'renewed:= renewed
         }
+        (update-actives pool)
         (enforce (not terminated) "Terminated")
         (with-read pools pool
           { 'token:= token:module{fungible-v2}
@@ -516,7 +518,6 @@
      )
     " Pick random selection of active bonders, without BONDERS, from POOL. \
     \ Count is if ENDORSE endorsers otherwise denouncers from pool config."
-    (update-actives pool)
     (with-read pools pool
       { 'active:=active
       , 'endorsers:= endorsers

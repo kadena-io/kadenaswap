@@ -402,6 +402,7 @@
   ["Bob:2021-01-01" "Alice:2021-01-01" "Bob:2021-01-02" "Alice:2021-01-02"
    "Bob:2021-01-03" "Alice:2021-01-03" "Carol:2021-01-03"]
   (at 'active (test.pool.get-pool test.relay.POOL)))
+(test.pool.update-actives test.relay.POOL)
 (expect-failure "Alice 2 propose but not enough active bonders"
   "not enough active bonders"
   (test.relay.propose (read-msg 'header) "Alice:2021-01-02"))
@@ -670,6 +671,7 @@
 
 (env-chain-data
   { 'block-time: (parse-time "%F" "2021-01-31")} ) ;; eliminates Pam 1
+(test.pool.update-actives test.relay.POOL)
 (expect-failure
   "Denounce requires 7 fresh bonders"
   "not enough active bonders"
