@@ -83,9 +83,9 @@
     ( sender:string
       receiver:string
       in:decimal
-      token-in:module{fungible-v2}
+      token-in:string
       out:decimal
-      token-out:module{fungible-v2}
+      token-out:string
     )
     " Swap event debiting IN of TOKEN-IN from SENDER \
     \ for OUT of TOKEN-OUT on RECEIVER."
@@ -107,6 +107,10 @@
     true
   )
 
+  (defschema token
+    token:module{fungible-v2}
+    )
+
   (defschema leg
     token:module{fungible-v2}
     reserve:decimal
@@ -120,24 +124,25 @@
     )
 
   (deftable pairs:{pair})
+  (deftable tokens:{token})
 
   (defconst MINIMUM_LIQUIDITY 0.1)
 
   (defconst LOCK_ACCOUNT "lock")
 
-  (defun init ()
-    (tokens.init-issuer (create-module-guard "issuance"))
+  (defun init (token:string)
+    (tokens.init-issuer token (create-module-guard "issuance"))
   )
 
   (defun get-pair:object{pair}
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+    ( tokenA:string
+      tokenB:string
     )
     (read pairs (get-pair-key tokenA tokenB)))
 
   (defun pair-exists:bool
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+    ( tokenA:string
+      tokenB:string
     )
     (with-default-read pairs
       (get-pair-key tokenA tokenB)
@@ -162,8 +167,8 @@
   )
 
   (defun add-liquidity:object
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+    ( tokenA-str:string
+      tokenB-str:string
       amountADesired:decimal
       amountBDesired:decimal
       amountAMin:decimal
@@ -172,10 +177,11 @@
       to:string
       to-guard:guard
     )
-    (tokenA::enforce-unit amountADesired)
-    (tokenB::enforce-unit amountBDesired)
+
     (let*
-      ( (p (get-pair tokenA tokenB))
+      ( (p (get-pair tokenA-str tokenB-str))
+        (tokenA:module{fungible-v2} (get-token-module tokenA-str))
+        (tokenB:module{fungible-v2} (get-token-module tokenB-str))
         (reserveA (reserve-for p tokenA))
         (reserveB (reserve-for p tokenB))
         (amounts
@@ -196,6 +202,9 @@
         (amountB (truncate tokenB (at 1 amounts)))
         (pair-account (at 'account p))
       )
+
+      (tokenA::enforce-unit amountADesired)
+      (tokenB::enforce-unit amountBDesired)
       ;; transfer
       (tokenA::transfer sender pair-account amountA)
       (tokenB::transfer sender pair-account amountB)
@@ -209,7 +218,7 @@
           (reserve1 (at 'reserve (at 'leg1 p)))
           (amount0 (- balance0 reserve0))
           (amount1 (- balance1 reserve1))
-          (key (get-pair-key tokenA tokenB))
+          (key (get-pair-key tokenA-str tokenB-str))
           (totalSupply (tokens.total-supply key))
           (liquidity (tokens.truncate key
             (if (= totalSupply 0.0)
@@ -254,8 +263,8 @@
 
 
   (defun remove-liquidity:object
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+    ( tokenA:string
+      tokenB:string
       liquidity:decimal
       amountAMin:decimal
       amountBMin:decimal
@@ -309,19 +318,19 @@
   )
 
   (defschema alloc
-    token-out:module{fungible-v2}
-    token-in:module{fungible-v2}
+    token-out:string
+    token-in:string
     out:decimal
     in:decimal
     idx:integer
     pair:object{pair}
-    path:[module{fungible-v2}]
+    path:[string]
   )
 
   (defun swap-exact-in
     ( amountIn:decimal
       amountOutMin:decimal
-      path:[module{fungible-v2}]
+      path:[string]
       sender:string
       to:string
       to-guard:guard
@@ -355,15 +364,15 @@
 
   (defun compute-out
     ( allocs:[object{alloc}]
-      token-out:module{fungible-v2}
+      token-out:string
     )
     (let*
       ( (head:object{alloc} (at 0 allocs))
-        (token-in:module{fungible-v2} (at 'token-out head))
+        (token-in:string (at 'token-out head))
         (amountIn:decimal (at 'out head))
         (p (get-pair token-in token-out))
-        (reserveIn (reserve-for p token-in))
-        (reserveOut (reserve-for p token-out))
+        (reserveIn (reserve-for p (get-token-module token-in)))
+        (reserveOut (reserve-for p (get-token-module token-out)))
         (amountInWithFee (* (- 1.0 FEE) amountIn))
         (numerator (* amountInWithFee reserveOut))
         (denominator (+ reserveIn amountInWithFee))
@@ -371,7 +380,7 @@
       (+ [ { 'token-out: token-out
            , 'token-in: token-in
            , 'in: amountIn
-           , 'out: (truncate token-out (/ numerator denominator))
+           , 'out: (truncate (get-token-module token-out) (/ numerator denominator))
            , 'idx: (+ 1 (at 'idx head))
            , 'pair: p
            , 'path: (drop 1 (at 'path head))
@@ -384,7 +393,7 @@
   (defun swap-exact-out
     ( amountOut:decimal
       amountInMax:decimal
-      path:[module{fungible-v2}]
+      path:[string]
       sender:string
       to:string
       to-guard:guard
@@ -396,7 +405,7 @@
       ( (rpath (reverse path))
         (path-len (length path))
         (pz (get-pair (at 0 rpath) (at 1 rpath)))
-        (e:[module{fungible-v2}] [])
+        (e:[string] [])
         (allocs
           (fold (compute-in)
             [ { 'token-out: (at 1 rpath)
@@ -429,21 +438,23 @@
 
   (defun compute-in
     ( allocs:[object{alloc}]
-      token-in:module{fungible-v2}
+      token-in:string
     )
     (let*
       ( (head:object{alloc} (at 0 allocs))
-        (token-out:module{fungible-v2} (at 'token-in head))
+        (token-out:string (at 'token-in head))
         (amountOut:decimal (at 'in head))
         (p (get-pair token-in token-out))
-        (reserveIn (reserve-for p token-in))
-        (reserveOut (reserve-for p token-out))
+        (token-in-m:module{fungible-v2} (get-token-module token-in))
+        (token-out-m:module{fungible-v2} (get-token-module token-out))
+        (reserveIn (reserve-for p token-in-m))
+        (reserveOut (reserve-for p token-out-m))
         (numerator (* reserveIn amountOut))
         (denominator (* (- reserveOut amountOut) (- 1.0 FEE)))
       )
       (+ [ { 'token-out: token-out
            , 'token-in: token-in
-           , 'in: (ceiling (/ numerator denominator) (token-in::precision))
+           , 'in: (ceiling (/ numerator denominator) (token-in-m::precision))
            , 'out: amountOut
            , 'idx: (- (at 'idx head) 1)
            , 'pair: p
@@ -464,7 +475,7 @@
     (require-capability (SWAPPING))
     (let*
       ( (head:object{alloc} (at 0 allocs))
-        (head-token:module{fungible-v2} (at 'token-out head))
+        (head-token:module{fungible-v2} (get-token-module (at 'token-out head)))
         (account (at 'account (at 'pair head)))
         (out (at 'out head))
       )
@@ -497,26 +508,27 @@
         (recip-guard
           (if is-last guard (at 'guard next-pair)))
       )
-      (swap noop-callable recipient recip-guard
+      (swap recipient recip-guard
         (at 'token-out alloc)
         (at 'out alloc)
         (at 'token-in alloc)))
   )
 
   (defun swap
-    ( callable:module{swap-callable-v1}
-      recipient:string
+    ( recipient:string
       recip-guard:guard
-      token:module{fungible-v2}
+      token-str:string
       amount-out:decimal
-      token-in:module{fungible-v2}
+      token-in-str:string
     )
     " Swap AMOUNT-OUT of TOKEN to RECIPIENT/RECIP-GUARD, \
     \ such that a corresponding transfer to TOKEN-IN, either \
     \ previously or during the execution of 'CALLABLE::swap-call', \
     \ will satisfy the constant-product invariant for the pair."
     (let*
-      ( (p (get-pair token token-in))
+      ( (p (get-pair token-str token-in-str))
+        (token:module{fungible-v2} (get-token-module token-str))
+        (token-in:module{fungible-v2} (get-token-module token-in-str))
         (account (at 'account p))
         (reserve-out (reserve-for p token))
       )
@@ -526,9 +538,6 @@
       ;;fire swap event
       (install-capability (token::TRANSFER account recipient amount-out))
       (token::transfer-create account recipient recip-guard amount-out)
-
-      (callable::swap-call token-in token amount-out
-        account recipient recip-guard)
 
       (let*
         ( (leg0 (at 'leg0 p))
@@ -561,19 +570,24 @@
           (with-capability
             (SWAP account recipient
               (if canon amount1In amount0In)
-              token-in amount-out token)
+              token-in-str amount-out token-str)
             (update-reserves p
-              (get-pair-key token0 token1) balance0 balance1)))
-        { 'token: (format "{}" [token])
+              (get-pair-key (format "{}" [token0]) (format "{}" [token1])) balance0 balance1)))
+        { 'token: token-str
         , 'amount: amount-out
         }
       )
     )
   )
 
+
+  (defun register-token (token:module{fungible-v2})
+    (insert tokens (format "{}" [token]) {"token": token})
+    )
+
   (defun create-pair:object{pair}
-    ( token0:module{fungible-v2}
-      token1:module{fungible-v2}
+    ( token0:string
+      token1:string
       hint:string
       )
     " Create new pair for legs TOKEN0 and TOKEN1. This creates a new \
@@ -582,8 +596,11 @@
     \ If account key value is already taken in leg tokens, transaction \
     \ will fail, which is why HINT exists (which should normally be \"\"), \
     \ to further seed the hash function creating the account id."
-    (let* ((key (get-pair-key token0 token1))
+    (let* (
+           (key (get-pair-key token0 token1))
            (canon (is-canonical token0 token1))
+           (token0:module{fungible-v2} (get-token-module token0))
+           (token1:module{fungible-v2} (get-token-module token1))
            (ctoken0 (if canon token0 token1))
            (ctoken1 (if canon token1 token0))
            (a (create-pair-account key hint))
@@ -595,6 +612,7 @@
               })
            )
       (with-capability (CREATE_PAIR ctoken0 ctoken1 key a)
+        (init key)
         (insert pairs key p)
         (token0::create-account a g)
         (token1::create-account a g)
@@ -604,26 +622,29 @@
         }))
     )
 
+  (defun get-token-module:module{fungible-v2} (token:string)
+    (at 'token (read tokens token)))
+
   (defun get-pair-key:string
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+    ( tokenA:string
+      tokenB:string
     )
     " Create canonical key for pair."
     (format "{}:{}" (canonicalize tokenA tokenB))
   )
 
-  (defun canonicalize:[module{fungible-v2}]
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+  (defun canonicalize:[string]
+    ( tokenA:string
+      tokenB:string
     )
     (if (is-canonical tokenA tokenB) [tokenA tokenB] [tokenB tokenA])
   )
 
   (defun is-canonical
-    ( tokenA:module{fungible-v2}
-      tokenB:module{fungible-v2}
+    ( tokenA:string
+      tokenB:string
     )
-    (< (format "{}" [tokenA]) (format "{}" [tokenB]))
+    (< tokenA tokenB)
   )
 
   (defun is-leg0:bool
@@ -666,6 +687,6 @@
 (if (read-msg 'upgrade)
   ["upgrade"]
   [ (create-table pairs)
-    (init)
+    (create-table tokens)
   ]
 )
