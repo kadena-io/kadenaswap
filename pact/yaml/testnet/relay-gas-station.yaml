@@ -1,11 +1,11 @@
-codeFile: ../../gas-station/gas-station.pact
+codeFile: ../../relay/gas-station.pact
 signers:
   - public: dfb16b13e4032a6878fd98506b22cb0d6e5932c541e656b7ee5d69d72e6eb76e
 data:
   ns: "relay"
   upgrade: true
 networkId: testnet04
-nonce: "update kswap-free-gas on testnet chain 0"
+nonce: "update relay-free-gas on testnet chain 0"
 publicMeta:
   chainId: "0"
   sender: "dfb16b13e4032a6878fd98506b22cb0d6e5932c541e656b7ee5d69d72e6eb76e"
