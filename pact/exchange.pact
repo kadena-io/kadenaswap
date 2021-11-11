@@ -83,9 +83,9 @@
     ( sender:string
       receiver:string
       in:decimal
-      token-in:string
+      token-in:module{fungible-v2}
       out:decimal
-      token-out:string
+      token-out:module{fungible-v2}
     )
     " Swap event debiting IN of TOKEN-IN from SENDER \
     \ for OUT of TOKEN-OUT on RECEIVER."
@@ -182,8 +182,8 @@
       ( (p (get-pair pair-key))
         (tokenA:module{fungible-v2} (at 'token (at 'leg0 p)))
         (tokenB:module{fungible-v2} (at 'token (at 'leg1 p)))
-        (reserveA (reserve-for p tokenA))
-        (reserveB (reserve-for p tokenB))
+        (reserveA (reserve-for pair-key tokenA))
+        (reserveB (reserve-for pair-key tokenB))
         (amounts
           (if (and (= reserveA 0.0) (= reserveB 0.0))
             [amountADesired amountBDesired]
@@ -314,28 +314,34 @@
   )
 
   (defschema alloc
-    token-out:string
-    token-in:string
+    token-out:object{token-path}
+    token-in:object{token-path}
     out:decimal
     in:decimal
     idx:integer
-    pair:object{pair}
-    path:[string]
+    pair:string
+    path:[object{token-path}]
+  )
+
+  (defschema token-path
+    token:module{fungible-v2}
+    pair1:string
+    pair2:string
   )
 
   (defun swap-exact-in
     ( amountIn:decimal
       amountOutMin:decimal
-      path:[string]
+      path:[object:{token-path}]
       sender:string
       to:string
       to-guard:guard
     )
-    (enforce (>= (length path) 2) "swap-exact-in: invalid path")
+    (enforce (>= (length path) 2) "swap-exact-in: invalid path" )
     ;; fold over tail of path with dummy first value to compute outputs
     ;; assembles allocs in reverse
     (let*
-      ( (p0 (get-pair (at 0 path) (at 1 path)))
+      ( (p0 (at 'pair1 (at 0 path)))
         (allocs
           (fold (compute-out)
             [ { 'token-out: (at 0 path)
@@ -359,102 +365,106 @@
   (defconst FEE 0.003)
 
   (defun compute-out
-    ( allocs:[object{alloc}]
-      token-out:string
-    )
-    (let*
-      ( (head:object{alloc} (at 0 allocs))
-        (token-in:string (at 'token-out head))
-        (amountIn:decimal (at 'out head))
-        (p (get-pair token-in token-out))
-        (reserveIn (reserve-for p token-in))
-        (reserveOut (reserve-for p token-out))
-        (amountInWithFee (* (- 1.0 FEE) amountIn))
-        (numerator (* amountInWithFee reserveOut))
-        (denominator (+ reserveIn amountInWithFee))
+      ( allocs:[object{alloc}]
+        token-out:object{token-path}
       )
-      (+ [ { 'token-out: token-out
-           , 'token-in: token-in
-           , 'in: amountIn
-           , 'out: (truncate token-out (/ numerator denominator))
-           , 'idx: (+ 1 (at 'idx head))
-           , 'pair: p
-           , 'path: (drop 1 (at 'path head))
-           } ]
-         allocs)
+      (let*
+        ( (head:object{alloc} (at 0 allocs))
+          (p (at 'pair1 token-out))
+          (token-out:object{token-path} token-out)
+          (token-in:object{token-path} (at 'token-out head))
+          (amountIn:decimal (at 'out head))
+          (reserveIn (reserve-for p (at 'token token-in)))
+          (reserveOut (reserve-for p (at 'token token-out)))
+          (amountInWithFee (* (- 1.0 FEE) amountIn))
+          (numerator (* amountInWithFee reserveOut))
+          (denominator (+ reserveIn amountInWithFee))
+        )
+        (+ [ { 'token-out: token-out
+             , 'token-in: token-in
+             , 'in: amountIn
+             , 'out: (truncate (at 'token token-out) (/ numerator denominator))
+             , 'idx: (+ 1 (at 'idx head))
+             , 'pair: p
+             , 'path: (drop 1 (at 'path head))
+             } ]
+           allocs)
+      )
     )
-  )
 
 
   (defun swap-exact-out
     ( amountOut:decimal
       amountInMax:decimal
-      path:[string]
+      path:[object{token-path}]
       sender:string
       to:string
       to-guard:guard
     )
     (enforce (>= (length path) 2) "swap-exact-out: invalid path")
-    ;; fold over tail of reverse path with dummy first value to compute inputs
-    ;; assembles allocs in forward order
-    (let*
-      ( (rpath (reverse path))
-        (path-len (length path))
-        (pz (get-pair (at 0 rpath) (at 1 rpath)))
-        (e:[string] [])
-        (allocs
-          (fold (compute-in)
-            [ { 'token-out: (at 1 rpath)
-              , 'token-in: (at 0 rpath)
-              , 'out: 0.0
-              , 'in: amountOut
-              , 'idx: path-len
-              , 'pair: pz
-              , 'path: e
-              }]
-            (drop 1 rpath)))
-        (allocs1 ;; drop dummy at end, prepend dummy for initial transfer
-          (+ [  { 'token-out: (at 0 path)
-                , 'token-in: (at 1 path)
-                , 'out: (at 'in (at 0 allocs))
-                , 'in: 0.0
-                , 'idx: 0
-                , 'pair: (at 'pair (at 0 allocs))
-                , 'path: path
-             } ]
-             (take (- path-len 1) allocs)))
+      ;; fold over tail of reverse path with dummy first value to compute inputs
+      ;; assembles allocs in forward order
+      (let*
+        ( (rpath (reverse path))
+          (path-len (length path))
+          (pz (at 'pair1 (at 0 rpath)))
+          (e:[object{token-path}] [])
+          (allocs
+            (fold (compute-in)
+              [ { 'token-out: (at 1 rpath)
+                , 'token-in: (at 0 rpath)
+                , 'out: 0.0
+                , 'in: amountOut
+                , 'idx: path-len
+                , 'pair: pz
+                , 'path: e
+                }]
+              (drop 1 rpath)))
+          (allocs1 ;; drop dummy at end, prepend dummy for initial transfer
+            (+ [  { 'token-out: (at 0 path)
+                  , 'token-in: (at 1 path)
+                  , 'out: (at 'in (at 0 allocs))
+                  , 'in: 0.0
+                  , 'idx: 0
+                  , 'pair: (at 'pair (at 0 allocs))
+                  , 'path: path
+               } ]
+               (take (- path-len 1) allocs)))
+        )
+        (enforce (<= (at 'out (at 0 allocs1)) amountInMax)
+          (format "swap-exact-out: excessive input amount {}"
+            [(at 'out (at 0 allocs1))]))
+        (with-capability (SWAPPING)
+          (swap-pair sender to to-guard allocs1))
       )
-      (enforce (<= (at 'out (at 0 allocs1)) amountInMax)
-        (format "swap-exact-out: excessive input amount {}"
-          [(at 'out (at 0 allocs1))]))
-      (with-capability (SWAPPING)
-        (swap-pair sender to to-guard allocs1))
-    )
   )
 
   (defun compute-in
     ( allocs:[object{alloc}]
-      token-in:module{fungible-v2}
+      token-in:object{token-path}
     )
     (let*
       ( (head:object{alloc} (at 0 allocs))
-        (token-out:module{fungible-v2} (at 'token-in head))
+        (token-out:object{token-path} (at 'token-in head))
         (amountOut:decimal (at 'in head))
-        (p (get-pair token-in token-out))
-        (reserveIn (reserve-for p token-in))
-        (reserveOut (reserve-for p token-out))
+        (p (at 'pair1 token-in))
+        (reserveIn (reserve-for p (at 'token token-in)))
+        (reserveOut (reserve-for p (at 'token token-out)))
         (numerator (* reserveIn amountOut))
         (denominator (* (- reserveOut amountOut) (- 1.0 FEE)))
+        (token-in-m:module{fungible-v2} (at 'token token-in))
       )
+
       (+ [ { 'token-out: token-out
            , 'token-in: token-in
-           , 'in: (ceiling (/ numerator denominator) (token-in::precision))
+           , 'in: (ceiling (/ numerator denominator) (token-in-m::precision))
            , 'out: amountOut
            , 'idx: (- (at 'idx head) 1)
            , 'pair: p
            , 'path: (+ [token-out] (at 'path head))
            } ]
          allocs)
+
     )
   )
 
@@ -467,8 +477,8 @@
     (require-capability (SWAPPING))
     (let*
       ( (head:object{alloc} (at 0 allocs))
-        (head-token:module{fungible-v2} (at 'token-out head))
-        (account (at 'account (at 'pair head)))
+        (head-token:module{fungible-v2} (at 'token (at 'token-out head)))
+        (account (at 'account (get-pair (at 'pair head))))
         (out (at 'out head))
       )
       (head-token::transfer sender account out)
@@ -494,16 +504,18 @@
       ( (path (at 'path alloc))
         (is-last (= last (at 'idx alloc)))
         (next-pair
-          (if is-last (at 'pair alloc) (get-pair (at 0 path) (at 1 path))))
+          (if is-last (at 'pair alloc) (get-pair (at 'pair2 (at 0 path)))))
         (recipient
           (if is-last to (at 'account next-pair)))
         (recip-guard
           (if is-last guard (at 'guard next-pair)))
       )
       (swap recipient recip-guard
-        (at 'token-out alloc)
+        (at 'token (at 'token-out alloc))
         (at 'out alloc)
-        (at 'token-in alloc)))
+        (at 'token (at 'token-in alloc))
+        (at 'pair alloc)
+        ))
   )
 
   (defun swap
@@ -521,7 +533,7 @@
     (let*
       ( (p (get-pair pair-key))
         (account (at 'account p))
-        (reserve-out (reserve-for p token))
+        (reserve-out (reserve-for pair-key token))
       )
       (enforce (> amount-out 0.0) "swap: insufficient output")
       (enforce (< amount-out reserve-out) "swap: insufficient liquidity")
@@ -564,7 +576,7 @@
               token-in amount-out token)
             (update-reserves p
               pair-key balance0 balance1)))
-        { 'token: token
+        { 'token: (format "{}" [token])
         , 'amount: amount-out
         }
       )
@@ -640,10 +652,10 @@
   )
 
   (defun reserve-for:decimal
-    ( p:object{pair}
+    ( p:string
       token:module{fungible-v2}
     )
-    (at 'reserve (leg-for p token))
+    (at 'reserve (leg-for (get-pair p) token))
   )
 
   (defun create-pair-account:string
@@ -655,9 +667,8 @@
     (floor amount (token::precision))
   )
 
-
-
 )
+
 (if (read-msg 'upgrade)
   ["upgrade"]
   [ (create-table pairs)
