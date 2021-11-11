@@ -7,7 +7,7 @@
   (implements gas-payer-v1)
   (use coin)
   (use util.guards1)
-  
+
   (defschema gas
     balance:decimal
     guard:guard)
@@ -23,7 +23,7 @@
     (enforce (= "exec" (at "tx-type" (read-msg))) "Inside an exec")
     (enforce (= 1 (length (at "exec-code" (read-msg)))) "Tx of only one pact function")
     (enforce (= "(relay." (take 7 (at 0 (at "exec-code" (read-msg))))) "only relay namespace")
-    (enforce (= 0.000000000001 (at "gas-price" (chain-data))) "Must use minimum gas limit")
+    (enforce (= 0.00000001 (at "gas-price" (chain-data))) "Must use minimum gas limit")
     (compose-capability (ALLOW_GAS))
   )
 

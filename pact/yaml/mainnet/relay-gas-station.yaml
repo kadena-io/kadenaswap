@@ -1,14 +1,15 @@
 codeFile: ../../relay/gas-station.pact
 signers:
-  - public: 8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358
+  - public: 182d8b42661bc5aed904738734e520a1cc2323377aa2004dc7931125d2808fa1
+  - public: f244d1b6873445e4e07dff0558e0282e278747f251dede8ed4b5f06cca3290f5
 data:
   ns: relay
-  upgrade: false
+  upgrade: true
 networkId: mainnet01
 nonce: install-relay-gas-station
 publicMeta:
   chainId: "2"
-  sender: "8cc8da8ea7cbfaf6510dbc5f402b025dceaa9a3eaf7145e0ba933d468b63d358"
+  sender: "f244d1b6873445e4e07dff0558e0282e278747f251dede8ed4b5f06cca3290f5"
   gasLimit: 2000
-  gasPrice: 0.00000000001
-  ttl: 150000
+  gasPrice: 0.00000001
+  ttl: 1500

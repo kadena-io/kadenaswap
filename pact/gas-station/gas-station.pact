@@ -23,7 +23,7 @@
     (enforce (= "exec" (at "tx-type" (read-msg))) "Inside an exec")
     (enforce (= 1 (length (at "exec-code" (read-msg)))) "Tx of only one pact function")
     (enforce (= "(kswap." (take 7 (at 0 (at "exec-code" (read-msg))))) "only kswap namespace")
-    (enforce-below-or-at-gas-price 0.000000000001)
+    (enforce-below-or-at-gas-price 0.0000001)
     (compose-capability (ALLOW_GAS))
   )
 
