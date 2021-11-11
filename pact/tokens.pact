@@ -94,27 +94,31 @@
 
   (defcap CREDIT (token:string receiver:string) true)
 
+  (defcap INIT (token:string)
+    true
+  )
+
   (defcap UPDATE_SUPPLY ()
     "private cap for update-supply"
     true)
 
-  (defcap ISSUE ()
-    (enforce-guard (at 'guard (read issuers ISSUER_KEY)))
+  (defcap ISSUE (token:string)
+    (enforce-guard (at 'guard (read issuers token)))
   )
 
   (defcap MINT (token:string account:string amount:decimal)
     @managed ;; one-shot for a given amount
-    (compose-capability (ISSUE))
+    (compose-capability (ISSUE token))
   )
 
   (defcap BURN (token:string account:string amount:decimal)
     @managed ;; one-shot for a given amount
-    (compose-capability (ISSUE))
+    (compose-capability (ISSUE token))
   )
 
-  (defun init-issuer (guard:guard)
-    (with-capability (GOVERNANCE)
-      (insert issuers ISSUER_KEY {'guard: guard}))
+  (defun init-issuer (token:string guard:guard)
+    (with-capability (INIT token)
+      (insert issuers token {'guard: guard}))
   )
 
   (defun key ( token:string account:string )
