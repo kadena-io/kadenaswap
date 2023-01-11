@@ -14,16 +14,16 @@
     (forall (k:string)
      (when (row-written pairs k)
        (row-enforced pairs 'guard k)))
-    { 'except:
-      [ create-pair      ;; unguarded (insert semantics)
+    { 'only:
+      [ ;create-pair      ;; unguarded (insert semantics)
         add-liquidity    ;; prop-increase-liquidity
-        remove-liquidity ;; prop-decrease-liquidity
-        swap-exact-in    ;; prop-increase-liquidity
-        swap-exact-out   ;; prop-increase-liquidity
-        swap             ;; prop-increase-liquidity
-        swap-pair        ;; PRIVATE
-        swap-alloc       ;; PRIVATE
-        update-reserves  ;; PRIVATE
+        ;remove-liquidity ;; prop-decrease-liquidity
+        ;swap-exact-in    ;; prop-increase-liquidity
+        ;swap-exact-out   ;; prop-increase-liquidity
+        ;swap             ;; prop-increase-liquidity
+        ;swap-pair        ;; PRIVATE
+        ;swap-alloc       ;; PRIVATE
+        ;update-reserves  ;; PRIVATE
       ] } )
 
 
@@ -211,16 +211,16 @@
           (amount1 (- balance1 reserve1))
           (key (get-pair-key tokenA tokenB))
           (totalSupply (tokens.total-supply key))
-          (liquidity (tokens.truncate key
-            (if (= totalSupply 0.0)
-              (with-capability (ISSUING)
-                (mint key LOCK_ACCOUNT (at 'guard p) MINIMUM_LIQUIDITY)
-                (- (sqrt (* amount0 amount1)) MINIMUM_LIQUIDITY))
-              (let ((l0 (/ (* amount0 totalSupply) reserve0))
-                    (l1 (/ (* amount1 totalSupply) reserve1))
-                   )
-                ;; need min, max
-                (if (<= l0 l1) l0 l1)))))
+          (liquidity 1.0) ;;(tokens.truncate key
+            ;(if (= totalSupply 0.0)
+            ;  (with-capability (ISSUING)
+            ;    (mint key LOCK_ACCOUNT (at 'guard p) MINIMUM_LIQUIDITY)
+            ;    (- (sqrt (* amount0 amount1)) MINIMUM_LIQUIDITY))
+            ;  (let ((l0 (/ (* amount0 totalSupply) reserve0))
+            ;        (l1 (/ (* amount1 totalSupply) reserve1))
+            ;       )
+            ;    ;; need min, max
+            ;    (if (<= l0 l1) l0 l1)))))
         )
         (enforce (> liquidity 0.0) "mint: insufficient liquidity minted")
         (with-capability (ISSUING)

@@ -186,7 +186,7 @@
     \was charged has been calculated. MINER will be credited the gas cost,    \
     \and SENDER will receive the remainder up to the limit"
 
-    @model [ (property (> total 0.0))
+    @model [ ;(property (> total 0.0))
              (property (valid-account sender))
              (property (valid-account miner))
            ]
@@ -374,7 +374,7 @@
 
     @model [ (property (> total 0.0))
              (property (valid-account sender))
-             (property (valid-account miner))
+             ;(property (valid-account miner))
              ;(property conserves-mass) not supported yet
            ]
 

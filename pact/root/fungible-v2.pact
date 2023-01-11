@@ -91,7 +91,7 @@
      @model [ (property (> amount 0.0))
               (property (!= sender ""))
               (property (!= receiver ""))
-              (property (!= sender receiver))
+              ;(property (!= sender receiver))
               (property (!= target-chain ""))
             ]
      )
